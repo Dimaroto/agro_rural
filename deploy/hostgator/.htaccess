@@ -1,0 +1,15 @@
+# HostGator / Apache — use quando o app Node estiver em subpasta ou precisar de fallback.
+# No cPanel "Setup Node.js App", o Passenger costuma gerenciar o roteamento automaticamente.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Arquivos estaticos existentes
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Proxy para o processo Node (ajuste a porta se o cPanel definir outra)
+  RewriteRule ^(.*)$ http://127.0.0.1:%{ENV:PORT}/$1 [P,L]
+</IfModule>

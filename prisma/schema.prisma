@@ -1,0 +1,486 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model Store {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  whatsapp        String?
+  logoUrl         String?
+  bannerUrl       String?
+  active          Boolean  @default(true)
+  nextOrderNumber Int      @default(1)
+  nextProductCode Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users                 User[]
+  categories            Category[]
+  products              Product[]
+  orders                Order[]
+  inventoryMovements    InventoryMovement[]
+  expenseCategories     ExpenseCategory[]
+  financialEntries      FinancialEntry[]
+  payableAccounts       PayableAccount[]
+  subscriptions         Subscription[]
+  taxRecords            TaxRecord[]
+  financialSettings     FinancialSettings?
+  pushSubscriptions     AdminPushSubscription[]
+
+  @@map("stores")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pushSubscriptions AdminPushSubscription[]
+
+  @@index([storeId])
+  @@map("users")
+}
+
+/** Inscrição Web Push do admin — alertas no dispositivo mesmo com o app fechado. */
+model AdminPushSubscription {
+  id               String   @id @default(cuid())
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  endpoint         String   @unique
+  p256dh           String
+  auth             String
+  /** Preferências dos eventos que enviam push (JSON). */
+  prefsJson        String   @default("{}")
+  /** Eventos já enviados para deduplicar webhook/retry (JSON). */
+  lastNotifiedJson String   @default("{}")
+  userAgent        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([userId])
+  @@map("admin_push_subscriptions")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  imageUrl  String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  /** Quando true, a categoria pode aparecer no carrossel da home. */
+  showOnHome Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products         Product[]
+  productLinks     ProductCategory[]
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+  @@map("categories")
+}
+
+enum ProductFieldType {
+  TEXT
+  SELECT
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** Categoria principal (primeira selecionada). */
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name         String
+  /** Código sequencial numérico da loja (exibido como 0001). */
+  code         Int
+  description  String?
+  priceCents   Int
+  custoCents   Int?
+  imageUrl     String?
+  /** Fotos adicionais (além da capa). No máximo 2. */
+  extraImageUrls String[] @default([])
+  quantity         Int @default(0)
+  reservedQuantity Int @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categoryLinks       ProductCategory[]
+  orderItems          OrderItem[]
+  inventoryMovements  InventoryMovement[]
+  customizationFields ProductCustomizationField[]
+  measures            ProductMeasure[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([storeId, code])
+  @@map("products")
+}
+
+enum ProductMeasureUnit {
+  G
+  KG
+  ML
+  CM
+}
+
+model ProductMeasure {
+  id        String             @id @default(cuid())
+  productId String
+  product   Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /** Valor único (g / kg / ml). Em cm fica null. */
+  value     Float?
+  /** Dimensões em cm: largura e comprimento obrigatórios; altura opcional. */
+  width     Float?
+  length    Float?
+  height    Float?
+  unit      ProductMeasureUnit
+  sortOrder Int                @default(0)
+
+  @@index([productId, sortOrder])
+  @@map("product_measures")
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
+}
+
+model ProductCustomizationField {
+  id        String           @id @default(cuid())
+  productId String
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  type      ProductFieldType
+  sortOrder Int              @default(0)
+  required  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  options ProductCustomizationFieldOption[]
+
+  @@index([productId])
+  @@map("product_customization_fields")
+}
+
+model ProductCustomizationFieldOption {
+  id        String                     @id @default(cuid())
+  fieldId   String
+  field     ProductCustomizationField  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  label     String
+  sortOrder Int                        @default(0)
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+
+  @@index([fieldId])
+  @@map("product_customization_field_options")
+}
+
+enum MovementType {
+  MANUAL_IN
+  MANUAL_OUT
+  ADJUSTMENT
+  RESERVE
+  RELEASE
+  SALE
+  CANCEL
+}
+
+model InventoryMovement {
+  id          String       @id @default(cuid())
+  storeId     String
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type        MovementType
+  quantity    Int
+  balanceAfter Int
+  note        String?
+  orderId     String?
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([storeId])
+  @@index([productId])
+  @@map("inventory_movements")
+}
+
+enum OrderStatus {
+  DRAFT
+  AWAITING_PIX
+  AWAITING_PAYMENT
+  PAID
+  DELIVERED
+  CANCELLED
+  EXPIRED
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  phone        String?
+  street       String?
+  number       String?
+  district     String?
+  city         String?
+  zipCode      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("customers")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  storeId         String
+  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  orderNumber     Int?
+  status          OrderStatus @default(DRAFT)
+  customerName    String?
+  customerPhone   String?
+  totalCents      Int         @default(0)
+  pixExpiresAt    DateTime?
+  /** Prazo para receber pagamento (vendas PDV "A receber"). */
+  receivableDueAt DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items              OrderItem[]
+  payment            Payment?
+  inventoryMovements InventoryMovement[]
+
+  @@unique([storeId, orderNumber])
+  @@index([storeId])
+  @@index([status])
+  @@index([customerId])
+  @@index([storeId, orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /** Null quando o produto já foi excluído. */
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName    String
+  quantity       Int
+  unitPriceCents Int
+  optionsJson    String?
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String        @unique
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider     String
+  method       String?
+  externalId   String?
+  status       PaymentStatus @default(PENDING)
+  pixCopyPaste String?
+  pixQrCode    String?
+  checkoutUrl  String?
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([externalId])
+  @@map("payments")
+}
+
+model ProcessedWebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  processedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@map("processed_webhook_events")
+}
+
+enum FinancialEntryType {
+  INCOME
+  EXPENSE
+}
+
+enum PayableStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum SubscriptionInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum TaxStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries       FinancialEntry[]
+  payables      PayableAccount[]
+  subscriptions Subscription[]
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+  @@map("expense_categories")
+}
+
+model FinancialEntry {
+  id          String             @id @default(cuid())
+  storeId     String
+  store       Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  type        FinancialEntryType
+  amountCents Int
+  description String
+  categoryId  String?
+  category    ExpenseCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  entryDate   DateTime
+  orderId     String?
+  source      String             @default("MANUAL")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([storeId, type])
+  @@index([storeId, entryDate])
+  @@map("financial_entries")
+}
+
+model PayableAccount {
+  id          String         @id @default(cuid())
+  storeId     String
+  store       Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title       String
+  amountCents Int
+  dueDate     DateTime
+  status      PayableStatus  @default(PENDING)
+  categoryId  String?
+  category    ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([storeId, status])
+  @@index([storeId, dueDate])
+  @@map("payable_accounts")
+}
+
+model Subscription {
+  id          String               @id @default(cuid())
+  storeId     String
+  store       Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  amountCents Int
+  interval    SubscriptionInterval @default(MONTHLY)
+  nextDueDate DateTime
+  active      Boolean              @default(true)
+  categoryId  String?
+  category    ExpenseCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([storeId, active])
+  @@map("subscriptions")
+}
+
+model TaxRecord {
+  id          String    @id @default(cuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title       String
+  amountCents Int
+  period      String
+  status      TaxStatus @default(PENDING)
+  dueDate     DateTime?
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, status])
+  @@map("tax_records")
+}
+
+model FinancialSettings {
+  id                  String  @id @default(cuid())
+  storeId             String  @unique
+  store               Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  openingBalanceCents Int     @default(0)
+  defaultCurrency     String  @default("BRL")
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("financial_settings")
+}
+
+/** Janela deslizante para rate limit de auth (login/registro). */
+model AuthRateLimitBucket {
+  bucketKey String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("auth_rate_limit_buckets")
+}
+

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Abrir catálogo no celular</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      background: #f4f4f5;
+      color: #18181b;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      max-width: 360px;
+    }
+    img { border-radius: .75rem; }
+    a {
+      color: #009d71;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    p { line-height: 1.5; color: #52525b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Catálogo no celular</h1>
+    <p>Conecte o celular na <strong>mesma rede Wi‑Fi</strong> e escaneie o QR code:</p>
+    <img
+      src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=http://10.0.0.215:3000/s/saboart"
+      width="280"
+      height="280"
+      alt="QR code do catálogo"
+    />
+    <p style="margin-top:1rem">Ou abra no navegador do celular:</p>
+    <p><a href="http://10.0.0.215:3000/s/saboart">http://10.0.0.215:3000/s/saboart</a></p>
+  </div>
+</body>
+</html>

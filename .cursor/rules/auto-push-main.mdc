@@ -1,0 +1,14 @@
+---
+description: Após cada atualização, fazer commit e push para main
+alwaysApply: true
+---
+
+# Git push após atualizações
+
+Sempre que concluir uma atualização pedida pelo usuário (correção, feature, ajuste de UI, etc.):
+
+1. Faça commit das alterações relevantes (mensagem curta em português, no estilo do repositório).
+2. Faça `git push origin main` (ou a branch atual, se não for main).
+3. Não espere o usuário pedir "push" de novo — isso já está autorizado.
+
+Exceções: não faça push se o usuário pedir explicitamente para não enviar, ou se houver apenas arquivos sensíveis (`.env`, credenciais).

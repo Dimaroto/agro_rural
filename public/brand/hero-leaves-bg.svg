@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 640" fill="none">
+  <rect width="1440" height="640" fill="#faf6ef"/>
+  <rect width="1440" height="640" fill="url(#paper)" opacity="0.35"/>
+  <defs>
+    <filter id="paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" stitchTiles="stitch"/>
+    </filter>
+    <linearGradient id="fadeBottom" x1="720" y1="320" x2="720" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#faf6ef" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ede8df" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="640" fill="url(#fadeBottom)"/>
+
+  <!-- canto superior esquerdo -->
+  <g opacity="0.55" transform="translate(40 24) rotate(-18 60 60)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#0e9f6e" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+  <g opacity="0.35" transform="translate(120 80) rotate(12 40 40) scale(0.7)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#a7f3d0" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+
+  <!-- canto superior direito -->
+  <g opacity="0.5" transform="translate(1280 20) rotate(22 60 60)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#0e9f6e" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+  <g opacity="0.28" transform="translate(1180 90) rotate(-8 40 40) scale(0.65)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#e4ebe0" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+
+  <!-- canto inferior esquerdo -->
+  <g opacity="0.42" transform="translate(60 480) rotate(-32 60 60) scale(0.85)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#0e9f6e" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+
+  <!-- canto inferior direito -->
+  <g opacity="0.45" transform="translate(1240 460) rotate(28 60 60) scale(0.9)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#0e9f6e" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+  <g opacity="0.22" transform="translate(1080 520) rotate(-14 40 40) scale(0.55)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+    <path fill="#a7f3d0" d="M60 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z"/>
+  </g>
+
+  <!-- folhas centrais sutis -->
+  <g opacity="0.12" transform="translate(680 40) rotate(6 30 30) scale(0.5)">
+    <path fill="#14532d" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+  </g>
+  <g opacity="0.1" transform="translate(760 520) rotate(-6 30 30) scale(0.45)">
+    <path fill="#0e9f6e" d="M60 8C46 24 34 34 30 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z"/>
+  </g>
+</svg>
