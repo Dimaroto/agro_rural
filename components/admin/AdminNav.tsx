@@ -12,6 +12,7 @@ const links = [
   { href: "/admin/produtos", label: "Produtos" },
   { href: "/admin/pdv", label: "PDV" },
   { href: "/admin/clientes", label: "Clientes" },
+  { href: "/admin/agendamentos", label: "Agendamentos" },
   { href: "/admin/categorias", label: "Categorias" },
   { href: "/admin/pedidos", label: "Vendas" },
   { href: "/admin/financeiro", label: "Financeiro", prefix: "/admin/financeiro" },

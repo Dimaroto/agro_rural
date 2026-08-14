@@ -111,6 +111,25 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+export function CalendarIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M7 4v3M17 4v3" />
+      <path d="M5 8h14v11H5z" />
+      <path d="M5 12h14" />
+    </IconBase>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v4.5L15 14" />
+    </IconBase>
+  );
+}
+
 /** Ícone de colar (clipboard). */
 export function PasteIcon(props: IconProps) {
   return (

@@ -74,7 +74,7 @@ export function isBirthdayToday(
   return month === todayMonth && day === todayDay;
 }
 
-function isValidCalendarDate(year: number, month: number, day: number): boolean {
+export function isValidCalendarDate(year: number, month: number, day: number): boolean {
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return false;
   }
