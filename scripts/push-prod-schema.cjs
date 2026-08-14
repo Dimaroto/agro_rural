@@ -3,59 +3,19 @@
  * Não faz seed. Não imprime secrets.
  */
 const { execSync } = require("child_process");
-
-function isPostgresUrl(value) {
-  return !!value && /^postgres(ql)?:\/\//.test(String(value).trim());
-}
-
-function isRedacted(value) {
-  if (!value) return false;
-  const v = String(value).trim();
-  return v === "[SENSITIVE]" || v.includes("[SENSITIVE]");
-}
+const { applyNeonEnv, isRedacted } = require("./neon-env.cjs");
 
 function resolveDatabaseEnv() {
-  const pooledKeys = [
+  const { pooled, direct } = applyNeonEnv();
+
+  const hadRedacted = [
     "DATABASE_URL",
     "POSTGRES_PRISMA_URL",
     "POSTGRES_URL",
-  ];
-  const directKeys = [
     "DATABASE_URL_UNPOOLED",
     "DIRECT_URL",
     "POSTGRES_URL_NON_POOLING",
-  ];
-
-  let pooled = null;
-  for (const key of pooledKeys) {
-    const value = process.env[key]?.trim();
-    if (isRedacted(value)) continue;
-    if (isPostgresUrl(value)) {
-      pooled = value;
-      process.env.DATABASE_URL = value;
-      break;
-    }
-  }
-
-  let direct = null;
-  for (const key of directKeys) {
-    const value = process.env[key]?.trim();
-    if (isRedacted(value)) continue;
-    if (isPostgresUrl(value)) {
-      direct = value;
-      process.env.DATABASE_URL_UNPOOLED = value;
-      break;
-    }
-  }
-
-  if (!direct && pooled) {
-    process.env.DATABASE_URL_UNPOOLED = pooled;
-    direct = pooled;
-  }
-
-  const hadRedacted = [...pooledKeys, ...directKeys].some((key) =>
-    isRedacted(process.env[key])
-  );
+  ].some((key) => isRedacted(process.env[key]));
 
   if (!pooled) {
     console.error("[erro] DATABASE_URL vazia ou inválida.");
@@ -74,9 +34,9 @@ function resolveDatabaseEnv() {
     console.error("  Vercel → Project → Settings → Environment Variables");
     console.error("  (Reveal em DATABASE_URL e POSTGRES_URL_NON_POOLING ou DIRECT_URL)");
     console.error("");
-    console.error("  $env:DATABASE_URL = 'postgresql://...-pooler.../catalogo?sslmode=require'");
+    console.error("  $env:DATABASE_URL = 'postgresql://...-pooler.../neondb?sslmode=require'");
     console.error(
-      "  $env:DATABASE_URL_UNPOOLED = 'postgresql://...direct.../catalogo?sslmode=require'"
+      "  $env:DATABASE_URL_UNPOOLED = 'postgresql://...direct.../neondb?sslmode=require'"
     );
     console.error("  npm.cmd run db:push:prod");
     console.error("");

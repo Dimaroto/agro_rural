@@ -14,6 +14,16 @@ function resolveAuthSecret(): string {
   return "dev-secret-change-in-production";
 }
 
+function resolveAppUrl() {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) return fromEnv;
+  if (process.env.VERCEL_ENV === "production") {
+    return "https://agroruralzortea.com.br";
+  }
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
 export const config = {
   defaultStoreSlug:
     process.env.NEXT_PUBLIC_DEFAULT_STORE_SLUG ??
@@ -29,7 +39,7 @@ export const config = {
     process.env.MERCADOPAGO_PUBLIC_KEY?.trim() ||
     "",
   mercadoPagoWebhookSecret: process.env.MERCADOPAGO_WEBHOOK_SECRET ?? "",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  appUrl: resolveAppUrl(),
   get authSecret() {
     return resolveAuthSecret();
   },

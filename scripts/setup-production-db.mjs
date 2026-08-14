@@ -5,9 +5,12 @@
  */
 import { execSync } from "child_process";
 import { existsSync } from "fs";
+import { createRequire } from "module";
 import { config } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+
+const { applyNeonEnv } = createRequire(import.meta.url)("./neon-env.cjs");
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -27,11 +30,8 @@ function requireEnv(name) {
   return value;
 }
 
+applyNeonEnv();
 requireEnv("DATABASE_URL");
-if (!process.env.DATABASE_URL_UNPOOLED?.trim()) {
-  process.env.DATABASE_URL_UNPOOLED =
-    process.env.DIRECT_URL ?? process.env.POSTGRES_URL_NON_POOLING ?? process.env.DATABASE_URL;
-}
 
 console.log("[neon] Aplicando schema (prisma db push)...");
 execSync("npx prisma db push", { cwd: root, stdio: "inherit", env: process.env });

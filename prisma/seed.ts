@@ -1,9 +1,11 @@
 import "dotenv/config";
 import { PrismaClient, MovementType } from "@prisma/client";
+import { applyNeonEnv } from "../lib/neon-env";
 import { DEFAULT_ADMIN_LOGIN, normalizeAdminLogin } from "../lib/admin-login";
 import { allocateProductCode } from "../lib/product-code";
 import { hashPassword } from "../lib/password-hash";
 
+applyNeonEnv();
 const prisma = new PrismaClient();
 
 const categories = [

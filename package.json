@@ -10,7 +10,7 @@
     "db:local": "node scripts/start-local-postgres.mjs",
     "dev:mobile": "next dev -H 0.0.0.0",
     "open:mobile": "open-mobile-catalog.bat",
-    "build": "prisma generate && next build",
+    "build": "node scripts/vercel-build.cjs",
     "build:hostgator": "node scripts/build-hostgator.mjs",
     "build:hostgator:db": "node scripts/build-hostgator.mjs --with-db",
     "start": "next start",

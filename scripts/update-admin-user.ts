@@ -1,6 +1,7 @@
 import { config as loadEnv } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_ADMIN_LOGIN, normalizeAdminLogin } from "../lib/admin-login";
+import { applyNeonEnv } from "../lib/neon-env";
 import { hashPassword } from "../lib/password-hash";
 
 const useProductionEnv = process.argv.includes("--production");
@@ -71,6 +72,7 @@ function resolvePostgresUrl(): string {
 }
 
 resolvePostgresUrl();
+applyNeonEnv();
 
 const prisma = new PrismaClient();
 

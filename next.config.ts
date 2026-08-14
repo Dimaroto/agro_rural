@@ -1,8 +1,21 @@
 import type { NextConfig } from "next";
 import { getSecurityHeaders } from "./lib/security-headers";
 
+const productionAppUrl = "https://agroruralzortea.com.br";
+
+function resolvePublicAppUrl() {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) return fromEnv;
+  if (process.env.VERCEL_ENV === "production") return productionAppUrl;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["web-push"],
+  env: {
+    NEXT_PUBLIC_APP_URL: resolvePublicAppUrl(),
+  },
   async headers() {
     return [
       {

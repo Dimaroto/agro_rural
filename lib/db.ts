@@ -1,4 +1,7 @@
+import { applyNeonEnv } from "@/lib/neon-env";
 import { OrderStatus, PrismaClient } from "@prisma/client";
+
+applyNeonEnv();
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
