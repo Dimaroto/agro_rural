@@ -356,20 +356,19 @@ export function PdvClient() {
   }
 
   return (
-    <div className="pdv-shell flex h-full min-h-0 w-full flex-col gap-2">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-            PDV
-          </h1>
-          {customer?.isBirthday && (
-            <p className="rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
-              Aniversário de {customer.name} — lembre de parabenizar!
-            </p>
-          )}
-        </div>
+    <div className="pdv-shell flex h-full min-h-0 w-full flex-col gap-3">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+          PDV
+        </h1>
         <PdvInstallButton />
       </header>
+
+      {customer?.isBirthday && (
+        <p className="shrink-0 rounded-xl bg-fuchsia-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm ring-2 ring-fuchsia-300">
+          Aniversário de {customer.name} — lembre de parabenizar!
+        </p>
+      )}
 
       <PdvNotifications />
 
@@ -389,9 +388,9 @@ export function PdvClient() {
         </p>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_minmax(380px,0.95fr)]">
-        <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
-          <div className="admin-card shrink-0 p-2 sm:p-3">
+      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_minmax(380px,0.95fr)]">
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
+          <div className="admin-card shrink-0 p-3 sm:p-4">
             <label className="sr-only" htmlFor="pdv-search">
               Buscar produto
             </label>
@@ -484,7 +483,7 @@ export function PdvClient() {
         </div>
 
         <aside className="admin-card flex min-h-0 flex-col overflow-hidden p-0">
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
           <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
             Carrinho
           </h2>
@@ -751,7 +750,7 @@ export function PdvClient() {
           </div>
           </div>
 
-          <div className="shrink-0 space-y-2 border-t border-zinc-200 bg-[#F7F4EC] p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="shrink-0 space-y-2 border-t border-zinc-200 bg-[#F7F4EC] p-4 dark:border-zinc-800 dark:bg-zinc-900">
             {discountCents > 0 && (
               <p className="text-xs text-zinc-500">
                 Subtotal {formatPrice(subtotalCents)} · Desconto{" "}
