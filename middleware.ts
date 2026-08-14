@@ -1,6 +1,7 @@
 import { CUSTOMER_SESSION_COOKIE } from "@/lib/session-cookies";
 import { isValidCustomerSessionCookie } from "@/lib/customer-session-token";
 import { isAllowedAdminLogin } from "@/lib/admin-login";
+import { resolveAuthSecret } from "@/lib/auth-secret";
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -8,7 +9,7 @@ import type { JWT } from "next-auth/jwt";
 
 /** Em HTTPS o Auth.js usa `__Secure-authjs.session-token`; sem secureCookie o getToken não acha a sessão. */
 async function getAdminJwt(req: NextRequest): Promise<JWT | null> {
-  const secret = process.env.AUTH_SECRET;
+  const secret = resolveAuthSecret();
   if (!secret) return null;
 
   const forwardedProto = req.headers.get("x-forwarded-proto");

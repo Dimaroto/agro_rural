@@ -187,15 +187,15 @@ async function main() {
   if (legacyStore && legacyStore.slug !== "saboart") {
     await prisma.store.update({
       where: { id: legacyStore.id },
-      data: { name: "SaboArt da Dag", slug: "saboart" },
+      data: { name: "Agrorural Agropecuária", slug: "saboart" },
     });
   }
 
   const store = await prisma.store.upsert({
     where: { slug: "saboart" },
-    update: { name: "SaboArt da Dag", whatsapp: "554984376190" },
+    update: { name: "Agrorural Agropecuária", whatsapp: "554984376190" },
     create: {
-      name: "SaboArt da Dag",
+      name: "Agrorural Agropecuária",
       slug: "saboart",
       whatsapp: "554984376190",
       active: true,

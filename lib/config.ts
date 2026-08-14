@@ -1,18 +1,4 @@
-function resolveAuthSecret(): string {
-  const fromEnv = process.env.AUTH_SECRET?.trim();
-  if (fromEnv) return fromEnv;
-
-  // Durante `next build`, NODE_ENV=production mas o secret pode vir só no runtime.
-  const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
-  if (process.env.NODE_ENV === "production" && !isNextBuild) {
-    throw new Error(
-      "AUTH_SECRET é obrigatório em produção. Defina uma string aleatória longa nas variáveis de ambiente."
-    );
-  }
-
-  // Apenas desenvolvimento local / placeholder de build — nunca use em runtime de produção.
-  return "dev-secret-change-in-production";
-}
+import { resolveAuthSecret } from "./auth-secret";
 
 function resolveAppUrl() {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
