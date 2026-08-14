@@ -94,6 +94,7 @@ export function PdvClient() {
   const [pixPending, setPixPending] = useState<PixPending | null>(null);
   const [confirmingPix, setConfirmingPix] = useState(false);
   const [lastChangeCents, setLastChangeCents] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const pixKey = publicConfig.pixKey;
 
@@ -170,10 +171,31 @@ export function PdvClient() {
   const changeCents =
     paymentMethod === "cash" ? receivedCents - chargedCents : 0;
 
-  const preselected = useMemo(
-    () => pickProductForQuery(products, query),
-    [products, query]
-  );
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    setSelectedIndex((index) => {
+      if (products.length === 0) return 0;
+      const picked = pickProductForQuery(products, query);
+      if (picked && index === 0) {
+        const pickedIdx = products.findIndex((p) => p.id === picked.id);
+        if (pickedIdx > 0) return pickedIdx;
+      }
+      return Math.min(index, products.length - 1);
+    });
+  }, [products, query]);
+
+  const preselected = products[selectedIndex] ?? products[0] ?? null;
+
+  useEffect(() => {
+    if (!preselected) return;
+    const el = document.querySelector(
+      `[data-pdv-product="${preselected.id}"]`
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [preselected]);
 
   function addToCart(product: PdvProductListItem) {
     const inCart = cartQtyById.get(product.id) ?? 0;
@@ -214,15 +236,34 @@ export function PdvClient() {
 
   function addFromSearch() {
     const q = query.trim();
-    if (!q) return;
-    void loadProducts(q).then((list) => {
-      const product = pickProductForQuery(list, q);
+    const highlightedId = products[selectedIndex]?.id;
+    const addPicked = (list: PdvProductListItem[]) => {
+      const product =
+        (highlightedId
+          ? list.find((p) => p.id === highlightedId)
+          : undefined) ??
+        pickProductForQuery(list, q) ??
+        list[0];
       if (!product) {
         setError("Nenhum produto encontrado para adicionar.");
         return;
       }
       addToCart(product);
       setQuery("");
+      setSelectedIndex(0);
+    };
+    if (q) {
+      void loadProducts(q).then(addPicked);
+      return;
+    }
+    if (products.length > 0) addPicked(products);
+  }
+
+  function moveProductSelection(direction: 1 | -1) {
+    if (products.length === 0) return;
+    setSelectedIndex((index) => {
+      const next = index + direction;
+      return Math.max(0, Math.min(products.length - 1, next));
     });
   }
 
@@ -438,6 +479,16 @@ export function PdvClient() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    moveProductSelection(1);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    moveProductSelection(-1);
+                    return;
+                  }
                   if (e.key === "Enter") {
                     e.preventDefault();
                     addFromSearch();
@@ -484,6 +535,7 @@ export function PdvClient() {
                 return (
                   <li
                     key={product.id}
+                    data-pdv-product={product.id}
                     className={`flex items-stretch ${
                       selected
                         ? "bg-emerald-50 ring-2 ring-inset ring-emerald-500 dark:bg-emerald-950/40"
