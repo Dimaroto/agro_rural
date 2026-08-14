@@ -17,7 +17,7 @@ Catálogo PWA compartilhável pelo WhatsApp, com controle de estoque manual e pa
 O projeto usa **PostgreSQL** (Prisma). Em desenvolvimento, suba o Postgres com Docker: 
 
 ```bash
-docker compose up -d
+docker compose up -d 
 ```
 
 Configure `DATABASE_URL` e `DIRECT_URL` no `.env` (veja `env.example`).
