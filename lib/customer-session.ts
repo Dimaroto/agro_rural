@@ -44,7 +44,7 @@ export async function getCustomerSession(): Promise<CustomerProfile | null> {
   const pii = decryptCustomerPii(customer);
   return {
     id: customer.id,
-    email: customer.email,
+    email: customer.email ?? "",
     name: pii.name ?? null,
     phone: pii.phone ?? null,
     street: pii.street ?? null,

@@ -22,15 +22,15 @@ export default async function ContasAReceberPage() {
       />
 
       <FinanceDataTable
-        columns={["Pedido", "Cliente", "Valor", "Vencimento PIX", "Status"]}
+        columns={["Pedido", "Cliente", "Valor", "Vencimento", "Status"]}
         rows={receivables.map((o) => [
           <Link key={o.id} href="/admin/pedidos" className="text-emerald-700 hover:underline">
             #{o.id.slice(0, 8)}
           </Link>,
           o.customerName ?? "—",
           formatPrice(o.totalCents),
-          o.pixExpiresAt
-            ? o.pixExpiresAt.toLocaleString("pt-BR")
+          (o.receivableDueAt ?? o.pixExpiresAt)
+            ? (o.receivableDueAt ?? o.pixExpiresAt)!.toLocaleString("pt-BR")
             : "—",
           <FinanceStatusBadge key={`${o.id}-st`} status={o.status} />,
         ])}

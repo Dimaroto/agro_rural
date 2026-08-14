@@ -1,7 +1,7 @@
 {
-  "name": "PDV SaboArt",
+  "name": "PDV Agrorural",
   "short_name": "PDV",
-  "description": "Venda presencial e estoque SaboArt",
+  "description": "Caixa: busca, carrinho e pagamento",
   "start_url": "/admin/pdv",
   "scope": "/admin/",
   "display": "standalone",

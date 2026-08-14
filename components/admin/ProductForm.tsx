@@ -132,6 +132,7 @@ export function ProductForm({
     id: string;
     name: string;
     code?: number;
+    barcode?: string | null;
     description: string | null;
     priceCents: number;
     quantity?: number;
@@ -414,6 +415,7 @@ export function ProductForm({
     const payload = {
       name,
       description: (fd.get("description") as string) || undefined,
+      barcode: ((fd.get("barcode") as string) || "").trim() || null,
       priceCents,
       quantity: Math.max(0, Math.floor(Number(quantity) || 0)),
       categoryIds: selectedCategoryIds,
@@ -466,6 +468,19 @@ export function ProductForm({
             </p>
           </Field>
         )}
+        <Field label="Código de barras">
+          <input
+            name="barcode"
+            inputMode="numeric"
+            defaultValue={product?.barcode ?? ""}
+            className={inputClass}
+            placeholder="EAN / UPC (8 a 14 dígitos)"
+            autoComplete="off"
+          />
+          <p className="mt-1 text-xs text-zinc-400">
+            Opcional. Usado na busca do PDV (leitor ou digitação).
+          </p>
+        </Field>
         <Field label="Nome">
           <input
             name="name"

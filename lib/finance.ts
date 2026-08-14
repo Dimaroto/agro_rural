@@ -390,7 +390,13 @@ export async function getCashFlow(storeId: string) {
 
 export async function getReceivables(storeId: string) {
   return prisma.order.findMany({
-    where: { storeId, status: OrderStatus.AWAITING_PIX },
+    where: {
+      storeId,
+      OR: [
+        { status: OrderStatus.AWAITING_PIX },
+        { status: OrderStatus.AWAITING_PAYMENT },
+      ],
+    },
     include: { payment: true },
     orderBy: { createdAt: "desc" },
   });
@@ -419,6 +425,9 @@ export async function getPayables(storeId: string) {
 
 export async function getFinanceCustomers(storeId: string) {
   const customers = await prisma.customer.findMany({
+    where: {
+      OR: [{ storeId }, { orders: { some: { storeId } } }],
+    },
     include: {
       orders: {
         where: { storeId },
@@ -442,7 +451,9 @@ export async function getFinanceCustomers(storeId: string) {
         saleStatuses.includes(o.status)
       );
       const pendingOrders = storeOrders.filter(
-        (o) => o.status === OrderStatus.AWAITING_PIX
+        (o) =>
+          o.status === OrderStatus.AWAITING_PIX ||
+          o.status === OrderStatus.AWAITING_PAYMENT
       );
       const totalSpentCents = paidOrders.reduce((s, o) => s + o.totalCents, 0);
       const lastOrder = storeOrders.sort(

@@ -36,7 +36,7 @@ const profileSchema = z.object({
 
 function serializeCustomer(customer: {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   phone: string | null;
   street: string | null;
@@ -48,7 +48,7 @@ function serializeCustomer(customer: {
   const pii = decryptCustomerPii(customer);
   return {
     id: customer.id,
-    email: customer.email,
+    email: customer.email ?? "",
     name: pii.name,
     phone: pii.phone,
     street: pii.street,

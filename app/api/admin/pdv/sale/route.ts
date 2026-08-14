@@ -1,26 +1,47 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createWalkInSale } from "@/lib/pdv";
-import { partyFavorFieldAnswerSchema } from "@/lib/party-favor-fields";
 import { publicErrorJson } from "@/lib/public-api-error";
 import { z } from "zod";
 
 const saleSchema = z
   .object({
-    productId: z.string().min(1),
-    quantity: z.number().int().positive(),
+    items: z
+      .array(
+        z.object({
+          productId: z.string().min(1),
+          quantity: z.number().int().positive(),
+        })
+      )
+      .min(1, "Adicione pelo menos um produto"),
     paymentMethod: z.enum(["pix", "card", "cash", "receivable"]),
+    customerId: z.string().min(1).optional(),
+    receivedCents: z.number().int().nonnegative().optional(),
     dueInDays: z.number().int().positive().optional(),
     markAsDelivered: z.boolean().optional(),
-    fieldAnswers: z.array(partyFavorFieldAnswerSchema).optional(),
-    notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.paymentMethod === "receivable" && (data.dueInDays == null || data.dueInDays < 1)) {
+    if (data.paymentMethod === "receivable") {
+      if (!data.customerId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["customerId"],
+          message: "Selecione um cliente para venda a prazo",
+        });
+      }
+      if (data.dueInDays == null || data.dueInDays < 1) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dueInDays"],
+          message: "Informe o prazo em dias para receber",
+        });
+      }
+    }
+    if (data.paymentMethod === "cash" && data.receivedCents == null) {
       ctx.addIssue({
         code: "custom",
-        path: ["dueInDays"],
-        message: "Informe o prazo em dias para receber",
+        path: ["receivedCents"],
+        message: "Informe o valor recebido",
       });
     }
   });

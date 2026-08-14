@@ -78,7 +78,7 @@ export async function POST(req: Request) {
   const response = NextResponse.json({
     customer: {
       id: customer.id,
-      email: customer.email,
+      email: customer.email ?? "",
       name: pii.name,
       phone: pii.phone,
       street: pii.street,

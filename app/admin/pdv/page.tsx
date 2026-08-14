@@ -4,13 +4,13 @@ import { redirect } from "next/navigation";
 import { PdvClient } from "@/components/admin/PdvClient";
 
 export const metadata: Metadata = {
-  title: "PDV | SaboArt",
-  description: "Venda presencial e controle de estoque",
+  title: "PDV | Agrorural",
+  description: "Caixa: busca, carrinho e pagamento",
   manifest: "/pdv-manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PDV SaboArt",
+    title: "PDV Agrorural",
   },
 };
 

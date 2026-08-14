@@ -24,6 +24,7 @@ model Store {
   users                 User[]
   categories            Category[]
   products              Product[]
+  customers             Customer[]
   orders                Order[]
   inventoryMovements    InventoryMovement[]
   expenseCategories     ExpenseCategory[]
@@ -113,6 +114,8 @@ model Product {
   name         String
   /** Código sequencial numérico da loja (exibido como 0001). */
   code         Int
+  /** EAN/UPC ou código de barras interno (só dígitos). */
+  barcode      String?
   description  String?
   priceCents   Int
   custoCents   Int?
@@ -132,9 +135,11 @@ model Product {
   measures            ProductMeasure[]
 
   @@unique([storeId, code])
+  @@unique([storeId, barcode])
   @@index([storeId])
   @@index([categoryId])
   @@index([storeId, code])
+  @@index([storeId, barcode])
   @@map("products")
 }
 
@@ -244,8 +249,10 @@ enum OrderStatus {
 
 model Customer {
   id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
+  storeId      String?
+  store        Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  email        String?  @unique
+  passwordHash String?
   name         String?
   phone        String?
   street       String?
@@ -258,6 +265,7 @@ model Customer {
 
   orders Order[]
 
+  @@index([storeId])
   @@map("customers")
 }
 

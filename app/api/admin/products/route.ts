@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { allocateProductCode } from "@/lib/product-code";
+import { isValidBarcode, normalizeBarcode } from "@/lib/product-barcode";
 import { publicErrorJson } from "@/lib/public-api-error";
 import { productFieldsSchema } from "@/lib/party-favor-fields";
 import {
@@ -18,9 +19,19 @@ import {
 } from "@/lib/product-measures";
 import { z } from "zod";
 
+const barcodeSchema = z
+  .string()
+  .optional()
+  .nullable()
+  .transform((v) => normalizeBarcode(v))
+  .refine((v) => v == null || isValidBarcode(v), {
+    message: "Código de barras deve ter entre 8 e 14 dígitos",
+  });
+
 const createSchema = z.object({
   name: z.string().min(1, "Informe o nome do produto"),
   description: z.string().optional(),
+  barcode: barcodeSchema,
   priceCents: z
     .number({ error: "Informe um preço válido" })
     .int()
@@ -80,6 +91,7 @@ export async function GET(req: Request) {
           ? {
               OR: [
                 { name: { contains: q, mode: "insensitive" } },
+                { barcode: { contains: q.replace(/\D/g, "") || q } },
                 ...(codeNum != null && Number.isFinite(codeNum)
                   ? [{ code: codeNum }]
                   : []),
@@ -145,6 +157,7 @@ export async function POST(req: Request) {
           categoryId: body.data.categoryIds[0],
           name: body.data.name,
           code,
+          barcode: body.data.barcode ?? null,
           description: body.data.description,
           priceCents: body.data.priceCents,
           quantity: body.data.quantity,

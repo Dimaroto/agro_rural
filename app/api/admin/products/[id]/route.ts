@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { productFieldsSchema } from "@/lib/party-favor-fields";
@@ -15,11 +16,19 @@ import {
   productMeasuresSchema,
   replaceProductMeasures,
 } from "@/lib/product-measures";
-import { z } from "zod";
+import { isValidBarcode, normalizeBarcode } from "@/lib/product-barcode";
 
 const updateSchema = z.object({
   name: z.string().min(1, "Informe o nome do produto").optional(),
   description: z.string().nullable().optional(),
+  barcode: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((v) => (v === undefined ? undefined : normalizeBarcode(v)))
+    .refine((v) => v === undefined || v == null || isValidBarcode(v), {
+      message: "Código de barras deve ter entre 8 e 14 dígitos",
+    }),
   priceCents: z
     .number({ error: "Informe um preço válido" })
     .int()
