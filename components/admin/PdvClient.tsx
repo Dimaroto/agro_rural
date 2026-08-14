@@ -10,7 +10,7 @@ import type {
 } from "@/lib/pdv-shared";
 import { PDV_PAYMENT_LABELS } from "@/lib/pdv-shared";
 import { maxOrderQuantity, stockSuffix } from "@/lib/inventory";
-import { isValidBarcode, normalizeBarcode } from "@/lib/product-barcode";
+import { normalizeBarcode } from "@/lib/product-barcode";
 import { PdvInstallButton } from "@/components/admin/PdvInstallButton";
 import { PdvNotifications } from "@/components/admin/PdvNotifications";
 import { CurrencyInput } from "@/components/admin/CurrencyInput";
@@ -30,6 +30,37 @@ type PixPending = {
 };
 
 const paymentLabels = PDV_PAYMENT_LABELS;
+
+function parsePdvCodeQuery(query: string): number | null {
+  const cleaned = query.trim().replace(/^#/, "");
+  if (!cleaned || !/^\d+$/.test(cleaned)) return null;
+  const value = Number.parseInt(cleaned, 10);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function pickProductForQuery(
+  list: PdvProductListItem[],
+  q: string
+): PdvProductListItem | null {
+  const trimmed = q.trim();
+  if (!trimmed || list.length === 0) return null;
+
+  const code = parsePdvCodeQuery(trimmed);
+  if (code != null) {
+    const byCode = list.find((p) => p.code === code);
+    if (byCode) return byCode;
+  }
+
+  const barcode = normalizeBarcode(trimmed);
+  if (barcode) {
+    const exact = list.filter((p) => p.barcode === barcode);
+    if (exact.length === 1) return exact[0];
+    const byBarcode = list.find((p) => p.barcode === barcode);
+    if (byBarcode) return byBarcode;
+  }
+
+  return list[0];
+}
 
 export function PdvClient() {
   const [query, setQuery] = useState("");
@@ -139,6 +170,11 @@ export function PdvClient() {
   const changeCents =
     paymentMethod === "cash" ? receivedCents - chargedCents : 0;
 
+  const preselected = useMemo(
+    () => pickProductForQuery(products, query),
+    [products, query]
+  );
+
   function addToCart(product: PdvProductListItem) {
     const inCart = cartQtyById.get(product.id) ?? 0;
     const max = maxOrderQuantity(product.available);
@@ -176,16 +212,18 @@ export function PdvClient() {
     );
   }
 
-  function tryScanAdd(list: PdvProductListItem[], q: string) {
-    const barcode = normalizeBarcode(q);
-    if (!barcode || !isValidBarcode(barcode)) return false;
-    const exact = list.filter((p) => p.barcode === barcode);
-    if (exact.length === 1) {
-      addToCart(exact[0]);
+  function addFromSearch() {
+    const q = query.trim();
+    if (!q) return;
+    void loadProducts(q).then((list) => {
+      const product = pickProductForQuery(list, q);
+      if (!product) {
+        setError("Nenhum produto encontrado para adicionar.");
+        return;
+      }
+      addToCart(product);
       setQuery("");
-      return true;
-    }
-    return false;
+    });
   }
 
   function refreshAfterStock(message: string) {
@@ -402,9 +440,7 @@ export function PdvClient() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    void loadProducts(query).then((list) => {
-                      tryScanAdd(list, query);
-                    });
+                    addFromSearch();
                   }
                 }}
                 className="admin-input w-full px-4 py-3 pr-28 text-base"
@@ -444,8 +480,16 @@ export function PdvClient() {
             ) : (
               products.map((product) => {
                 const inCart = cartQtyById.get(product.id) ?? 0;
+                const selected = preselected?.id === product.id;
                 return (
-                  <li key={product.id} className="flex items-stretch">
+                  <li
+                    key={product.id}
+                    className={`flex items-stretch ${
+                      selected
+                        ? "bg-emerald-50 ring-2 ring-inset ring-emerald-500 dark:bg-emerald-950/40"
+                        : ""
+                    }`}
+                  >
                     <button
                       type="button"
                       onClick={() => addToCart(product)}
