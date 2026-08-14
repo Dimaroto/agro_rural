@@ -86,7 +86,7 @@ export default async function AdminDashboard() {
             icon={<SalesIcon className="h-5 w-5" />}
           />
           <DashboardStatCard
-            label="Pedidos pagos"
+            label="Vendas pagas"
             value={String(stats.paidOrderCount)}
             href="/admin/pedidos"
             icon={<OrdersIcon className="h-5 w-5" />}

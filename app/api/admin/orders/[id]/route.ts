@@ -6,12 +6,22 @@ import {
   adminCancelOrder,
   adminConfirmReceivablePayment,
   adminDeliverOrder,
+  adminUpdateSale,
 } from "@/lib/order-admin";
 import { publicErrorJson } from "@/lib/public-api-error";
 
-const actionSchema = z.object({
-  action: z.enum(["deliver", "cancel", "confirm_payment"]),
-});
+const actionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("deliver") }),
+  z.object({ action: z.literal("cancel") }),
+  z.object({ action: z.literal("confirm_payment") }),
+  z.object({
+    action: z.literal("update"),
+    customerId: z.string().min(1).nullable().optional(),
+    discountCents: z.number().int().nonnegative().optional(),
+    paymentMethod: z.enum(["pix", "card", "cash", "receivable"]).optional(),
+    dueInDays: z.number().int().positive().optional(),
+  }),
+]);
 
 export async function PATCH(
   req: Request,
@@ -34,7 +44,7 @@ export async function PATCH(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Venda não encontrada" }, { status: 404 });
   }
 
   try {
@@ -43,6 +53,13 @@ export async function PATCH(
       updated = await adminDeliverOrder(session.user.storeId, id);
     } else if (body.data.action === "confirm_payment") {
       updated = await adminConfirmReceivablePayment(session.user.storeId, id);
+    } else if (body.data.action === "update") {
+      updated = await adminUpdateSale(session.user.storeId, id, {
+        customerId: body.data.customerId,
+        discountCents: body.data.discountCents,
+        paymentMethod: body.data.paymentMethod,
+        dueInDays: body.data.dueInDays,
+      });
     } else {
       updated = await adminCancelOrder(session.user.storeId, id);
     }
@@ -52,7 +69,7 @@ export async function PATCH(
     return publicErrorJson(
       "admin:orders:patch",
       error,
-      "Não foi possível atualizar o pedido. Tente novamente."
+      "Não foi possível atualizar a venda. Tente novamente."
     );
   }
 }

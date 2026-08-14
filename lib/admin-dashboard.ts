@@ -140,7 +140,7 @@ async function getAttentionItems(storeId: string): Promise<DashboardAttentionIte
   if (pendingPixCount > 0) {
     items.push({
       id: "pending-pix",
-      text: `${pendingPixCount} pedido${pendingPixCount === 1 ? "" : "s"} aguardando pagamento`,
+      text: `${pendingPixCount} venda${pendingPixCount === 1 ? "" : "s"} aguardando pagamento`,
       href: "/admin/pedidos",
     });
   }

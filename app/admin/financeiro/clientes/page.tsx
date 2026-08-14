@@ -23,9 +23,9 @@ export default async function FinanceClientesPage() {
           "Nome",
           "E-mail",
           "Total gasto",
-          "Pedidos pagos",
+          "Vendas pagas",
           "Pendentes",
-          "Último pedido",
+          "Última venda",
         ]}
         rows={customers.map((c) => [
           c.name ?? "—",

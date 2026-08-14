@@ -142,7 +142,7 @@ export function OrdersFilterBar({
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Digite 1, PD1 ou PD0001…"
           className="admin-input w-full px-3 py-2.5 pr-20 text-sm"
-          aria-label="Buscar pedido pelo número"
+          aria-label="Buscar venda pelo número"
           inputMode="search"
         />
         <div className="absolute inset-y-0 right-2 flex items-center gap-1">
@@ -164,7 +164,7 @@ export function OrdersFilterBar({
 
       {query.trim() && /^\d+$/.test(query.trim()) && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Buscando pedido{" "}
+          Buscando venda{" "}
           <span className="font-mono font-medium text-emerald-700 dark:text-emerald-400">
             PD{query.trim().padStart(4, "0")}
           </span>

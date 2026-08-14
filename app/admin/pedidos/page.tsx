@@ -54,10 +54,10 @@ export default async function OrdersPage({
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold text-[#026842] dark:text-zinc-100">
-        Pedidos
+        Vendas
       </h1>
       <p className="mb-4 text-sm text-[#6b7280] dark:text-zinc-400">
-        Filtre por status ou digite o número do pedido (ex.: 1 = PD0001).
+        Filtre por status ou digite o número da venda (ex.: 1 = PD0001).
       </p>
 
       <Suspense fallback={null}>
@@ -67,8 +67,8 @@ export default async function OrdersPage({
       {orders.length === 0 ? (
         <p className="text-[#6b7280] dark:text-zinc-400">
           {query || statusFilter !== "all"
-            ? "Nenhum pedido encontrado com esses filtros."
-            : "Nenhum pedido ainda."}
+            ? "Nenhuma venda encontrada com esses filtros."
+            : "Nenhuma venda ainda."}
         </p>
       ) : (
         <ul className="space-y-3">

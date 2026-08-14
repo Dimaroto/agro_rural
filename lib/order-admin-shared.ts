@@ -26,7 +26,8 @@ export type AdminOrderStatusFilter =
   | "pending"
   | "receivable"
   | "paid"
-  | "delivered";
+  | "delivered"
+  | "cancelled";
 
 export const ORDER_STATUS_FILTERS: {
   id: AdminOrderStatusFilter;
@@ -50,8 +51,9 @@ export const ORDER_STATUS_FILTERS: {
     label: "A receber",
     paymentMethods: ["receivable", "cash"],
   },
-  { id: "paid", label: "Pagos", statuses: [ORDER_STATUS.PAID] },
+  { id: "paid", label: "Pagas", statuses: [ORDER_STATUS.PAID] },
   { id: "delivered", label: "Entregues", statuses: [ORDER_STATUS.DELIVERED] },
+  { id: "cancelled", label: "Canceladas", statuses: [ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED] },
 ];
 
 export function resolveOrderStatusFilter(
@@ -61,7 +63,8 @@ export function resolveOrderStatusFilter(
     value === "pending" ||
     value === "receivable" ||
     value === "paid" ||
-    value === "delivered"
+    value === "delivered" ||
+    value === "cancelled"
   ) {
     return value;
   }
@@ -81,7 +84,7 @@ type OrderSummaryInput = {
 export function formatOrderSummary(order: OrderSummaryInput): string {
   const code = formatOrderCode(order.orderNumber, order.id);
   const lines = [
-    `*Pedido ${code}*`,
+    `*Venda ${code}*`,
     order.customerName ? `Cliente: ${order.customerName}` : null,
     order.customerPhone ? `Telefone: ${order.customerPhone}` : null,
     "",

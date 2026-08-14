@@ -57,6 +57,7 @@ export function PdvClient() {
   const [paymentMethod, setPaymentMethod] = useState<PdvPaymentMethod>("cash");
   const [receivedCents, setReceivedCents] = useState(0);
   const [dueInDays, setDueInDays] = useState(7);
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [cardConfirmed, setCardConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixPending, setPixPending] = useState<PixPending | null>(null);
@@ -130,8 +131,13 @@ export function PdvClient() {
     (sum, line) => sum + line.product.priceCents * line.quantity,
     0
   );
+  const discountCents = Math.min(
+    subtotalCents,
+    Math.round((subtotalCents * Math.min(100, Math.max(0, discountPercent))) / 100)
+  );
+  const chargedCents = subtotalCents - discountCents;
   const changeCents =
-    paymentMethod === "cash" ? receivedCents - subtotalCents : 0;
+    paymentMethod === "cash" ? receivedCents - chargedCents : 0;
 
   function addToCart(product: PdvProductListItem) {
     const inCart = cartQtyById.get(product.id) ?? 0;
@@ -193,6 +199,7 @@ export function PdvClient() {
     setCart([]);
     setReceivedCents(0);
     setCardConfirmed(false);
+    setDiscountPercent(0);
     setPaymentMethod("cash");
   }
 
@@ -235,7 +242,7 @@ export function PdvClient() {
   async function checkout() {
     if (submitting || cart.length === 0) return;
 
-    if (paymentMethod === "cash" && receivedCents < subtotalCents) {
+    if (paymentMethod === "cash" && receivedCents < chargedCents) {
       setError("O valor recebido deve ser igual ou maior que o total.");
       return;
     }
@@ -274,6 +281,7 @@ export function PdvClient() {
           receivedCents:
             paymentMethod === "cash" ? receivedCents : undefined,
           dueInDays: paymentMethod === "receivable" ? dueInDays : undefined,
+          discountCents: discountCents > 0 ? discountCents : undefined,
         }),
       });
       const data = await res.json();
@@ -532,9 +540,58 @@ export function PdvClient() {
             </ul>
           )}
 
-          <p className="text-lg font-bold">
-            Total {formatPrice(subtotalCents)}
-          </p>
+          <div className="space-y-2">
+            {discountCents > 0 && (
+              <p className="text-sm text-zinc-500">
+                Subtotal {formatPrice(subtotalCents)} · Desconto{" "}
+                {formatPrice(discountCents)}
+              </p>
+            )}
+            <p className="text-lg font-bold">
+              Total {formatPrice(chargedCents)}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs font-medium text-zinc-600">
+                Desconto %
+                <input
+                  inputMode="decimal"
+                  value={
+                    Number.isInteger(discountPercent)
+                      ? String(discountPercent)
+                      : discountPercent.toFixed(2)
+                  }
+                  onChange={(e) => {
+                    const n = Number(e.target.value.replace(",", "."));
+                    if (e.target.value.trim() === "") {
+                      setDiscountPercent(0);
+                      return;
+                    }
+                    if (!Number.isFinite(n) || n < 0) return;
+                    setDiscountPercent(Math.min(100, n));
+                  }}
+                  className="admin-input mt-1 w-full px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="text-xs font-medium text-zinc-600">
+                Total
+                <CurrencyInput
+                  valueCents={chargedCents}
+                  onChange={(cents) => {
+                    if (subtotalCents <= 0) {
+                      setDiscountPercent(0);
+                      return;
+                    }
+                    const next = Math.min(subtotalCents, Math.max(0, cents));
+                    setDiscountPercent(
+                      ((subtotalCents - next) / subtotalCents) * 100
+                    );
+                  }}
+                  className="admin-input mt-1 w-full px-3 py-2 text-sm"
+                  aria-label="Total com desconto"
+                />
+              </label>
+            </div>
+          </div>
 
           <div>
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -689,12 +746,12 @@ export function PdvClient() {
               />
               <p
                 className={`mt-2 text-sm font-semibold ${
-                  receivedCents < subtotalCents
+                  receivedCents < chargedCents
                     ? "text-red-600"
                     : "text-emerald-700"
                 }`}
               >
-                {receivedCents < subtotalCents
+                {receivedCents < chargedCents
                   ? "Valor insuficiente"
                   : `Troco ${formatPrice(Math.max(0, changeCents))}`}
               </p>

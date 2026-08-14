@@ -25,7 +25,7 @@ export const ADMIN_NOTIFICATIONS: AdminNotificationDef[] = [
     title: "Novo pedido no catálogo",
     description:
       "Quando um cliente finaliza um pedido pela loja online.",
-    category: "Pedidos",
+    category: "Vendas",
     defaultEnabled: true,
   },
   {
@@ -33,7 +33,7 @@ export const ADMIN_NOTIFICATIONS: AdminNotificationDef[] = [
     title: "PIX confirmado",
     description:
       "Quando o pagamento PIX de um pedido é aprovado.",
-    category: "Pedidos",
+    category: "Vendas",
     defaultEnabled: true,
   },
   {
@@ -41,15 +41,15 @@ export const ADMIN_NOTIFICATIONS: AdminNotificationDef[] = [
     title: "Cartão aprovado",
     description:
       "Quando o pagamento com cartão é confirmado pelo provedor.",
-    category: "Pedidos",
+    category: "Vendas",
     defaultEnabled: true,
   },
   {
     id: "order_cancelled",
-    title: "Pedido cancelado",
+    title: "Venda cancelada",
     description:
       "Quando um pedido é cancelado ou o PIX expira sem pagamento.",
-    category: "Pedidos",
+    category: "Vendas",
     defaultEnabled: true,
   },
   {

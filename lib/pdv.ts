@@ -120,6 +120,7 @@ export async function createWalkInSale(params: {
   customerId?: string;
   receivedCents?: number;
   dueInDays?: number;
+  discountCents?: number;
 }) {
   const lines = mergeCartLines(params.items);
   if (lines.length === 0) {
@@ -178,10 +179,18 @@ export async function createWalkInSale(params: {
   }
 
   const orderItems = buildOrderItems(orderInputs, products);
-  const totalCents = orderItems.reduce(
+  const subtotalCents = orderItems.reduce(
     (sum, i) => sum + i.unitPriceCents * i.quantity,
     0
   );
+  const discountCents = params.discountCents ?? 0;
+  if (!Number.isInteger(discountCents) || discountCents < 0) {
+    throw new InventoryError("Desconto inválido.");
+  }
+  if (discountCents > subtotalCents) {
+    throw new InventoryError("O desconto não pode ser maior que o subtotal.");
+  }
+  const totalCents = subtotalCents - discountCents;
 
   let changeCents = 0;
   if (params.paymentMethod === "cash") {
@@ -223,6 +232,7 @@ export async function createWalkInSale(params: {
         customerName,
         customerPhone: customer?.phone,
         totalCents,
+        discountCents,
         receivableDueAt,
         items: { create: orderItems },
       },
@@ -276,6 +286,7 @@ export async function createWalkInSale(params: {
     orderId: order.id,
     orderCode: formatOrderCode(order.orderNumber, order.id),
     totalCents,
+    discountCents,
     changeCents,
     receivedCents:
       params.paymentMethod === "cash" ? params.receivedCents : undefined,

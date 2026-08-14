@@ -282,6 +282,8 @@ model Order {
   customerName    String?
   customerPhone   String?
   totalCents      Int         @default(0)
+  /** Desconto aplicado (subtotal − total). */
+  discountCents   Int         @default(0)
   pixExpiresAt    DateTime?
   /** Prazo para receber pagamento (vendas PDV "A receber"). */
   receivableDueAt DateTime?

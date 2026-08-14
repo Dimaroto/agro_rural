@@ -27,7 +27,7 @@ export function RecentOrdersPanel({ orders }: RecentOrdersPanelProps) {
     <section className="admin-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-semibold text-[#026842] dark:text-zinc-100">
-          Pedidos recentes
+          Vendas recentes
         </h2>
         <Link
           href="/admin/pedidos"
@@ -39,7 +39,7 @@ export function RecentOrdersPanel({ orders }: RecentOrdersPanelProps) {
 
       {orders.length === 0 ? (
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Nenhum pedido ainda.
+          Nenhuma venda ainda.
         </p>
       ) : (
         <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
