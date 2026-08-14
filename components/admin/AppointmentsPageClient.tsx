@@ -65,6 +65,7 @@ export function AppointmentsPageClient({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     const q = customerQuery.trim();
@@ -186,6 +187,10 @@ export function AppointmentsPageClient({
         : "upcoming";
       setRange(nextRange);
       resetAppointmentForm();
+      setFormOpen(false);
+      setCustomer(null);
+      setCustomerQuery("");
+      setShowNewCustomer(false);
       setSuccess(
         nextRange === "today"
           ? "Agendamento criado para hoje."
@@ -253,23 +258,46 @@ export function AppointmentsPageClient({
         </p>
       </header>
 
+      {error && (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {success}
+        </p>
+      )}
+
+      {!formOpen ? (
+        <button
+          type="button"
+          className="admin-btn-primary w-full sm:w-auto"
+          onClick={() => {
+            setFormOpen(true);
+            setSuccess("");
+            setError("");
+          }}
+        >
+          Novo agendamento
+        </button>
+      ) : (
       <form
         onSubmit={createAppointment}
         className="admin-card space-y-3 p-4 sm:p-5"
       >
-        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          Novo agendamento
-        </h2>
-        {error && (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-        {success && (
-          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {success}
-          </p>
-        )}
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            Novo agendamento
+          </h2>
+          <button
+            type="button"
+            className="admin-btn-ghost"
+            onClick={() => setFormOpen(false)}
+          >
+            Fechar
+          </button>
+        </div>
 
         {customer ? (
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-800/60">
@@ -416,6 +444,7 @@ export function AppointmentsPageClient({
           {saving ? "Salvando..." : "Criar agendamento"}
         </button>
       </form>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {RANGE_TABS.map((tab) => (
