@@ -356,15 +356,17 @@ export function PdvClient() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+    <div className="pdv-shell flex h-full min-h-0 w-full flex-col gap-2">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
             PDV
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Caixa: busca, carrinho e pagamento
-          </p>
+          {customer?.isBirthday && (
+            <p className="rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
+              Aniversário de {customer.name} — lembre de parabenizar!
+            </p>
+          )}
         </div>
         <PdvInstallButton />
       </header>
@@ -372,24 +374,24 @@ export function PdvClient() {
       <PdvNotifications />
 
       {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
+        <p className="shrink-0 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
           {error}
         </p>
       )}
       {success && (
-        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+        <p className="shrink-0 rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
           {success}
         </p>
       )}
       {lastChangeCents != null && lastChangeCents > 0 && (
-        <p className="rounded-2xl bg-emerald-600 px-4 py-6 text-center text-3xl font-black text-white">
+        <p className="shrink-0 rounded-2xl bg-emerald-600 px-4 py-3 text-center text-2xl font-black text-white">
           Troco {formatPrice(lastChangeCents)}
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)] lg:items-start">
-        <div className="space-y-3">
-          <div className="admin-card p-3 sm:p-4">
+      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_minmax(380px,0.95fr)]">
+        <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
+          <div className="admin-card shrink-0 p-2 sm:p-3">
             <label className="sr-only" htmlFor="pdv-search">
               Buscar produto
             </label>
@@ -425,7 +427,7 @@ export function PdvClient() {
           </div>
 
           <ul
-            className="admin-card divide-y divide-zinc-100 overflow-hidden dark:divide-zinc-800"
+            className="admin-card min-h-0 flex-1 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-800"
             aria-busy={loading}
           >
             {loading && products.length === 0 ? (
@@ -481,16 +483,13 @@ export function PdvClient() {
           </ul>
         </div>
 
-        <aside className="admin-card sticky top-4 space-y-4 p-4 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+        <aside className="admin-card flex min-h-0 flex-col overflow-hidden p-0">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+          <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
             Carrinho
           </h2>
 
-          {cart.length === 0 ? (
-            <p className="text-sm text-zinc-500">
-              Clique em um produto à esquerda para adicionar.
-            </p>
-          ) : (
+          {cart.length > 0 && (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {cart.map((line) => (
                 <li
@@ -540,83 +539,23 @@ export function PdvClient() {
             </ul>
           )}
 
-          <div className="space-y-2">
-            {discountCents > 0 && (
-              <p className="text-sm text-zinc-500">
-                Subtotal {formatPrice(subtotalCents)} · Desconto{" "}
-                {formatPrice(discountCents)}
-              </p>
-            )}
-            <p className="text-lg font-bold">
-              Total {formatPrice(chargedCents)}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="text-xs font-medium text-zinc-600">
-                Desconto %
-                <input
-                  inputMode="decimal"
-                  value={
-                    Number.isInteger(discountPercent)
-                      ? String(discountPercent)
-                      : discountPercent.toFixed(2)
-                  }
-                  onChange={(e) => {
-                    const n = Number(e.target.value.replace(",", "."));
-                    if (e.target.value.trim() === "") {
-                      setDiscountPercent(0);
-                      return;
-                    }
-                    if (!Number.isFinite(n) || n < 0) return;
-                    setDiscountPercent(Math.min(100, n));
-                  }}
-                  className="admin-input mt-1 w-full px-3 py-2 text-sm"
-                />
-              </label>
-              <label className="text-xs font-medium text-zinc-600">
-                Total
-                <CurrencyInput
-                  valueCents={chargedCents}
-                  onChange={(cents) => {
-                    if (subtotalCents <= 0) {
-                      setDiscountPercent(0);
-                      return;
-                    }
-                    const next = Math.min(subtotalCents, Math.max(0, cents));
-                    setDiscountPercent(
-                      ((subtotalCents - next) / subtotalCents) * 100
-                    );
-                  }}
-                  className="admin-input mt-1 w-full px-3 py-2 text-sm"
-                  aria-label="Total com desconto"
-                />
-              </label>
-            </div>
-          </div>
-
+          <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Cliente
             </p>
             {customer ? (
-              <div className="mt-1 space-y-2">
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
-                  <span className="min-w-0 truncate font-semibold">
-                    {customer.name}
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 text-xs text-zinc-600 hover:underline"
-                    onClick={() => setCustomer(null)}
-                  >
-                    Trocar
-                  </button>
-                </div>
-                {customer.isBirthday && (
-                  <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
-                    Hoje é aniversário de {customer.name}. Lembre de
-                    parabenizar!
-                  </p>
-                )}
+              <div className="mt-1 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+                <span className="min-w-0 truncate font-semibold">
+                  {customer.name}
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 text-xs text-zinc-600 hover:underline"
+                  onClick={() => setCustomer(null)}
+                >
+                  Trocar
+                </button>
               </div>
             ) : (
               <>
@@ -713,14 +652,14 @@ export function PdvClient() {
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Forma de pagamento
             </p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-1 grid grid-cols-4 gap-1.5">
               {(Object.keys(paymentLabels) as PdvPaymentMethod[]).map(
                 (method) => (
                   <button
                     key={method}
                     type="button"
                     onClick={() => setPaymentMethod(method)}
-                    className={`min-h-11 cursor-pointer rounded-xl border text-sm font-semibold ${
+                    className={`min-h-9 cursor-pointer rounded-lg border text-xs font-semibold ${
                       paymentMethod === method
                         ? method === "receivable"
                           ? "border-amber-500 bg-amber-50 text-amber-900"
@@ -736,16 +675,16 @@ export function PdvClient() {
           </div>
 
           {paymentMethod === "cash" && (
-            <div>
+            <div className="sm:col-span-2">
               <label className="text-sm font-medium">Valor recebido</label>
               <CurrencyInput
                 valueCents={receivedCents}
                 onChange={setReceivedCents}
-                className="admin-input mt-1.5 w-full px-3 py-2.5 text-base"
+                className="admin-input mt-1 w-full px-3 py-2 text-base"
                 aria-label="Valor recebido"
               />
               <p
-                className={`mt-2 text-sm font-semibold ${
+                className={`mt-1 text-sm font-semibold ${
                   receivedCents < chargedCents
                     ? "text-red-600"
                     : "text-emerald-700"
@@ -759,7 +698,7 @@ export function PdvClient() {
           )}
 
           {paymentMethod === "pix" && (
-            <p className="rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-900">
+            <p className="rounded-xl bg-zinc-50 px-3 py-2 text-xs text-zinc-600 sm:col-span-2 dark:bg-zinc-900">
               {pixKey
                 ? "Ao finalizar, o QR Code PIX aparece para o cliente pagar. Confirme o pagamento nesta tela."
                 : "Chave PIX não configurada. Defina NEXT_PUBLIC_PIX_KEY para receber no caixa."}
@@ -767,14 +706,14 @@ export function PdvClient() {
           )}
 
           {paymentMethod === "card" && (
-            <div className="space-y-2 rounded-xl border border-dashed border-zinc-300 p-3">
+            <div className="space-y-2 rounded-xl border border-dashed border-zinc-300 p-3 sm:col-span-2">
               <p className="text-xs text-zinc-500">
                 Maquininha — placeholder. Integração (Stone/PagSeguro) em breve.
               </p>
               <button
                 type="button"
                 onClick={() => setCardConfirmed((v) => !v)}
-                className={`min-h-11 w-full rounded-xl border text-sm font-semibold ${
+                className={`min-h-9 w-full rounded-xl border text-sm font-semibold ${
                   cardConfirmed
                     ? "border-emerald-500 bg-emerald-50 text-emerald-800"
                     : "border-zinc-200 text-zinc-600"
@@ -788,7 +727,7 @@ export function PdvClient() {
           )}
 
           {paymentMethod === "receivable" && (
-            <div>
+            <div className="sm:col-span-2">
               <label className="text-sm font-medium">
                 Prazo para receber (dias)
               </label>
@@ -800,7 +739,7 @@ export function PdvClient() {
                 onChange={(e) =>
                   setDueInDays(Math.max(1, Number(e.target.value) || 1))
                 }
-                className="admin-input mt-1.5 w-full px-3 py-2.5 text-base"
+                className="admin-input mt-1 w-full px-3 py-2 text-base"
               />
               {!customer && (
                 <p className="mt-1 text-xs text-amber-700">
@@ -809,15 +748,69 @@ export function PdvClient() {
               )}
             </div>
           )}
+          </div>
+          </div>
 
-          <button
-            type="button"
-            disabled={submitting || cart.length === 0}
-            onClick={() => void checkout()}
-            className="admin-btn-primary min-h-12 w-full text-base disabled:opacity-50"
-          >
-            {submitting ? "Registrando…" : "Finalizar venda"}
-          </button>
+          <div className="shrink-0 space-y-2 border-t border-zinc-200 bg-[#F7F4EC] p-3 dark:border-zinc-800 dark:bg-zinc-900">
+            {discountCents > 0 && (
+              <p className="text-xs text-zinc-500">
+                Subtotal {formatPrice(subtotalCents)} · Desconto{" "}
+                {formatPrice(discountCents)}
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs font-medium text-zinc-600">
+                Desconto %
+                <input
+                  inputMode="decimal"
+                  value={
+                    Number.isInteger(discountPercent)
+                      ? String(discountPercent)
+                      : discountPercent.toFixed(2)
+                  }
+                  onChange={(e) => {
+                    const n = Number(e.target.value.replace(",", "."));
+                    if (e.target.value.trim() === "") {
+                      setDiscountPercent(0);
+                      return;
+                    }
+                    if (!Number.isFinite(n) || n < 0) return;
+                    setDiscountPercent(Math.min(100, n));
+                  }}
+                  className="admin-input mt-1 w-full px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="text-xs font-medium text-zinc-600">
+                Total
+                <CurrencyInput
+                  valueCents={chargedCents}
+                  onChange={(cents) => {
+                    if (subtotalCents <= 0) {
+                      setDiscountPercent(0);
+                      return;
+                    }
+                    const next = Math.min(subtotalCents, Math.max(0, cents));
+                    setDiscountPercent(
+                      ((subtotalCents - next) / subtotalCents) * 100
+                    );
+                  }}
+                  className="admin-input mt-1 w-full px-3 py-2 text-sm"
+                  aria-label="Total com desconto"
+                />
+              </label>
+            </div>
+            <p className="text-xl font-black text-emerald-800 dark:text-emerald-400">
+              Total {formatPrice(chargedCents)}
+            </p>
+            <button
+              type="button"
+              disabled={submitting || cart.length === 0}
+              onClick={() => void checkout()}
+              className="admin-btn-primary min-h-11 w-full text-base disabled:opacity-50"
+            >
+              {submitting ? "Registrando…" : "Finalizar venda"}
+            </button>
+          </div>
         </aside>
       </div>
 

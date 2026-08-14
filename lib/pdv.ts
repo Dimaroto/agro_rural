@@ -210,11 +210,7 @@ export async function createWalkInSale(params: {
     receivableDueAt.setDate(receivableDueAt.getDate() + params.dueInDays);
   }
 
-  const status = isPix
-    ? OrderStatus.AWAITING_PIX
-    : isReceivable
-      ? OrderStatus.AWAITING_PAYMENT
-      : OrderStatus.DELIVERED;
+  const status = isPix ? OrderStatus.AWAITING_PIX : OrderStatus.DELIVERED;
 
   const paymentPending = isPix || isReceivable;
   const customerName =

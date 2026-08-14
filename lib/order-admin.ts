@@ -339,7 +339,10 @@ export async function adminUpdateSale(
       paymentStatus = PaymentStatus.PENDING;
       paidAt = null;
     } else if (method === "receivable") {
-      status = ORDER_STATUS.AWAITING_PAYMENT;
+      status =
+        order.payment?.provider === "manual"
+          ? ORDER_STATUS.DELIVERED
+          : ORDER_STATUS.AWAITING_PAYMENT;
       paymentStatus = PaymentStatus.PENDING;
       paidAt = null;
     } else {

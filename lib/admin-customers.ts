@@ -66,8 +66,21 @@ function mapCustomerRow(
   };
 }
 
-function openStatuses(): OrderStatus[] {
-  return [OrderStatus.AWAITING_PAYMENT, OrderStatus.AWAITING_PIX];
+function isOpenBalance(order: {
+  status: OrderStatus;
+  payment?: { status: string; method: string | null } | null;
+}) {
+  if (
+    order.status === OrderStatus.AWAITING_PAYMENT ||
+    order.status === OrderStatus.AWAITING_PIX
+  ) {
+    return true;
+  }
+  return (
+    order.status === OrderStatus.DELIVERED &&
+    order.payment?.status === "PENDING" &&
+    order.payment?.method === "receivable"
+  );
 }
 
 export async function listAdminCustomers(storeId: string, query?: string) {
@@ -83,6 +96,7 @@ export async function listAdminCustomers(storeId: string, query?: string) {
           totalCents: true,
           status: true,
           createdAt: true,
+          payment: { select: { status: true, method: true } },
         },
       },
     },
@@ -95,7 +109,7 @@ export async function listAdminCustomers(storeId: string, query?: string) {
   return customers
     .map((c) => {
       const openBalanceCents = c.orders
-        .filter((o) => openStatuses().includes(o.status))
+        .filter((o) => isOpenBalance(o))
         .reduce((sum, o) => sum + o.totalCents, 0);
       const paidOrderCount = c.orders.filter((o) =>
         saleStatuses.includes(o.status)
@@ -206,13 +220,14 @@ export async function getAdminCustomer(storeId: string, id: string) {
           totalCents: true,
           createdAt: true,
           receivableDueAt: true,
+          payment: { select: { status: true, method: true } },
         },
       },
     },
   });
   if (!customer) return null;
   const openBalanceCents = customer.orders
-    .filter((o) => openStatuses().includes(o.status))
+    .filter((o) => isOpenBalance(o))
     .reduce((sum, o) => sum + o.totalCents, 0);
 
   return {

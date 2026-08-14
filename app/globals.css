@@ -355,8 +355,13 @@ html {
     @apply mx-auto max-w-5xl p-3 sm:p-4 lg:p-6;
   }
 
-  .admin-main:has(.admin-finance-layout) {
-    @apply max-w-7xl;
+  .admin-main:has(.pdv-shell) {
+    @apply mx-auto h-[calc(100dvh-3rem)] max-w-none overflow-hidden p-2 sm:h-[calc(100dvh-3.5rem)] sm:p-3 lg:p-3;
+  }
+
+  .admin-shell:has(.pdv-shell) {
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .admin-section-title {

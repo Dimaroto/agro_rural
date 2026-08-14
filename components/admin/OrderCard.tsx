@@ -82,8 +82,9 @@ export function OrderCard({ order, storeWhatsapp }: OrderCardProps) {
       order.status === OrderStatus.DELIVERED);
 
   const canDeliver =
-    order.status === OrderStatus.PAID ||
-    (order.status === OrderStatus.AWAITING_PAYMENT && isManualReceive);
+    order.payment?.provider !== "manual" &&
+    (order.status === OrderStatus.PAID ||
+      (order.status === OrderStatus.AWAITING_PAYMENT && isManualReceive));
 
   const canConfirmPayment = isAwaitingReceive;
 

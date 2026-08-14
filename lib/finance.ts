@@ -395,6 +395,10 @@ export async function getReceivables(storeId: string) {
       OR: [
         { status: OrderStatus.AWAITING_PIX },
         { status: OrderStatus.AWAITING_PAYMENT },
+        {
+          status: OrderStatus.DELIVERED,
+          payment: { status: PaymentStatus.PENDING, method: "receivable" },
+        },
       ],
     },
     include: { payment: true },
@@ -436,6 +440,7 @@ export async function getFinanceCustomers(storeId: string) {
           totalCents: true,
           status: true,
           createdAt: true,
+          payment: { select: { status: true, method: true } },
         },
       },
     },
@@ -453,7 +458,10 @@ export async function getFinanceCustomers(storeId: string) {
       const pendingOrders = storeOrders.filter(
         (o) =>
           o.status === OrderStatus.AWAITING_PIX ||
-          o.status === OrderStatus.AWAITING_PAYMENT
+          o.status === OrderStatus.AWAITING_PAYMENT ||
+          (o.status === OrderStatus.DELIVERED &&
+            o.payment?.status === PaymentStatus.PENDING &&
+            o.payment?.method === "receivable")
       );
       const totalSpentCents = paidOrders.reduce((s, o) => s + o.totalCents, 0);
       const lastOrder = storeOrders.sort(
