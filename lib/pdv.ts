@@ -120,7 +120,6 @@ export async function createWalkInSale(params: {
   customerId?: string;
   receivedCents?: number;
   dueInDays?: number;
-  markAsDelivered?: boolean;
 }) {
   const lines = mergeCartLines(params.items);
   if (lines.length === 0) {
@@ -129,7 +128,6 @@ export async function createWalkInSale(params: {
 
   const isReceivable = params.paymentMethod === "receivable";
   const isPix = params.paymentMethod === "pix";
-  const isDelivered = Boolean(params.markAsDelivered);
 
   if (isReceivable) {
     const days = params.dueInDays ?? 0;
@@ -207,9 +205,7 @@ export async function createWalkInSale(params: {
     ? OrderStatus.AWAITING_PIX
     : isReceivable
       ? OrderStatus.AWAITING_PAYMENT
-      : isDelivered
-        ? OrderStatus.DELIVERED
-        : OrderStatus.PAID;
+      : OrderStatus.DELIVERED;
 
   const paymentPending = isPix || isReceivable;
   const customerName =
@@ -285,7 +281,6 @@ export async function createWalkInSale(params: {
       params.paymentMethod === "cash" ? params.receivedCents : undefined,
     paymentMethod: params.paymentMethod,
     status: order.status,
-    markAsDelivered: isDelivered,
     dueInDays: isReceivable ? params.dueInDays : undefined,
     receivableDueAt: receivableDueAt?.toISOString() ?? undefined,
     customerName,
@@ -309,7 +304,7 @@ export async function confirmPdvPayment(params: {
   await prisma.$transaction(async (tx) => {
     await tx.order.update({
       where: { id: order.id },
-      data: { status: OrderStatus.PAID },
+      data: { status: OrderStatus.DELIVERED },
     });
     if (order.payment) {
       await tx.payment.update({
@@ -323,6 +318,6 @@ export async function confirmPdvPayment(params: {
     orderId: order.id,
     orderCode: formatOrderCode(order.orderNumber, order.id),
     totalCents: order.totalCents,
-    status: OrderStatus.PAID,
+    status: OrderStatus.DELIVERED,
   };
 }

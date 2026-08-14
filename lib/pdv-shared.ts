@@ -33,5 +33,7 @@ export type PdvCustomerListItem = {
   name: string;
   phone: string | null;
   email: string | null;
+  birthDate: string | null;
+  isBirthday: boolean;
   openBalanceCents: number;
 };

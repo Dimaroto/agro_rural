@@ -18,7 +18,6 @@ const saleSchema = z
     customerId: z.string().min(1).optional(),
     receivedCents: z.number().int().nonnegative().optional(),
     dueInDays: z.number().int().positive().optional(),
-    markAsDelivered: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.paymentMethod === "receivable") {

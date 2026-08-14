@@ -16,6 +16,7 @@ import { PdvNotifications } from "@/components/admin/PdvNotifications";
 import { CurrencyInput } from "@/components/admin/CurrencyInput";
 import { PixQrCode } from "@/components/cart/PixQrCode";
 import { publicConfig } from "@/lib/public-config";
+import { formatBrBirthDate, formatBrPhone } from "@/lib/br-contact";
 
 type CartLine = {
   product: PdvProductListItem;
@@ -50,12 +51,12 @@ export function PdvClient() {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newBirthDate, setNewBirthDate] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState<PdvPaymentMethod>("cash");
   const [receivedCents, setReceivedCents] = useState(0);
   const [dueInDays, setDueInDays] = useState(7);
-  const [markAsDelivered, setMarkAsDelivered] = useState(false);
   const [cardConfirmed, setCardConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixPending, setPixPending] = useState<PixPending | null>(null);
@@ -192,7 +193,6 @@ export function PdvClient() {
     setCart([]);
     setReceivedCents(0);
     setCardConfirmed(false);
-    setMarkAsDelivered(false);
     setPaymentMethod("cash");
   }
 
@@ -209,6 +209,7 @@ export function PdvClient() {
           name: newName,
           phone: newPhone,
           email: newEmail,
+          birthDate: newBirthDate,
         }),
       });
       const data = await res.json();
@@ -222,6 +223,7 @@ export function PdvClient() {
       setNewName("");
       setNewPhone("");
       setNewEmail("");
+      setNewBirthDate("");
       setCustomerQuery("");
     } catch {
       setError("Não foi possível cadastrar o cliente.");
@@ -272,7 +274,6 @@ export function PdvClient() {
           receivedCents:
             paymentMethod === "cash" ? receivedCents : undefined,
           dueInDays: paymentMethod === "receivable" ? dueInDays : undefined,
-          markAsDelivered,
         }),
       });
       const data = await res.json();
@@ -540,17 +541,25 @@ export function PdvClient() {
               Cliente
             </p>
             {customer ? (
-              <div className="mt-1 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
-                <span className="min-w-0 truncate font-semibold">
-                  {customer.name}
-                </span>
-                <button
-                  type="button"
-                  className="shrink-0 text-xs text-zinc-600 hover:underline"
-                  onClick={() => setCustomer(null)}
-                >
-                  Trocar
-                </button>
+              <div className="mt-1 space-y-2">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+                  <span className="min-w-0 truncate font-semibold">
+                    {customer.name}
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs text-zinc-600 hover:underline"
+                    onClick={() => setCustomer(null)}
+                  >
+                    Trocar
+                  </button>
+                </div>
+                {customer.isBirthday && (
+                  <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
+                    Hoje é aniversário de {customer.name}. Lembre de
+                    parabenizar!
+                  </p>
+                )}
               </div>
             ) : (
               <>
@@ -573,10 +582,13 @@ export function PdvClient() {
                             setCustomerResults([]);
                           }}
                         >
-                          <span className="font-medium">{c.name}</span>
+                          <span className="font-medium">
+                            {c.name}
+                            {c.isBirthday ? " · aniversário" : ""}
+                          </span>
                           {c.phone ? (
                             <span className="block text-xs text-zinc-500">
-                              {c.phone}
+                              {formatBrPhone(c.phone)}
                             </span>
                           ) : null}
                         </button>
@@ -603,8 +615,21 @@ export function PdvClient() {
                     />
                     <input
                       value={newPhone}
-                      onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="Telefone"
+                      onChange={(e) => setNewPhone(formatBrPhone(e.target.value))}
+                      placeholder="(49) 99999-9999"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      className="admin-input w-full px-3 py-2 text-sm"
+                    />
+                    <input
+                      required
+                      value={newBirthDate}
+                      onChange={(e) =>
+                        setNewBirthDate(formatBrBirthDate(e.target.value))
+                      }
+                      placeholder="Nascimento DD/MM/AAAA *"
+                      inputMode="numeric"
+                      autoComplete="bday"
                       className="admin-input w-full px-3 py-2 text-sm"
                     />
                     <input
@@ -727,18 +752,6 @@ export function PdvClient() {
               )}
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={() => setMarkAsDelivered((v) => !v)}
-            className={`flex min-h-11 w-full items-center justify-center rounded-xl border text-sm font-semibold ${
-              markAsDelivered
-                ? "border-sky-500 bg-sky-50 text-sky-800"
-                : "border-zinc-200 text-zinc-600"
-            }`}
-          >
-            {markAsDelivered ? "✓ Entregue" : "Marcar como entregue"}
-          </button>
 
           <button
             type="button"

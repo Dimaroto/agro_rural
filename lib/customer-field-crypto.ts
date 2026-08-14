@@ -56,6 +56,7 @@ export function decryptCustomerField(
 export type CustomerPiiFields = {
   name?: string | null;
   phone?: string | null;
+  birthDate?: string | null;
   street?: string | null;
   number?: string | null;
   district?: string | null;
@@ -68,6 +69,7 @@ export function encryptCustomerPii<T extends CustomerPiiFields>(fields: T): T {
     ...fields,
     name: encryptCustomerField(fields.name ?? null),
     phone: encryptCustomerField(fields.phone ?? null),
+    birthDate: encryptCustomerField(fields.birthDate ?? null),
     street: encryptCustomerField(fields.street ?? null),
     number: encryptCustomerField(fields.number ?? null),
     district: encryptCustomerField(fields.district ?? null),
@@ -81,6 +83,7 @@ export function decryptCustomerPii<T extends CustomerPiiFields>(fields: T): T {
     ...fields,
     name: decryptCustomerField(fields.name ?? null),
     phone: decryptCustomerField(fields.phone ?? null),
+    birthDate: decryptCustomerField(fields.birthDate ?? null),
     street: decryptCustomerField(fields.street ?? null),
     number: decryptCustomerField(fields.number ?? null),
     district: decryptCustomerField(fields.district ?? null),

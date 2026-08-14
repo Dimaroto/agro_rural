@@ -6,12 +6,14 @@ import {
 } from "@/lib/admin-customers";
 import { publicErrorJson } from "@/lib/public-api-error";
 import { decryptCustomerPii } from "@/lib/customer-field-crypto";
+import { formatBrPhone, isBirthdayToday } from "@/lib/br-contact";
 import { z } from "zod";
 
 const createSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome"),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  birthDate: z.string().min(1, "Informe a data de nascimento"),
 });
 
 export async function GET(req: Request) {
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
       name: body.data.name,
       phone: body.data.phone,
       email: body.data.email,
+      birthDate: body.data.birthDate,
     });
     const pii = decryptCustomerPii(created);
     return NextResponse.json(
@@ -45,8 +48,10 @@ export async function POST(req: Request) {
         customer: {
           id: created.id,
           name: pii.name,
-          phone: pii.phone,
+          phone: pii.phone ? formatBrPhone(pii.phone) : null,
           email: created.email,
+          birthDate: pii.birthDate,
+          isBirthday: isBirthdayToday(pii.birthDate),
           openBalanceCents: 0,
         },
       },

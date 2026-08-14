@@ -5,12 +5,66 @@ import {
   encryptCustomerPii,
 } from "@/lib/customer-field-crypto";
 import { completedSaleStatuses } from "@/lib/order-status";
+import {
+  formatBrPhone,
+  isBirthdayToday,
+  isValidBrPhone,
+  normalizeBrPhone,
+  parseBrBirthDateToIso,
+} from "@/lib/br-contact";
 
 export type AdminCustomerInput = {
   name: string;
   phone?: string;
   email?: string;
+  birthDate?: string;
 };
+
+function normalizeBirthDate(value: string | undefined): string {
+  const iso = parseBrBirthDateToIso(value ?? "");
+  if (!iso) {
+    throw new Error("Informe a data de nascimento (DD/MM/AAAA).");
+  }
+  return iso;
+}
+
+function normalizePhoneInput(value: string | undefined): string | null {
+  const digits = normalizeBrPhone(value);
+  if (!digits) return null;
+  if (!isValidBrPhone(digits)) {
+    throw new Error("Telefone inválido. Use DDD + número, ex.: (49) 99999-9999.");
+  }
+  return formatBrPhone(digits);
+}
+
+function mapCustomerRow(
+  c: {
+    id: string;
+    email: string | null;
+    name: string | null;
+    phone: string | null;
+    birthDate?: string | null;
+  },
+  extras: {
+    openBalanceCents: number;
+    paidOrderCount?: number;
+    lastOrderAt?: Date | null;
+  }
+) {
+  const pii = decryptCustomerPii(c);
+  const birthDate = pii.birthDate ?? null;
+  return {
+    id: c.id,
+    name: pii.name?.trim() || "Sem nome",
+    phone: pii.phone ? formatBrPhone(pii.phone) : null,
+    email: c.email,
+    birthDate,
+    isBirthday: isBirthdayToday(birthDate),
+    openBalanceCents: extras.openBalanceCents,
+    paidOrderCount: extras.paidOrderCount ?? 0,
+    lastOrderAt: extras.lastOrderAt ?? null,
+  };
+}
 
 function openStatuses(): OrderStatus[] {
   return [OrderStatus.AWAITING_PAYMENT, OrderStatus.AWAITING_PIX];
@@ -40,7 +94,6 @@ export async function listAdminCustomers(storeId: string, query?: string) {
 
   return customers
     .map((c) => {
-      const pii = decryptCustomerPii(c);
       const openBalanceCents = c.orders
         .filter((o) => openStatuses().includes(o.status))
         .reduce((sum, o) => sum + o.totalCents, 0);
@@ -51,15 +104,11 @@ export async function listAdminCustomers(storeId: string, query?: string) {
         (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
       )[0];
 
-      return {
-        id: c.id,
-        name: pii.name?.trim() || "Sem nome",
-        phone: pii.phone,
-        email: c.email,
+      return mapCustomerRow(c, {
         openBalanceCents,
         paidOrderCount,
         lastOrderAt: lastOrder?.createdAt ?? null,
-      };
+      });
     })
     .filter((c) => {
       if (!q) return true;
@@ -82,9 +131,13 @@ export async function createAdminCustomer(
     if (exists) throw new Error("Já existe um cliente com este e-mail.");
   }
 
+  const birthDate = normalizeBirthDate(input.birthDate);
+  const phone = normalizePhoneInput(input.phone);
+
   const pii = encryptCustomerPii({
     name,
-    phone: input.phone?.trim() || null,
+    phone,
+    birthDate,
   });
 
   return prisma.customer.create({
@@ -93,6 +146,7 @@ export async function createAdminCustomer(
       email,
       name: pii.name,
       phone: pii.phone,
+      birthDate: pii.birthDate,
     },
   });
 }
@@ -117,9 +171,13 @@ export async function updateAdminCustomer(
     if (clash) throw new Error("Já existe um cliente com este e-mail.");
   }
 
+  const birthDate = normalizeBirthDate(input.birthDate);
+  const phone = normalizePhoneInput(input.phone);
+
   const pii = encryptCustomerPii({
     name,
-    phone: input.phone?.trim() || null,
+    phone,
+    birthDate,
   });
 
   return prisma.customer.update({
@@ -128,6 +186,7 @@ export async function updateAdminCustomer(
       email,
       name: pii.name,
       phone: pii.phone,
+      birthDate: pii.birthDate,
     },
   });
 }
@@ -152,17 +211,12 @@ export async function getAdminCustomer(storeId: string, id: string) {
     },
   });
   if (!customer) return null;
-  const pii = decryptCustomerPii(customer);
   const openBalanceCents = customer.orders
     .filter((o) => openStatuses().includes(o.status))
     .reduce((sum, o) => sum + o.totalCents, 0);
 
   return {
-    id: customer.id,
-    name: pii.name?.trim() || "Sem nome",
-    phone: pii.phone,
-    email: customer.email,
-    openBalanceCents,
+    ...mapCustomerRow(customer, { openBalanceCents }),
     orders: customer.orders,
   };
 }

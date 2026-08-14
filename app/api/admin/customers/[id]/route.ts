@@ -6,12 +6,14 @@ import {
 } from "@/lib/admin-customers";
 import { publicErrorJson } from "@/lib/public-api-error";
 import { decryptCustomerPii } from "@/lib/customer-field-crypto";
+import { formatBrPhone } from "@/lib/br-contact";
 import { z } from "zod";
 
 const updateSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome"),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  birthDate: z.string().min(1, "Informe a data de nascimento"),
 });
 
 export async function GET(
@@ -48,14 +50,16 @@ export async function PATCH(
       name: body.data.name,
       phone: body.data.phone,
       email: body.data.email,
+      birthDate: body.data.birthDate,
     });
     const pii = decryptCustomerPii(updated);
     return NextResponse.json({
       customer: {
         id: updated.id,
         name: pii.name,
-        phone: pii.phone,
+        phone: pii.phone ? formatBrPhone(pii.phone) : null,
         email: updated.email,
+        birthDate: pii.birthDate,
       },
     });
   } catch (e) {

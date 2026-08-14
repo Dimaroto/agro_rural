@@ -255,6 +255,8 @@ model Customer {
   passwordHash String?
   name         String?
   phone        String?
+  /** Data de nascimento ISO YYYY-MM-DD (PII cifrada). */
+  birthDate    String?
   street       String?
   number       String?
   district     String?

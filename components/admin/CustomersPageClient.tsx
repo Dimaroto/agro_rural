@@ -3,12 +3,19 @@
 import { useMemo, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { formatApiError } from "@/lib/apiError";
+import {
+  formatBrBirthDate,
+  formatBrPhone,
+  isoToBrBirthDate,
+} from "@/lib/br-contact";
 
 type CustomerRow = {
   id: string;
   name: string;
   phone: string | null;
   email: string | null;
+  birthDate: string | null;
+  isBirthday: boolean;
   openBalanceCents: number;
   paidOrderCount: number;
   lastOrderAt: string | null;
@@ -24,6 +31,7 @@ export function CustomersPageClient({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,13 +49,15 @@ export function CustomersPageClient({
     setName("");
     setPhone("");
     setEmail("");
+    setBirthDate("");
   }
 
   function startEdit(c: CustomerRow) {
     setEditingId(c.id);
     setName(c.name);
-    setPhone(c.phone ?? "");
+    setPhone(c.phone ? formatBrPhone(c.phone) : "");
     setEmail(c.email ?? "");
+    setBirthDate(isoToBrBirthDate(c.birthDate));
     setError("");
   }
 
@@ -63,7 +73,7 @@ export function CustomersPageClient({
       const res = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email }),
+        body: JSON.stringify({ name, phone, email, birthDate }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -75,14 +85,18 @@ export function CustomersPageClient({
         name: string | null;
         phone: string | null;
         email: string | null;
+        birthDate?: string | null;
+        isBirthday?: boolean;
         openBalanceCents?: number;
       };
       setCustomers((prev) => {
         const row: CustomerRow = {
           id: saved.id,
           name: saved.name?.trim() || "Sem nome",
-          phone: saved.phone,
+          phone: saved.phone ? formatBrPhone(saved.phone) : null,
           email: saved.email,
+          birthDate: saved.birthDate ?? null,
+          isBirthday: Boolean(saved.isBirthday),
           openBalanceCents: saved.openBalanceCents ?? 0,
           paidOrderCount:
             prev.find((p) => p.id === saved.id)?.paidOrderCount ?? 0,
@@ -121,7 +135,7 @@ export function CustomersPageClient({
             {error}
           </p>
         )}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm">
             Nome *
             <input
@@ -135,8 +149,23 @@ export function CustomersPageClient({
           <label className="text-sm">
             Telefone
             <input
+              inputMode="numeric"
+              autoComplete="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatBrPhone(e.target.value))}
+              placeholder="(49) 99999-9999"
+              className="admin-input mt-1 w-full px-3 py-2"
+            />
+          </label>
+          <label className="text-sm">
+            Data de nascimento *
+            <input
+              required
+              inputMode="numeric"
+              autoComplete="bday"
+              value={birthDate}
+              onChange={(e) => setBirthDate(formatBrBirthDate(e.target.value))}
+              placeholder="DD/MM/AAAA"
               className="admin-input mt-1 w-full px-3 py-2"
             />
           </label>
@@ -191,10 +220,16 @@ export function CustomersPageClient({
                   <div className="min-w-0">
                     <p className="font-semibold text-zinc-900 dark:text-zinc-100">
                       {c.name}
+                      {c.isBirthday ? " · aniversário hoje" : ""}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      {[c.phone, c.email].filter(Boolean).join(" · ") ||
-                        "Sem contato"}
+                      {[
+                        c.phone,
+                        c.birthDate ? isoToBrBirthDate(c.birthDate) : null,
+                        c.email,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Sem contato"}
                     </p>
                   </div>
                   <div className="shrink-0 text-right text-sm">
