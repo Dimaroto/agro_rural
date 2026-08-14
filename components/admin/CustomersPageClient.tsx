@@ -8,6 +8,7 @@ import {
   formatBrPhone,
   isoToBrBirthDate,
 } from "@/lib/br-contact";
+import { searchIncludes } from "@/lib/search-text";
 
 type CustomerRow = {
   id: string;
@@ -37,10 +38,13 @@ export function CustomersPageClient({
   const [saving, setSaving] = useState(false);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (!q) return customers;
-    return customers.filter((c) =>
-      `${c.name} ${c.phone ?? ""} ${c.email ?? ""}`.toLowerCase().includes(q)
+    return customers.filter(
+      (c) =>
+        searchIncludes(c.name, q) ||
+        (c.phone ? searchIncludes(c.phone, q) : false) ||
+        (c.email ? searchIncludes(c.email, q) : false)
     );
   }, [customers, query]);
 

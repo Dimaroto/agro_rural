@@ -23,6 +23,7 @@ import {
 } from "./product-fields-persist";
 import { decryptCustomerPii } from "./customer-field-crypto";
 import { notifyStockLevel } from "./admin-push-dispatch";
+import { searchIncludes } from "./search-text";
 
 export type { PdvPaymentMethod, PdvProductListItem } from "./pdv-shared";
 export { PDV_PAYMENT_LABELS } from "./pdv-shared";
@@ -41,47 +42,16 @@ export async function listPdvProducts(
     where: {
       storeId,
       active: true,
-      ...(q
-        ? {
-            OR: [
-              ...(code != null ? [{ code }] : []),
-              ...(barcode
-                ? [{ barcode: { contains: barcode } }, { barcode }]
-                : []),
-              { name: { contains: q, mode: "insensitive" as const } },
-              {
-                category: {
-                  OR: [
-                    { name: { contains: q, mode: "insensitive" as const } },
-                    { slug: { contains: q, mode: "insensitive" as const } },
-                  ],
-                },
-              },
-              {
-                categoryLinks: {
-                  some: {
-                    category: {
-                      OR: [
-                        { name: { contains: q, mode: "insensitive" as const } },
-                        { slug: { contains: q, mode: "insensitive" as const } },
-                      ],
-                    },
-                  },
-                },
-              },
-            ],
-          }
-        : {}),
     },
     include: {
       category: { select: { name: true, slug: true } },
       ...productFieldsInclude,
     },
     orderBy: [{ code: "asc" }, { name: "asc" }],
-    take: 80,
+    take: q ? 1000 : 80,
   });
 
-  return products.map((p) => {
+  const mapped = products.map((p) => {
     const available = availableStock(p);
     return {
       id: p.id,
@@ -97,6 +67,22 @@ export async function listPdvProducts(
       customizationFields: projectProductFields(p.customizationFields),
     };
   });
+
+  if (!q) return mapped;
+
+  return mapped
+    .filter((p) => {
+      if (code != null && p.code === code) return true;
+      if (barcode && p.barcode && p.barcode.includes(barcode)) return true;
+      return (
+        searchIncludes(p.name, q) ||
+        searchIncludes(p.categoryName, q) ||
+        searchIncludes(p.categorySlug, q) ||
+        searchIncludes(p.codeLabel, q) ||
+        (p.barcode ? searchIncludes(p.barcode, q) : false)
+      );
+    })
+    .slice(0, 80);
 }
 
 function mergeCartLines(items: PdvCartLine[]): PdvCartLine[] {

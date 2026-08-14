@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { allocateProductCode } from "@/lib/product-code";
+import { allocateProductCode, formatProductCode } from "@/lib/product-code";
 import { isValidBarcode, normalizeBarcode } from "@/lib/product-barcode";
 import { publicErrorJson } from "@/lib/public-api-error";
 import { productFieldsSchema } from "@/lib/party-favor-fields";
@@ -18,6 +18,7 @@ import {
   replaceProductMeasures,
 } from "@/lib/product-measures";
 import { z } from "zod";
+import { searchIncludes } from "@/lib/search-text";
 
 const barcodeSchema = z
   .string()
@@ -76,6 +77,7 @@ export async function GET(req: Request) {
     }
 
     const codeNum = /^\d+$/.test(q) ? Number.parseInt(q, 10) : null;
+    const barcodeDigits = q.replace(/\D/g, "");
     const products = await prisma.product.findMany({
       where: {
         storeId: session.user.storeId,
@@ -87,31 +89,33 @@ export async function GET(req: Request) {
               ],
             }
           : {}),
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" } },
-                { barcode: { contains: q.replace(/\D/g, "") || q } },
-                ...(codeNum != null && Number.isFinite(codeNum)
-                  ? [{ code: codeNum }]
-                  : []),
-              ],
-            }
-          : {}),
       },
       select: {
         id: true,
         name: true,
         code: true,
+        barcode: true,
         imageUrl: true,
         priceCents: true,
         custoCents: true,
         active: true,
       },
       orderBy: { name: "asc" },
-      take: q ? 20 : 100,
+      take: q ? 1000 : 100,
     });
-    return NextResponse.json(products);
+    const filtered = q
+      ? products.filter((p) => {
+          if (codeNum != null && Number.isFinite(codeNum) && p.code === codeNum) {
+            return true;
+          }
+          if (barcodeDigits && p.barcode?.includes(barcodeDigits)) return true;
+          return (
+            searchIncludes(p.name, q) ||
+            searchIncludes(formatProductCode(p.code), q)
+          );
+        })
+      : products;
+    return NextResponse.json(filtered.slice(0, q ? 20 : 100));
   }
 
   const products = await prisma.product.findMany({

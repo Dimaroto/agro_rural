@@ -12,6 +12,7 @@ import {
   normalizeBrPhone,
   parseBrBirthDateToIso,
 } from "@/lib/br-contact";
+import { searchIncludes } from "@/lib/search-text";
 
 export type AdminCustomerInput = {
   name: string;
@@ -126,8 +127,11 @@ export async function listAdminCustomers(storeId: string, query?: string) {
     })
     .filter((c) => {
       if (!q) return true;
-      const hay = `${c.name} ${c.phone ?? ""} ${c.email ?? ""}`.toLowerCase();
-      return hay.includes(q.toLowerCase());
+      return (
+        searchIncludes(c.name, q) ||
+        (c.phone ? searchIncludes(c.phone, q) : false) ||
+        (c.email ? searchIncludes(c.email, q) : false)
+      );
     });
 }
 

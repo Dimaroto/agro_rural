@@ -55,7 +55,12 @@ export function CatalogView({
       const matchSearch =
         !search ||
         searchIncludes(p.name, search) ||
-        (p.description ? searchIncludes(p.description, search) : false);
+        (p.description ? searchIncludes(p.description, search) : false) ||
+        searchIncludes(p.categoryName, search) ||
+        searchIncludes(p.categorySlug, search) ||
+        (p.categories ?? []).some(
+          (c) => searchIncludes(c.name, search) || searchIncludes(c.slug, search)
+        );
       return matchCat && matchSearch;
     });
   }, [products, categoryId, search]);
