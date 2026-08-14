@@ -26,6 +26,7 @@ function withQuery(rawUrl, extra) {
   try {
     const normalized = rawUrl.replace(/^prisma\+?/, "postgresql");
     const u = new URL(normalized);
+    u.searchParams.delete("channel_binding");
     for (const [key, val] of Object.entries(extra)) {
       if (!u.searchParams.has(key)) u.searchParams.set(key, val);
     }
