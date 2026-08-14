@@ -4103,3 +4103,234 @@ html:has(body.catalog-product-modal-open) {
   padding-right: var(--catalog-gutter);
   padding-bottom: 2rem;
 }
+
+.appt-picker-trigger {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  z-index: 1;
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.7rem;
+  background: #e4ead8;
+  color: #026842;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.appt-picker-trigger:hover,
+.appt-picker-trigger[aria-expanded="true"] {
+  background: #026842;
+  color: #fff;
+}
+
+.appt-picker {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.45rem);
+  z-index: 40;
+  width: min(100%, 19rem);
+  padding: 0.9rem;
+  border: 1px solid #c9d4b3;
+  border-radius: 1.15rem;
+  background: #fffdf8;
+  box-shadow: 0 16px 40px rgba(45, 76, 30, 0.16);
+}
+
+.appt-cal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.appt-cal__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: #2d4c1e;
+}
+
+.appt-cal__nav {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.65rem;
+  background: #e4ead8;
+  color: #2d4c1e;
+  cursor: pointer;
+}
+
+.appt-cal__nav:hover {
+  background: #d3debf;
+}
+
+.appt-cal__week,
+.appt-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.2rem;
+  text-align: center;
+}
+
+.appt-cal__week {
+  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: #6b7c5c;
+}
+
+.appt-cal__day {
+  height: 2.15rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: #2d4c1e;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.appt-cal__day:hover {
+  background: #e4ead8;
+}
+
+.appt-cal__day--today {
+  box-shadow: inset 0 0 0 1.5px #9dc08b;
+}
+
+.appt-cal__day--selected {
+  background: #026842;
+  color: #fff;
+  font-weight: 650;
+}
+
+.appt-cal__day--selected:hover {
+  background: #015c3a;
+}
+
+.appt-picker__today {
+  display: block;
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0.45rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: #e4ead8;
+  color: #026842;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.appt-clock__preview {
+  margin: 0 0 0.7rem;
+  text-align: center;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #026842;
+  font-variant-numeric: tabular-nums;
+}
+
+.appt-clock__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.appt-clock__label {
+  margin: 0 0 0.35rem;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7c5c;
+}
+
+.appt-clock__scroll {
+  display: flex;
+  max-height: 11.5rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow-y: auto;
+  padding: 0.15rem;
+  scrollbar-width: thin;
+}
+
+.appt-clock__item {
+  flex: none;
+  height: 2.15rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: #f4f0e6;
+  color: #2d4c1e;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.appt-clock__item:hover {
+  background: #e4ead8;
+}
+
+.appt-clock__item--selected {
+  background: #026842;
+  color: #fff;
+  font-weight: 650;
+}
+
+.dark .appt-picker-trigger {
+  background: rgb(24 24 27);
+  color: rgb(52 211 153);
+}
+
+.dark .appt-picker-trigger:hover,
+.dark .appt-picker-trigger[aria-expanded="true"] {
+  background: rgb(5 150 105);
+  color: #fff;
+}
+
+.dark .appt-picker {
+  border-color: rgb(39 39 42);
+  background: rgb(24 24 27);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark .appt-cal__title,
+.dark .appt-cal__day,
+.dark .appt-clock__item {
+  color: rgb(244 244 245);
+}
+
+.dark .appt-cal__nav,
+.dark .appt-picker__today,
+.dark .appt-clock__item {
+  background: rgb(39 39 42);
+}
+
+.dark .appt-cal__day:hover,
+.dark .appt-cal__nav:hover,
+.dark .appt-clock__item:hover {
+  background: rgb(63 63 70);
+}
+
+.dark .appt-cal__day--selected,
+.dark .appt-clock__item--selected {
+  background: rgb(5 150 105);
+  color: #fff;
+}
+
+.dark .appt-clock__preview {
+  color: rgb(52 211 153);
+}

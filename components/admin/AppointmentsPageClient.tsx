@@ -10,13 +10,9 @@ import {
   type AppointmentRange,
   formatAppointmentDate,
   formatAppointmentTime,
-  formatBrTime,
-  isoDateFromMasked,
-  isoTimeFromMasked,
-  maskedDateFromIso,
   startOfSaoPauloDay,
 } from "@/lib/appointment-datetime";
-import { CalendarIcon, ClockIcon } from "@/components/admin/AdminIcons";
+import { AppointmentDateTimeFields } from "@/components/admin/AppointmentDateTimeFields";
 import type { AppointmentListItem } from "@/lib/admin-appointments-shared";
 
 type CustomerOption = {
@@ -393,60 +389,12 @@ export function AppointmentsPageClient({
           </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm">
-            Data *
-            <div className="relative mt-1">
-              <input
-                required
-                inputMode="numeric"
-                value={date}
-                onChange={(e) => setDate(formatBrBirthDate(e.target.value))}
-                placeholder="DD/MM/AAAA"
-                className="admin-input w-full px-3 py-2 pr-10"
-              />
-              <span className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-center text-zinc-500">
-                <CalendarIcon className="h-4 w-4" />
-              </span>
-              <input
-                type="date"
-                aria-label="Selecionar data"
-                className="absolute inset-y-0 right-0 w-10 cursor-pointer opacity-0"
-                value={isoDateFromMasked(date)}
-                onChange={(e) => {
-                  if (e.target.value) setDate(maskedDateFromIso(e.target.value));
-                }}
-              />
-            </div>
-          </label>
-          <label className="text-sm">
-            Horário *
-            <div className="relative mt-1">
-              <input
-                required
-                inputMode="numeric"
-                value={time}
-                onChange={(e) => setTime(formatBrTime(e.target.value))}
-                placeholder="HH:MM"
-                className="admin-input w-full px-3 py-2 pr-10"
-              />
-              <span className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-center text-zinc-500">
-                <ClockIcon className="h-4 w-4" />
-              </span>
-              <input
-                type="time"
-                aria-label="Selecionar horário"
-                className="absolute inset-y-0 right-0 w-10 cursor-pointer opacity-0"
-                value={isoTimeFromMasked(time)}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setTime(formatBrTime(e.target.value.replace(/\D/g, "")));
-                  }
-                }}
-              />
-            </div>
-          </label>
-        </div>
+        <AppointmentDateTimeFields
+          date={date}
+          time={time}
+          onDateChange={setDate}
+          onTimeChange={setTime}
+        />
 
         <label className="text-sm">
           Observações
