@@ -10,7 +10,7 @@ Catálogo PWA compartilhável pelo WhatsApp, com controle de estoque manual e pa
 - PIX e cartão via Mercado Pago (ou mock em desenvolvimento) 
   
    
-## Início rápido
+## Início rápido 
 
 ### 1. Banco de dados 
 
