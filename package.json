@@ -23,7 +23,10 @@
     "db:push:prod": "node scripts/push-prod-schema.cjs",
     "admin:update": "npx tsx scripts/update-admin-user.ts",
     "admin:update:prod": "npx tsx scripts/update-admin-user.ts --production",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "env:pull": "npx vercel env pull .env.production.local --yes --environment=production",
+    "deploy": "npx vercel --prod --yes",
+    "deploy:preview": "npx vercel --yes"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

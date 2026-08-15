@@ -1,0 +1,31 @@
+---
+description: Ambientes de produção (Vercel, Neon, Blob) e deploy automático
+alwaysApply: true
+---
+
+# Ambientes Agro Rural
+
+Produção: `https://agroruralzortea.com.br`
+Repo: `Dimaroto/agro_rural` (GitHub) → Vercel projeto `agro-rural` (região `gru1`)
+Time Vercel: `agroruralzorteaa-5669s-projects` (`team_AfeuNwUd1UfB4rRxu3Hcblt6`)
+Projeto Vercel: `agro-rural` (`prj_vd9agLNjsuoJaGKDeW8qjgSAFQ7q`)
+Banco Neon: `agro-rural-db` (`proud-queen-35284025`, org Vercel `org-holy-cherry-43254236`)
+Imagens: Vercel Blob (`BLOB_READ_WRITE_TOKEN` no projeto Vercel)
+
+Há outra conta Vercel (`contateiedem-1067`, SaboArt). Para este repo use sempre a conta/time **agroruralzorteaa**.
+
+## Deploy automático
+
+Push em `main` dispara deploy na Vercel. Após concluir uma atualização, commit + `git push origin main` (já autorizado pela regra de auto-push). Não commitar `.env*`, tokens ou `.vercel`.
+
+## Variáveis (Vercel / Neon / Blob)
+
+A integração Neon injeta `DATABASE_URL` (pooler) e `DATABASE_URL_UNPOOLED` / `DIRECT_URL`.
+O Blob injeta `BLOB_READ_WRITE_TOKEN`.
+Também necessários: `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL=https://agroruralzortea.com.br`.
+
+Para scripts locais de produção: `npm run env:pull` gera `.env.production.local` (gitignored). Depois `npm run db:setup:prod`.
+
+## Cursor
+
+MCP Vercel (`https://mcp.vercel.com`) e Neon (`https://mcp.neon.tech/mcp`) estão em `.cursor/mcp.json`. Use-os para logs, deploys e o banco — não peça ao usuário para abrir o painel se a integração estiver autenticada.

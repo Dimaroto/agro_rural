@@ -3,6 +3,25 @@
 Repositório: [Dimaroto/agro_rural](https://github.com/Dimaroto/agro_rural)  
 Domínio: `https://agroruralzortea.com.br`
 
+## Cursor (Vercel + Neon + Blob)
+
+O projeto já declara os servidores MCP em `.cursor/mcp.json`. Na primeira vez, autorize no Cursor (Settings → MCP → **Needs login** em Vercel e Neon).
+
+Fluxo no dia a dia:
+
+1. Alterações no Cursor → commit + push em `main` → deploy automático na Vercel.
+2. Para puxar variáveis de produção (Neon + Blob) para scripts locais:
+
+```powershell
+npx vercel login
+npx vercel link --yes
+npm run env:pull
+```
+
+Isso gera `.env.production.local` (gitignored). Depois: `npm run db:setup:prod`.
+
+Deploy manual (se o Git estiver indisponível): `npm run deploy`.
+
 ## O que você precisa fazer
 
 1. Na Vercel: importar o GitHub `Dimaroto/agro_rural`.
