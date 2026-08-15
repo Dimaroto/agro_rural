@@ -142,6 +142,11 @@ export function ProductForm({
     imageUrl: string | null;
     extraImageUrls?: string[];
     active: boolean;
+    ncm?: string | null;
+    cfopDefault?: string | null;
+    csosn?: string | null;
+    origemMercadoria?: string | null;
+    unidadeComercial?: string | null;
     customizationFields?: ProductFieldView[];
     measures?: ProductMeasureView[];
   };
@@ -422,6 +427,16 @@ export function ProductForm({
       imageUrl: imageUrl === null ? null : (imageUrl ?? undefined),
       extraImageUrls,
       active: product ? fd.get("active") === "on" : true,
+      ncm: ((fd.get("ncm") as string) || "").replace(/\D/g, "") || null,
+      cfopDefault:
+        ((fd.get("cfopDefault") as string) || "").replace(/\D/g, "") || "5102",
+      csosn: ((fd.get("csosn") as string) || "").replace(/\D/g, "") || "102",
+      origemMercadoria:
+        ((fd.get("origemMercadoria") as string) || "").replace(/\D/g, "") ||
+        "0",
+      unidadeComercial:
+        ((fd.get("unidadeComercial") as string) || "").trim().toUpperCase() ||
+        "UN",
       customizationFields: payloadFields,
       measures: measurePayload,
     };
@@ -499,6 +514,55 @@ export function ProductForm({
             placeholder="Texto principal no topo do produto no catálogo"
           />
         </Field>
+
+        <div className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Fiscal (NF-e)
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label="NCM (8 dígitos)">
+              <input
+                name="ncm"
+                inputMode="numeric"
+                defaultValue={product?.ncm ?? ""}
+                className={inputClass}
+                placeholder="01012100"
+                maxLength={8}
+              />
+            </Field>
+            <Field label="CFOP">
+              <input
+                name="cfopDefault"
+                inputMode="numeric"
+                defaultValue={product?.cfopDefault ?? "5102"}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="CSOSN">
+              <input
+                name="csosn"
+                inputMode="numeric"
+                defaultValue={product?.csosn ?? "102"}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Origem">
+              <input
+                name="origemMercadoria"
+                inputMode="numeric"
+                defaultValue={product?.origemMercadoria ?? "0"}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Unidade">
+              <input
+                name="unidadeComercial"
+                defaultValue={product?.unidadeComercial ?? "UN"}
+                className={inputClass}
+              />
+            </Field>
+          </div>
+        </div>
 
         <div className="space-y-3">
           <div className="flex items-end justify-between gap-2">

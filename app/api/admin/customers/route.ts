@@ -14,6 +14,15 @@ const createSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   birthDate: z.string().min(1, "Informe a data de nascimento"),
+  document: z.string().optional(),
+  street: z.string().optional(),
+  number: z.string().optional(),
+  district: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string().optional(),
+  state: z.string().optional(),
+  complement: z.string().optional(),
+  ie: z.string().optional(),
 });
 
 export async function GET(req: Request) {
@@ -41,6 +50,15 @@ export async function POST(req: Request) {
       phone: body.data.phone,
       email: body.data.email,
       birthDate: body.data.birthDate,
+      document: body.data.document,
+      street: body.data.street,
+      number: body.data.number,
+      district: body.data.district,
+      city: body.data.city,
+      zipCode: body.data.zipCode,
+      state: body.data.state,
+      complement: body.data.complement,
+      ie: body.data.ie,
     });
     const pii = decryptCustomerPii(created);
     return NextResponse.json(
@@ -52,6 +70,15 @@ export async function POST(req: Request) {
           email: created.email,
           birthDate: pii.birthDate,
           isBirthday: isBirthdayToday(pii.birthDate),
+          document: pii.document,
+          street: pii.street,
+          number: pii.number,
+          district: pii.district,
+          city: pii.city,
+          zipCode: pii.zipCode,
+          state: created.state,
+          complement: pii.complement,
+          ie: created.ie,
           openBalanceCents: 0,
         },
       },

@@ -45,6 +45,11 @@ const createSchema = z.object({
   extraImageUrls: z.array(z.string().min(1)).max(2).optional().default([]),
   customizationFields: productFieldsSchema.optional().default([]),
   measures: productMeasuresSchema.optional().default([]),
+  ncm: z.string().optional().nullable(),
+  cfopDefault: z.string().optional().nullable(),
+  csosn: z.string().optional().nullable(),
+  origemMercadoria: z.string().optional().nullable(),
+  unidadeComercial: z.string().optional().nullable(),
 });
 
 export async function GET(req: Request) {
@@ -167,6 +172,11 @@ export async function POST(req: Request) {
           quantity: body.data.quantity,
           imageUrl: body.data.imageUrl ?? undefined,
           extraImageUrls: body.data.extraImageUrls ?? [],
+          ncm: body.data.ncm ?? null,
+          cfopDefault: body.data.cfopDefault ?? "5102",
+          csosn: body.data.csosn ?? "102",
+          origemMercadoria: body.data.origemMercadoria ?? "0",
+          unidadeComercial: body.data.unidadeComercial ?? "UN",
         },
       });
 

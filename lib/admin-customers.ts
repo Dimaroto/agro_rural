@@ -19,6 +19,15 @@ export type AdminCustomerInput = {
   phone?: string;
   email?: string;
   birthDate?: string;
+  document?: string;
+  street?: string;
+  number?: string;
+  district?: string;
+  city?: string;
+  zipCode?: string;
+  state?: string;
+  complement?: string;
+  ie?: string;
 };
 
 function normalizeBirthDate(value: string | undefined): string {
@@ -45,6 +54,15 @@ function mapCustomerRow(
     name: string | null;
     phone: string | null;
     birthDate?: string | null;
+    document?: string | null;
+    street?: string | null;
+    number?: string | null;
+    district?: string | null;
+    city?: string | null;
+    zipCode?: string | null;
+    state?: string | null;
+    complement?: string | null;
+    ie?: string | null;
   },
   extras: {
     openBalanceCents: number;
@@ -61,6 +79,15 @@ function mapCustomerRow(
     email: c.email,
     birthDate,
     isBirthday: isBirthdayToday(birthDate),
+    document: pii.document ?? null,
+    street: pii.street ?? null,
+    number: pii.number ?? null,
+    district: pii.district ?? null,
+    city: pii.city ?? null,
+    zipCode: pii.zipCode ?? null,
+    state: c.state ?? null,
+    complement: pii.complement ?? null,
+    ie: c.ie ?? null,
     openBalanceCents: extras.openBalanceCents,
     paidOrderCount: extras.paidOrderCount ?? 0,
     lastOrderAt: extras.lastOrderAt ?? null,
@@ -151,11 +178,26 @@ export async function createAdminCustomer(
 
   const birthDate = normalizeBirthDate(input.birthDate);
   const phone = normalizePhoneInput(input.phone);
+  const document = input.document?.replace(/\D/g, "").trim() || null;
+  if (document && document.length !== 11 && document.length !== 14) {
+    throw new Error("CPF/CNPJ inválido.");
+  }
+  const state = input.state?.trim().toUpperCase() || null;
+  if (state && state.length !== 2) {
+    throw new Error("UF inválida (use 2 letras, ex.: SC).");
+  }
 
   const pii = encryptCustomerPii({
     name,
     phone,
     birthDate,
+    document,
+    street: input.street?.trim() || null,
+    number: input.number?.trim() || null,
+    district: input.district?.trim() || null,
+    city: input.city?.trim() || null,
+    zipCode: input.zipCode?.replace(/\D/g, "").trim() || null,
+    complement: input.complement?.trim() || null,
   });
 
   return prisma.customer.create({
@@ -165,6 +207,15 @@ export async function createAdminCustomer(
       name: pii.name,
       phone: pii.phone,
       birthDate: pii.birthDate,
+      document: pii.document,
+      street: pii.street,
+      number: pii.number,
+      district: pii.district,
+      city: pii.city,
+      zipCode: pii.zipCode,
+      complement: pii.complement,
+      state,
+      ie: input.ie?.trim() || null,
     },
   });
 }
@@ -191,11 +242,26 @@ export async function updateAdminCustomer(
 
   const birthDate = normalizeBirthDate(input.birthDate);
   const phone = normalizePhoneInput(input.phone);
+  const document = input.document?.replace(/\D/g, "").trim() || null;
+  if (document && document.length !== 11 && document.length !== 14) {
+    throw new Error("CPF/CNPJ inválido.");
+  }
+  const state = input.state?.trim().toUpperCase() || null;
+  if (state && state.length !== 2) {
+    throw new Error("UF inválida (use 2 letras, ex.: SC).");
+  }
 
   const pii = encryptCustomerPii({
     name,
     phone,
     birthDate,
+    document,
+    street: input.street?.trim() || null,
+    number: input.number?.trim() || null,
+    district: input.district?.trim() || null,
+    city: input.city?.trim() || null,
+    zipCode: input.zipCode?.replace(/\D/g, "").trim() || null,
+    complement: input.complement?.trim() || null,
   });
 
   return prisma.customer.update({
@@ -205,6 +271,15 @@ export async function updateAdminCustomer(
       name: pii.name,
       phone: pii.phone,
       birthDate: pii.birthDate,
+      document: pii.document,
+      street: pii.street,
+      number: pii.number,
+      district: pii.district,
+      city: pii.city,
+      zipCode: pii.zipCode,
+      complement: pii.complement,
+      state,
+      ie: input.ie?.trim() || null,
     },
   });
 }

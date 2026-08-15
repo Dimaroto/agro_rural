@@ -12,6 +12,10 @@ import {
 } from "@/lib/pdv-notifications";
 import { BannerImageField } from "@/components/admin/BannerImageField";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
+import {
+  readNfeEmissorToken,
+  writeNfeEmissorToken,
+} from "@/lib/nfe/client";
 
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
@@ -36,6 +40,8 @@ export function SettingsBar({
   const [notifPref, setNotifPref] = useState<PdvNotifPref | null>(null);
   const [notifPermission, setNotifPermission] =
     useState<NotificationPermission | "unsupported">("default");
+  const [nfeToken, setNfeToken] = useState("");
+  const [nfeTokenMsg, setNfeTokenMsg] = useState("");
 
   const showStoreSettings = initialWhatsapp !== undefined;
   const showNotifSettings = notificationsSupported();
@@ -63,6 +69,10 @@ export function SettingsBar({
     window.addEventListener("pdv-notif-pref-change", onPref);
     return () => window.removeEventListener("pdv-notif-pref-change", onPref);
   }, []);
+
+  useEffect(() => {
+    setNfeToken(readNfeEmissorToken());
+  }, [open]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -246,6 +256,42 @@ export function SettingsBar({
               />
             </div>
           )}
+
+          <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+              NF-e (emissor local)
+            </p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Token Sanctum do painel em http://127.0.0.1:8000 (salvo só neste
+              navegador).
+            </p>
+            <input
+              type="password"
+              value={nfeToken}
+              onChange={(e) => {
+                setNfeToken(e.target.value);
+                setNfeTokenMsg("");
+              }}
+              placeholder="Cole o token agro-app"
+              className="admin-input mt-2 w-full py-2 font-mono text-xs"
+              autoComplete="off"
+            />
+            {nfeTokenMsg && (
+              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                {nfeTokenMsg}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                writeNfeEmissorToken(nfeToken);
+                setNfeTokenMsg("Token salvo neste navegador.");
+              }}
+              className="mt-3 w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Salvar token NF-e
+            </button>
+          </div>
         </div>
       )}
     </div>

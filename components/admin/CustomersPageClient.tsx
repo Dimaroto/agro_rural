@@ -17,9 +17,30 @@ type CustomerRow = {
   email: string | null;
   birthDate: string | null;
   isBirthday: boolean;
+  document?: string | null;
+  street?: string | null;
+  number?: string | null;
+  district?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
+  state?: string | null;
+  complement?: string | null;
+  ie?: string | null;
   openBalanceCents: number;
   paidOrderCount: number;
   lastOrderAt: string | null;
+};
+
+const emptyFiscal = {
+  document: "",
+  street: "",
+  number: "",
+  district: "",
+  city: "",
+  zipCode: "",
+  state: "",
+  complement: "",
+  ie: "",
 };
 
 export function CustomersPageClient({
@@ -33,6 +54,7 @@ export function CustomersPageClient({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [fiscal, setFiscal] = useState(emptyFiscal);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -44,7 +66,8 @@ export function CustomersPageClient({
       (c) =>
         searchIncludes(c.name, q) ||
         (c.phone ? searchIncludes(c.phone, q) : false) ||
-        (c.email ? searchIncludes(c.email, q) : false)
+        (c.email ? searchIncludes(c.email, q) : false) ||
+        (c.document ? searchIncludes(c.document, q) : false)
     );
   }, [customers, query]);
 
@@ -54,6 +77,7 @@ export function CustomersPageClient({
     setPhone("");
     setEmail("");
     setBirthDate("");
+    setFiscal(emptyFiscal);
   }
 
   function startEdit(c: CustomerRow) {
@@ -62,6 +86,17 @@ export function CustomersPageClient({
     setPhone(c.phone ? formatBrPhone(c.phone) : "");
     setEmail(c.email ?? "");
     setBirthDate(isoToBrBirthDate(c.birthDate));
+    setFiscal({
+      document: c.document ?? "",
+      street: c.street ?? "",
+      number: c.number ?? "",
+      district: c.district ?? "",
+      city: c.city ?? "",
+      zipCode: c.zipCode ?? "",
+      state: c.state ?? "",
+      complement: c.complement ?? "",
+      ie: c.ie ?? "",
+    });
     setError("");
   }
 
@@ -77,21 +112,22 @@ export function CustomersPageClient({
       const res = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, birthDate }),
+        body: JSON.stringify({
+          name,
+          phone,
+          email,
+          birthDate,
+          ...fiscal,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(formatApiError(data.error, "Erro ao salvar cliente"));
         return;
       }
-      const saved = data.customer as {
-        id: string;
+      const saved = data.customer as CustomerRow & {
         name: string | null;
         phone: string | null;
-        email: string | null;
-        birthDate?: string | null;
-        isBirthday?: boolean;
-        openBalanceCents?: number;
       };
       setCustomers((prev) => {
         const row: CustomerRow = {
@@ -101,6 +137,15 @@ export function CustomersPageClient({
           email: saved.email,
           birthDate: saved.birthDate ?? null,
           isBirthday: Boolean(saved.isBirthday),
+          document: saved.document ?? null,
+          street: saved.street ?? null,
+          number: saved.number ?? null,
+          district: saved.district ?? null,
+          city: saved.city ?? null,
+          zipCode: saved.zipCode ?? null,
+          state: saved.state ?? null,
+          complement: saved.complement ?? null,
+          ie: saved.ie ?? null,
           openBalanceCents: saved.openBalanceCents ?? 0,
           paidOrderCount:
             prev.find((p) => p.id === saved.id)?.paidOrderCount ?? 0,
@@ -119,6 +164,8 @@ export function CustomersPageClient({
     }
   }
 
+  const inputClass = "admin-input mt-1 w-full px-3 py-2";
+
   return (
     <div className="space-y-6">
       <header>
@@ -126,7 +173,7 @@ export function CustomersPageClient({
           Clientes
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Cadastro para o caixa e vendas a prazo
+          Cadastro para o caixa, vendas a prazo e NF-e
         </p>
       </header>
 
@@ -147,7 +194,7 @@ export function CustomersPageClient({
               minLength={2}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="admin-input mt-1 w-full px-3 py-2"
+              className={inputClass}
             />
           </label>
           <label className="text-sm">
@@ -158,7 +205,7 @@ export function CustomersPageClient({
               value={phone}
               onChange={(e) => setPhone(formatBrPhone(e.target.value))}
               placeholder="(49) 99999-9999"
-              className="admin-input mt-1 w-full px-3 py-2"
+              className={inputClass}
             />
           </label>
           <label className="text-sm">
@@ -170,7 +217,7 @@ export function CustomersPageClient({
               value={birthDate}
               onChange={(e) => setBirthDate(formatBrBirthDate(e.target.value))}
               placeholder="DD/MM/AAAA"
-              className="admin-input mt-1 w-full px-3 py-2"
+              className={inputClass}
             />
           </label>
           <label className="text-sm">
@@ -179,10 +226,112 @@ export function CustomersPageClient({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="admin-input mt-1 w-full px-3 py-2"
+              className={inputClass}
             />
           </label>
         </div>
+
+        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          Dados fiscais (NF-e)
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-sm">
+            CPF/CNPJ
+            <input
+              value={fiscal.document}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, document: e.target.value }))
+              }
+              className={inputClass}
+              placeholder="Somente números"
+            />
+          </label>
+          <label className="text-sm">
+            IE
+            <input
+              value={fiscal.ie}
+              onChange={(e) => setFiscal((f) => ({ ...f, ie: e.target.value }))}
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm sm:col-span-2">
+            Logradouro
+            <input
+              value={fiscal.street}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, street: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            Número
+            <input
+              value={fiscal.number}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, number: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            Complemento
+            <input
+              value={fiscal.complement}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, complement: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            Bairro
+            <input
+              value={fiscal.district}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, district: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            Cidade
+            <input
+              value={fiscal.city}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, city: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            UF
+            <input
+              value={fiscal.state}
+              onChange={(e) =>
+                setFiscal((f) => ({
+                  ...f,
+                  state: e.target.value.toUpperCase().slice(0, 2),
+                }))
+              }
+              className={inputClass}
+              maxLength={2}
+              placeholder="SC"
+            />
+          </label>
+          <label className="text-sm">
+            CEP
+            <input
+              value={fiscal.zipCode}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, zipCode: e.target.value }))
+              }
+              className={inputClass}
+              placeholder="00000000"
+            />
+          </label>
+        </div>
+
         <div className="flex gap-2">
           <button type="submit" disabled={saving} className="admin-btn-primary">
             {saving ? "Salvando…" : editingId ? "Atualizar" : "Cadastrar"}
@@ -204,7 +353,7 @@ export function CustomersPageClient({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nome, telefone ou e-mail…"
+            placeholder="Buscar por nome, telefone, documento ou e-mail…"
             className="admin-input w-full px-3 py-2"
           />
         </div>
@@ -229,6 +378,7 @@ export function CustomersPageClient({
                     <p className="text-xs text-zinc-500">
                       {[
                         c.phone,
+                        c.document,
                         c.birthDate ? isoToBrBirthDate(c.birthDate) : null,
                         c.email,
                       ]

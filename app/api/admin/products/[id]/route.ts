@@ -44,6 +44,11 @@ const updateSchema = z.object({
   active: z.boolean().optional(),
   customizationFields: productFieldsSchema.optional(),
   measures: productMeasuresSchema.optional(),
+  ncm: z.string().optional().nullable(),
+  cfopDefault: z.string().optional().nullable(),
+  csosn: z.string().optional().nullable(),
+  origemMercadoria: z.string().optional().nullable(),
+  unidadeComercial: z.string().optional().nullable(),
 });
 
 export async function PATCH(

@@ -53,3 +53,18 @@ next-env.d.ts
 .postgres-data
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Emissor NFe local (Laravel)
+/emissor_nfe/vendor/
+/emissor_nfe/node_modules/
+/emissor_nfe/.env
+/emissor_nfe/.agro_token.txt
+/emissor_nfe/.neon-url
+/emissor_nfe/*.pfx
+/emissor_nfe/runtime/
+/emissor_nfe/storage/logs/
+/emissor_nfe/storage/framework/cache/
+/emissor_nfe/storage/framework/sessions/
+/emissor_nfe/storage/framework/views/
+/emissor_nfe/php-emissor.ini
+/emissor_nfe/php-emissor.path

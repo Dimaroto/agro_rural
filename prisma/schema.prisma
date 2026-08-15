@@ -126,6 +126,16 @@ model Product {
   quantity         Int @default(0)
   reservedQuantity Int @default(0)
   active       Boolean  @default(true)
+  /** NCM (8 dígitos) para NF-e. */
+  ncm          String?
+  /** CFOP padrão (ex.: 5102). */
+  cfopDefault  String?  @default("5102")
+  /** CSOSN Simples Nacional (ex.: 102). */
+  csosn        String?  @default("102")
+  /** Origem da mercadoria (0 = nacional). */
+  origemMercadoria String? @default("0")
+  /** Unidade comercial fiscal (UN, KG, …). */
+  unidadeComercial String? @default("UN")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -286,6 +296,13 @@ model Customer {
   district     String?
   city         String?
   zipCode      String?
+  /** CPF/CNPJ (PII cifrada). */
+  document     String?
+  /** UF (ex.: SC). */
+  state        String?
+  complement   String?
+  /** Inscrição estadual do destinatário (opcional). */
+  ie           String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -312,6 +329,13 @@ model Order {
   pixExpiresAt    DateTime?
   /** Prazo para receber pagamento (vendas PDV "A receber"). */
   receivableDueAt DateTime?
+  /** Espelho da NF-e/NFC-e emitida no emissor local. */
+  nfeChave        String?
+  nfeStatus       String?
+  nfeNumero       Int?
+  nfeModelo       Int?
+  nfeProtocolo    String?
+  nfeEmitidoAt    DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 

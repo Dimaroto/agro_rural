@@ -1,0 +1,334 @@
+openapi: 3.0.3
+info:
+  title: Emissor NF-e API
+  version: 1.0.0
+  description: |
+    API REST multi-empresa para emissão de NF-e (modelo 55) com certificado A1,
+    autorização, cancelamento, carta de correção, inutilização, consulta e DANFE.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local
+tags:
+  - name: Auth
+  - name: Empresas
+  - name: NFe
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Obter token Sanctum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                device_name: { type: string }
+      responses:
+        '200':
+          description: Token gerado
+  /auth/me:
+    get:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      summary: Usuário autenticado e empresas vinculadas
+      responses:
+        '200': { description: OK }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      summary: Revogar token atual
+      responses:
+        '200': { description: Token revogado }
+  /empresas:
+    get:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Listar empresas do usuário
+      responses:
+        '200': { description: Lista }
+    post:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Cadastrar empresa (CNPJ)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpresaInput'
+      responses:
+        '201': { description: Criada }
+  /empresas/{empresa}:
+    get:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Detalhe da empresa
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      responses:
+        '200': { description: OK }
+    put:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Atualizar empresa
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmpresaInput'
+      responses:
+        '200': { description: Atualizada }
+  /empresas/{empresa}/certificado:
+    get:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Metadados do certificado A1
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      responses:
+        '200': { description: Metadados }
+    post:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Upload certificado A1 (PFX)
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [pfx, senha]
+              properties:
+                pfx: { type: string, format: binary }
+                senha: { type: string }
+      responses:
+        '200': { description: Certificado armazenado }
+  /empresas/{empresa}/sefaz/status:
+    get:
+      tags: [Empresas]
+      security: [{ bearerAuth: [] }]
+      summary: Status do serviço SEFAZ
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      responses:
+        '200': { description: cStat/xMotivo }
+  /empresas/{empresa}/nfe:
+    get:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Listar NF-e
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+        - { name: status, in: query, schema: { type: string } }
+        - { name: chave, in: query, schema: { type: string } }
+        - { name: de, in: query, schema: { type: string, format: date } }
+        - { name: ate, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: Página de notas }
+    post:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Emitir NF-e
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmitirNfe'
+      responses:
+        '202': { description: Enfileirada ou processada }
+  /empresas/{empresa}/nfe/inutilizar:
+    post:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Inutilizar numeração
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serie, numero_inicial, numero_final, justificativa]
+              properties:
+                serie: { type: integer }
+                numero_inicial: { type: integer }
+                numero_final: { type: integer }
+                ano: { type: integer, description: 'Ano com 2 dígitos' }
+                justificativa: { type: string, minLength: 15 }
+                sincrono: { type: boolean }
+      responses:
+        '202': { description: Processada/enfileirada }
+  /empresas/{empresa}/nfe/consultar:
+    post:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Consultar situação pela chave
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chave]
+              properties:
+                chave: { type: string, minLength: 44, maxLength: 44 }
+      responses:
+        '200': { description: Retorno SEFAZ }
+  /empresas/{empresa}/nfe/{chave}:
+    get:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Detalhe da NF-e
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+        - $ref: '#/components/parameters/chave'
+      responses:
+        '200': { description: OK }
+  /empresas/{empresa}/nfe/{chave}/xml:
+    get:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Download XML
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+        - $ref: '#/components/parameters/chave'
+      responses:
+        '200':
+          description: XML
+          content:
+            application/xml:
+              schema: { type: string }
+  /empresas/{empresa}/nfe/{chave}/danfe:
+    get:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Download DANFE PDF
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+        - $ref: '#/components/parameters/chave'
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+  /empresas/{empresa}/nfe/{chave}/cancelar:
+    post:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Cancelar NF-e
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+        - $ref: '#/components/parameters/chave'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [justificativa]
+              properties:
+                justificativa: { type: string, minLength: 15 }
+                sincrono: { type: boolean }
+      responses:
+        '202': { description: Evento criado }
+  /empresas/{empresa}/nfe/{chave}/cce:
+    post:
+      tags: [NFe]
+      security: [{ bearerAuth: [] }]
+      summary: Carta de correção
+      parameters:
+        - $ref: '#/components/parameters/empresaId'
+        - $ref: '#/components/parameters/chave'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correcao]
+              properties:
+                correcao: { type: string, minLength: 15 }
+                sequencial: { type: integer }
+                sincrono: { type: boolean }
+      responses:
+        '202': { description: Evento criado }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  parameters:
+    empresaId:
+      name: empresa
+      in: path
+      required: true
+      schema: { type: integer }
+    chave:
+      name: chave
+      in: path
+      required: true
+      schema: { type: string, minLength: 44, maxLength: 44 }
+  schemas:
+    EmpresaInput:
+      type: object
+      required:
+        - cnpj
+        - razao_social
+        - logradouro
+        - numero
+        - bairro
+        - municipio
+        - codigo_municipio
+        - uf
+        - cep
+        - crt
+      properties:
+        cnpj: { type: string, minLength: 14, maxLength: 14 }
+        ie: { type: string }
+        razao_social: { type: string }
+        nome_fantasia: { type: string }
+        email: { type: string }
+        telefone: { type: string }
+        logradouro: { type: string }
+        numero: { type: string }
+        complemento: { type: string }
+        bairro: { type: string }
+        municipio: { type: string }
+        codigo_municipio: { type: string, minLength: 7, maxLength: 7 }
+        uf: { type: string, minLength: 2, maxLength: 2 }
+        cep: { type: string, minLength: 8, maxLength: 8 }
+        crt: { type: integer, enum: [1, 2, 3] }
+        ambiente: { type: string, enum: [homologacao, producao] }
+        serie_inicial: { type: integer }
+        proximo_numero: { type: integer }
+    EmitirNfe:
+      type: object
+      required: [destinatario, itens, totais, pagamentos]
+      properties:
+        serie: { type: integer }
+        sincrono: { type: boolean, default: false }
+        destinatario: { type: object }
+        itens: { type: array, items: { type: object } }
+        totais: { type: object }
+        pagamentos: { type: array, items: { type: object } }
+        transporte: { type: object }
+        infAdic: { type: object }
+        ide: { type: object }

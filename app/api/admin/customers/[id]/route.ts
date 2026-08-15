@@ -14,6 +14,15 @@ const updateSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   birthDate: z.string().min(1, "Informe a data de nascimento"),
+  document: z.string().optional(),
+  street: z.string().optional(),
+  number: z.string().optional(),
+  district: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string().optional(),
+  state: z.string().optional(),
+  complement: z.string().optional(),
+  ie: z.string().optional(),
 });
 
 export async function GET(
@@ -51,6 +60,15 @@ export async function PATCH(
       phone: body.data.phone,
       email: body.data.email,
       birthDate: body.data.birthDate,
+      document: body.data.document,
+      street: body.data.street,
+      number: body.data.number,
+      district: body.data.district,
+      city: body.data.city,
+      zipCode: body.data.zipCode,
+      state: body.data.state,
+      complement: body.data.complement,
+      ie: body.data.ie,
     });
     const pii = decryptCustomerPii(updated);
     return NextResponse.json({
@@ -60,6 +78,15 @@ export async function PATCH(
         phone: pii.phone ? formatBrPhone(pii.phone) : null,
         email: updated.email,
         birthDate: pii.birthDate,
+        document: pii.document,
+        street: pii.street,
+        number: pii.number,
+        district: pii.district,
+        city: pii.city,
+        zipCode: pii.zipCode,
+        state: updated.state,
+        complement: pii.complement,
+        ie: updated.ie,
       },
     });
   } catch (e) {

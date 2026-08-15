@@ -62,6 +62,8 @@ export type CustomerPiiFields = {
   district?: string | null;
   city?: string | null;
   zipCode?: string | null;
+  document?: string | null;
+  complement?: string | null;
 };
 
 export function encryptCustomerPii<T extends CustomerPiiFields>(fields: T): T {
@@ -75,6 +77,8 @@ export function encryptCustomerPii<T extends CustomerPiiFields>(fields: T): T {
     district: encryptCustomerField(fields.district ?? null),
     city: encryptCustomerField(fields.city ?? null),
     zipCode: encryptCustomerField(fields.zipCode ?? null),
+    document: encryptCustomerField(fields.document ?? null),
+    complement: encryptCustomerField(fields.complement ?? null),
   };
 }
 
@@ -89,5 +93,7 @@ export function decryptCustomerPii<T extends CustomerPiiFields>(fields: T): T {
     district: decryptCustomerField(fields.district ?? null),
     city: decryptCustomerField(fields.city ?? null),
     zipCode: decryptCustomerField(fields.zipCode ?? null),
+    document: decryptCustomerField(fields.document ?? null),
+    complement: decryptCustomerField(fields.complement ?? null),
   };
 }

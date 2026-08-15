@@ -99,12 +99,16 @@ Alias legado (mesmo handler): `POST /api/webhooks/pix`
 ## Deploy (Vercel)
 
 1. Conecte o repositório na [Vercel](https://vercel.com)
-2. Crie PostgreSQL no [Neon](https://neon.tech) — `DATABASE_URL` (pooler) + `DIRECT_URL` (direct)
+2. PostgreSQL no [Neon](https://neon.tech) — `DATABASE_URL` (pooler) + `DIRECT_URL` (direct)
 3. Crie **Vercel Blob** no projeto para uploads de imagens
 4. Configure `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL` e demais variáveis
 5. Após o deploy: `prisma db push` e `npm run db:seed` no banco de produção
 
 Guia detalhado: [`deploy/vercel/DEPLOY-VERCEL.md`](deploy/vercel/DEPLOY-VERCEL.md)
+
+## Emissor NF-e (local)
+
+Pasta [`emissor_nfe/`](emissor_nfe/) — Laravel + NFePHP. Roda em `127.0.0.1:8000` no PC do lojista; tabelas fiscais no schema Postgres `emissor` do mesmo Neon. Setup: [`emissor_nfe/SETUP.md`](emissor_nfe/SETUP.md).
 
 ## Estrutura
 

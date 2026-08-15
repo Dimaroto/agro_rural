@@ -16,6 +16,7 @@ import {
   type PdvCustomerListItem,
   type PdvPaymentMethod,
 } from "@/lib/pdv-shared";
+import { OrderNfeEmitButton } from "@/components/admin/OrderNfeEmitButton";
 
 type OrderItem = {
   id: string;
@@ -37,6 +38,9 @@ type OrderCardProps = {
     customerPhone: string | null;
     createdAt?: Date | string;
     receivableDueAt?: Date | string | null;
+    nfeChave?: string | null;
+    nfeStatus?: string | null;
+    nfeNumero?: number | null;
     items: OrderItem[];
     payment: {
       status: string;
@@ -277,6 +281,18 @@ export function OrderCard({ order, storeWhatsapp }: OrderCardProps) {
           {paymentLabel ? ` · ${order.payment.status}` : ""}
         </p>
       )}
+
+      {!isClosed &&
+        (order.status === OrderStatus.PAID ||
+          order.status === OrderStatus.DELIVERED) && (
+          <OrderNfeEmitButton
+            orderId={order.id}
+            nfeChave={order.nfeChave}
+            nfeStatus={order.nfeStatus}
+            nfeNumero={order.nfeNumero}
+            disabled={loadingAction !== null}
+          />
+        )}
 
       {editing && canEdit && (
         <SaleEditForm
