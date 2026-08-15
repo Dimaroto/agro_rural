@@ -42,7 +42,7 @@
                 </div>
                 <p class="muted" style="margin:0.45rem 0 0;font-size:0.8rem;">
                     A ID 2 costuma ser só demonstração. A Agro Rural Zortea é a ID 1 — selecione-a aqui.
-                    No app Flutter, use o mesmo <span class="mono">empresaId</span>.
+                    No admin Agro Rural (Fiscal), use o mesmo <span class="mono">empresaId</span>.
                 </p>
             </div>
         </form>
@@ -269,7 +269,7 @@
 
         @elseif ($tab === 'integracao')
             <div class="help">
-                <strong>No Flutter:</strong> Configurações → Fiscal → cole URL, token e empresaId.
+                <strong>No admin Agro Rural:</strong> Engrenagem → Fiscal / NF-e → cole URL, token e confirme a empresa.
                 URL local típica: <span class="mono">http://127.0.0.1:8000</span>.
                 Use o <span class="mono">empresaId</span> da empresa ativa
                 (<strong>#{{ $empresa->id }}</strong> (não a demo, se houver).
@@ -280,7 +280,7 @@
                     <input value="{{ $appUrl }}" readonly class="mono">
                 </div>
                 <div class="field">
-                    <label>empresaId (cole no Flutter)</label>
+                    <label>empresaId (admin Fiscal)</label>
                     <input value="{{ $empresa->id }}" readonly class="mono">
                 </div>
             </div>

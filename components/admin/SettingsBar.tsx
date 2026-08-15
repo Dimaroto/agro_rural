@@ -11,11 +11,13 @@ import {
   type PdvNotifPref,
 } from "@/lib/pdv-notifications";
 import { BannerImageField } from "@/components/admin/BannerImageField";
+import { FiscalSettingsPanel } from "@/components/admin/FiscalSettingsPanel";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
+import { checkEmissorUp } from "@/lib/nfe/client";
 import {
-  readNfeEmissorToken,
-  writeNfeEmissorToken,
-} from "@/lib/nfe/client";
+  launchEmissorStart,
+  openEmissorConfig,
+} from "@/lib/nfe/launcher";
 
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
@@ -40,8 +42,8 @@ export function SettingsBar({
   const [notifPref, setNotifPref] = useState<PdvNotifPref | null>(null);
   const [notifPermission, setNotifPermission] =
     useState<NotificationPermission | "unsupported">("default");
-  const [nfeToken, setNfeToken] = useState("");
-  const [nfeTokenMsg, setNfeTokenMsg] = useState("");
+  const [emissorOnline, setEmissorOnline] = useState(false);
+  const [startHint, setStartHint] = useState("");
 
   const showStoreSettings = initialWhatsapp !== undefined;
   const showNotifSettings = notificationsSupported();
@@ -71,8 +73,18 @@ export function SettingsBar({
   }, []);
 
   useEffect(() => {
-    setNfeToken(readNfeEmissorToken());
-  }, [open]);
+    let cancelled = false;
+    async function poll() {
+      const ok = await checkEmissorUp();
+      if (!cancelled) setEmissorOnline(ok);
+    }
+    void poll();
+    const id = window.setInterval(() => void poll(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -111,12 +123,25 @@ export function SettingsBar({
   const notifEnabled =
     notifPref !== "disabled" && notifPermission === "granted";
 
+  function onStartEmissor() {
+    setStartHint(
+      "Se o navegador perguntar, permita abrir o aplicativo. Sem o instalador, use o atalho Iniciar emissor NF-e."
+    );
+    try {
+      launchEmissorStart();
+    } catch {
+      setStartHint(
+        "Não foi possível acionar o protocolo agro-emissor://. Instale o AgroRural-Setup ou rode emissor_nfe\\scripts\\start-local.bat."
+      );
+    }
+  }
+
   return (
     <div className="relative" ref={panelRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
         aria-label="Configurações"
         aria-expanded={open}
       >
@@ -133,6 +158,12 @@ export function SettingsBar({
           <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
           <circle cx="12" cy="12" r="3" />
         </svg>
+        <span
+          className={`absolute right-1 top-1 h-2 w-2 rounded-full ${
+            emissorOnline ? "bg-emerald-500" : "bg-red-500"
+          }`}
+          title={emissorOnline ? "Emissor online" : "Emissor offline"}
+        />
       </button>
 
       {open && (
@@ -258,39 +289,49 @@ export function SettingsBar({
           )}
 
           <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-              NF-e (emissor local)
-            </p>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Token Sanctum do painel em http://127.0.0.1:8000 (salvo só neste
-              navegador).
-            </p>
-            <input
-              type="password"
-              value={nfeToken}
-              onChange={(e) => {
-                setNfeToken(e.target.value);
-                setNfeTokenMsg("");
-              }}
-              placeholder="Cole o token agro-app"
-              className="admin-input mt-2 w-full py-2 font-mono text-xs"
-              autoComplete="off"
-            />
-            {nfeTokenMsg && (
-              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-                {nfeTokenMsg}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                  Emissor NF-e
+                </p>
+                <p className="mt-1 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${
+                      emissorOnline ? "bg-emerald-500" : "bg-red-500"
+                    }`}
+                  />
+                  {emissorOnline
+                    ? "Online em 127.0.0.1:8000"
+                    : "Offline — inicie no PC da loja"}
+                </p>
+              </div>
+              {emissorOnline ? (
+                <button
+                  type="button"
+                  onClick={() => openEmissorConfig()}
+                  className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  Configurar emissor
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onStartEmissor}
+                  className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Iniciar emissor
+                </button>
+              )}
+            </div>
+            {startHint && !emissorOnline && (
+              <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                {startHint}
               </p>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                writeNfeEmissorToken(nfeToken);
-                setNfeTokenMsg("Token salvo neste navegador.");
-              }}
-              className="mt-3 w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              Salvar token NF-e
-            </button>
+          </div>
+
+          <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+            <FiscalSettingsPanel online={emissorOnline} />
           </div>
         </div>
       )}

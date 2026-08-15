@@ -61,7 +61,7 @@ class ConfiguracaoController extends Controller
         $empresa = Empresa::query()->findOrFail($id);
 
         return redirect('/configuracoes?tab=empresa')
-            ->with('success', "Empresa ativa: #{$empresa->id} — {$empresa->razao_social}. Use este empresaId no Flutter.");
+            ->with('success', "Empresa ativa: #{$empresa->id} — {$empresa->razao_social}. Use este empresaId no admin Fiscal.");
     }
 
     public function updateEmpresa(Request $request): RedirectResponse

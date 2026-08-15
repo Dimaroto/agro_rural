@@ -1,4 +1,4 @@
-# Gera token Sanctum e mostra os valores para colar no app Flutter.
+# Gera token Sanctum e mostra os valores para colar no admin Agro Rural.
 # Uso:
 #   powershell -ExecutionPolicy Bypass -File scripts\get-token.ps1 -Email "..." -Password "..."
 # Ou defina SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD no ambiente / .env (nao versionar senha).
@@ -52,7 +52,7 @@ $token = $login.token
 $token | Set-Content (Join-Path $PSScriptRoot '..\.agro_token.txt') -NoNewline
 
 Write-Host ''
-Write-Host '=== Cole em Configuracoes -> Fiscal (app Flutter) ===' -ForegroundColor Green
+Write-Host '=== Cole em Admin -> Engrenagem -> Fiscal / NF-e ===' -ForegroundColor Green
 Write-Host "URL base:        $BaseUrl"
 Write-Host "Token Bearer:    $token"
 Write-Host "ID da empresa:   1"

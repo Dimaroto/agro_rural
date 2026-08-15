@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
+    // Token gerado no PC (arquivo local) — só faz sentido em 127.0.0.1
+    Route::get('/integracoes/agro/token-local', [AgroNfeController::class, 'tokenLocal']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -17,6 +19,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/empresas', [EmpresaController::class, 'store']);
         Route::get('/empresas/{empresa}', [EmpresaController::class, 'show']);
         Route::put('/empresas/{empresa}', [EmpresaController::class, 'update']);
+        Route::put('/empresas/{empresa}/numeracao', [EmpresaController::class, 'updateNumeracao']);
         Route::post('/empresas/{empresa}/certificado', [EmpresaController::class, 'uploadCertificado']);
         Route::get('/empresas/{empresa}/certificado', [EmpresaController::class, 'showCertificado']);
         Route::get('/empresas/{empresa}/sefaz/status', [EmpresaController::class, 'statusSefaz']);

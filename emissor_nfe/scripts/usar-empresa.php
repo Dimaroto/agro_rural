@@ -52,5 +52,4 @@ echo json_encode([
     'vinculos' => $user->empresas()->orderBy('empresas.id')->pluck('empresas.id'),
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT).PHP_EOL;
 
-// Dica: no Flutter use empresaId = $empresa->id
-echo "Pronto. No painel, use empresaId={$empresa->id}. No Flutter: Configuracoes > Fiscal > empresaId={$empresa->id}.\n";
+echo "Pronto. No painel / admin Fiscal, use empresaId={$empresa->id}." . PHP_EOL;

@@ -64,7 +64,33 @@ class EmpresaController extends Controller
         $this->authorize('update', $empresa);
         $empresa->update($request->validated());
 
-        return response()->json(['data' => $this->serialize($empresa->fresh('certificado'))]);
+        return response()->json(['data' => $this->serialize($empresa->fresh(['certificado', 'numeracoes']))]);
+    }
+
+    public function updateNumeracao(Request $request, Empresa $empresa): JsonResponse
+    {
+        $this->authorize('update', $empresa);
+
+        $data = $request->validate([
+            'serie_55' => ['required', 'integer', 'min:1', 'max:999'],
+            'proximo_55' => ['required', 'integer', 'min:1'],
+            'serie_65' => ['required', 'integer', 'min:1', 'max:999'],
+            'proximo_65' => ['required', 'integer', 'min:1'],
+        ]);
+
+        Numeracao::query()->updateOrCreate(
+            ['empresa_id' => $empresa->id, 'modelo' => 55],
+            ['serie' => $data['serie_55'], 'proximo_numero' => $data['proximo_55']]
+        );
+        Numeracao::query()->updateOrCreate(
+            ['empresa_id' => $empresa->id, 'modelo' => 65],
+            ['serie' => $data['serie_65'], 'proximo_numero' => $data['proximo_65']]
+        );
+
+        return response()->json([
+            'message' => 'Numeração atualizada.',
+            'data' => $this->serialize($empresa->fresh(['certificado', 'numeracoes'])),
+        ]);
     }
 
     public function uploadCertificado(
@@ -116,6 +142,7 @@ class EmpresaController extends Controller
             'id' => $empresa->id,
             'cnpj' => $empresa->cnpj,
             'ie' => $empresa->ie,
+            'inscricao_municipal' => $empresa->inscricao_municipal,
             'razao_social' => $empresa->razao_social,
             'nome_fantasia' => $empresa->nome_fantasia,
             'email' => $empresa->email,
@@ -130,6 +157,8 @@ class EmpresaController extends Controller
             'cep' => $empresa->cep,
             'crt' => $empresa->crt,
             'ambiente' => $empresa->ambiente,
+            'csc_id' => $empresa->csc_id,
+            'csc_token' => $empresa->csc_token,
             'ativa' => $empresa->ativa,
             'certificado' => $empresa->relationLoaded('certificado') && $empresa->certificado
                 ? $empresa->certificado->toMetaArray()

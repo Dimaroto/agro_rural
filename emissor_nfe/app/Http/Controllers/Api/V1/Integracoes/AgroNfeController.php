@@ -559,4 +559,39 @@ class AgroNfeController extends Controller
 
         return strlen($digits) === 44 ? $digits : ($digits !== '' ? $digits : null);
     }
+
+    /**
+     * Lê o token Sanctum gerado no PC (.agro_token.txt) para o admin web.
+     * Sem autenticação — o endpoint só existe no Laravel local.
+     */
+    public function tokenLocal(): JsonResponse
+    {
+        $candidates = [
+            base_path('.agro_token.txt'),
+        ];
+
+        $localApp = getenv('LOCALAPPDATA') ?: '';
+        if ($localApp !== '') {
+            $candidates[] = $localApp.DIRECTORY_SEPARATOR.'Agro Rural Zortea'
+                .DIRECTORY_SEPARATOR.'emissor'.DIRECTORY_SEPARATOR.'config'
+                .DIRECTORY_SEPARATOR.'.agro_token.txt';
+        }
+
+        foreach ($candidates as $path) {
+            if (! is_file($path)) {
+                continue;
+            }
+            $token = trim((string) file_get_contents($path));
+            if ($token !== '' && preg_match('/^\d+\|[A-Za-z0-9]{20,}$/', $token)) {
+                return response()->json([
+                    'token' => $token,
+                    'source' => $path,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'mensagem' => 'Token local não encontrado. Gere em Configurações → Integração ou rode ensure-agro-token.',
+        ], 404);
+    }
 }

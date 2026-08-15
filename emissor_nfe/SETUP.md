@@ -9,7 +9,21 @@ Pasta versionada junto com o app Next.js (`agro_rural`). Não inclui `vendor/`, 
 - Nos PCs: **mesmo `APP_KEY`** e **mesmas credenciais Neon** no `.env`.
 - O admin em https://agroruralzortea.com.br chama o emissor no browser (`127.0.0.1:8000`) — o servidor Vercel não alcança o localhost.
 
-## PC 1 — primeiro setup
+## Instalador Windows (recomendado no PC do lojista)
+
+1. Na máquina de build: `powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1`
+2. Entregue `installer\output\AgroRural-Setup-*.exe` (opcional: `-IncludeSecrets` + `DESBLOQUEIO.txt` no pendrive).
+3. No PC da loja: rode o Setup **sem** “Executar como administrador”.
+4. Abra https://agroruralzortea.com.br/admin → engrenagem:
+   - LED vermelho → **Iniciar emissor** (`agro-emissor://`)
+   - LED verde → **Configurar emissor** / preencha **Fiscal / NF-e**
+5. Em Vendas, use **Emitir NF-e**.
+
+Detalhes: [`installer/README.md`](../installer/README.md).
+
+## Setup manual (desenvolvimento)
+
+### PC 1 — primeiro setup
 
 1. Use o Neon do projeto Agro Rural (Vercel / `neon-coquelicot-prism`). Copie a connection string **direta** (host **sem** `-pooler`).
 2. No PC:
@@ -42,9 +56,9 @@ php artisan db:seed
 scripts\start-local.bat
 ```
 
-Painel: http://127.0.0.1:8000 — cadastre empresa, certificado A1 e gere o token em Configurações → Integração.
+Painel: http://127.0.0.1:8000 — cadastre empresa, certificado A1 e gere o token em Configurações → Integração (ou no admin: **Carregar do emissor local**).
 
-## PC 2 — mesmo banco
+### PC 2 — mesmo banco
 
 ```powershell
 cd emissor_nfe
@@ -62,10 +76,11 @@ scripts\start-local.bat
 | Campo | Valor |
 |-------|--------|
 | URL base | `http://127.0.0.1:8000` |
-| Token Bearer | painel → Integração, ou `scripts\get-token.ps1` / `.agro_token.txt` |
+| Token Bearer | Engrenagem → Fiscal → Carregar / login / colar; ou `.agro_token.txt` |
+| Protocolo | `agro-emissor://start` (instalador) |
 | Origens CORS | `https://agroruralzortea.com.br`, `http://localhost:3000` |
 
-No admin Agro Rural, cole o token em Configurações → NFe (salvo no navegador) e use **Emitir NF-e** no pedido.
+Checklist: PHP portátil ou sistema, Neon acessível, `APP_KEY` compartilhado, primeiro `migrate` via bootstrap ou artisan.
 
 Evite emitir ao mesmo tempo em dois PCs (conflito de numeração).
 
@@ -76,5 +91,6 @@ Evite emitir ao mesmo tempo em dois PCs (conflito de numeração).
 | NF-e 55 | `POST /api/v1/integracoes/agro/nfe/emitir` |
 | NFC-e 65 | `POST /api/v1/integracoes/agro/nfce/emitir` |
 | Download XML | `POST /api/v1/integracoes/agro/nfe/download-por-chave` |
+| Token local | `GET /api/v1/integracoes/agro/token-local` |
 
 Health: `GET http://127.0.0.1:8000/up`

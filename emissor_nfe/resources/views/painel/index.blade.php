@@ -39,7 +39,7 @@
         <h2 style="margin:0 0 0.85rem;font-size:1.05rem;">Histórico de emissões</h2>
 
         @if ($notas->isEmpty())
-            <div class="empty">Nenhuma nota emitida ainda. As emissões feitas pelo app Flutter aparecem aqui.</div>
+            <div class="empty">Nenhuma nota emitida ainda. As emissões feitas pelo admin Agro Rural aparecem aqui.</div>
         @else
             <div style="overflow-x:auto;">
                 <table>

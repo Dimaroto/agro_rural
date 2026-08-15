@@ -2,7 +2,7 @@
 # Uso:
 #   powershell -ExecutionPolicy Bypass -File scripts\upload-certificado.ps1 -PfxPath "C:\caminho\cert.pfx" -Senha "sua-senha" [-EmpresaId 1]
 #
-# IMPORTANTE: o CNPJ do certificado deve ser o da mecanica (destinatario das NF-e de compra).
+# IMPORTANTE: o CNPJ do certificado deve ser o do emitente (loja Agro Rural).
 # Atualize a empresa no emissor com o CNPJ real antes de consultar DistDFe.
 
 param(
@@ -61,4 +61,4 @@ if (-not $response.IsSuccessStatusCode) {
 }
 
 Write-Host ''
-Write-Host 'Certificado cadastrado. Pode testar a chave no app Flutter.' -ForegroundColor Green
+Write-Host 'Certificado cadastrado. Pode emitir pelo admin Agro Rural.' -ForegroundColor Green

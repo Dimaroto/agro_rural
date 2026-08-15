@@ -297,14 +297,14 @@ if (Test-Path -LiteralPath $ensureStorage) {
 
 $ensureToken = Join-Path $PSScriptRoot 'ensure-agro-token.php'
 if (Test-Path -LiteralPath $ensureToken) {
-    Write-BootstrapLog 'Gerando token Sanctum para o app Flutter ...'
+    Write-BootstrapLog 'Gerando token Sanctum para o admin Agro Rural ...'
     & $php $ensureToken
     if ($LASTEXITCODE -ne 0) {
-        Write-BootstrapLog '[AVISO] ensure-agro-token falhou — gere em Configuracoes > Integracao app.' 'Yellow'
+        Write-BootstrapLog '[AVISO] ensure-agro-token falhou — gere em Configuracoes > Integracao ou use Carregar do emissor no admin.' 'Yellow'
     } else {
-        Write-BootstrapLog 'Token salvo em .agro_token.txt (cole no Flutter se necessario).' 'Green'
+        Write-BootstrapLog 'Token salvo em .agro_token.txt (admin: Engrenagem > Fiscal > Carregar do emissor local).' 'Green'
     }
 }
 
 Write-BootstrapLog ''
-Exit-Bootstrap 0 'Bootstrap concluido. Pode abrir o app e Iniciar emissor.'
+Exit-Bootstrap 0 'Bootstrap concluido. Abra o admin e use Iniciar emissor.'

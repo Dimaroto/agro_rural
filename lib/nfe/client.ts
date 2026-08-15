@@ -44,7 +44,7 @@ export async function emitNfeFromBrowser(input: {
   const token = (input.token ?? readNfeEmissorToken()).trim();
   if (!token) {
     throw new Error(
-      "Configure o token do emissor em Configurações (ícone da engrenagem)."
+      "Configure o token do emissor em Configurações → Fiscal / NF-e."
     );
   }
 

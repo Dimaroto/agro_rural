@@ -135,7 +135,7 @@ if exist "%~dp0ensure-storage.ps1" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0ensure-storage.ps1" >>"%LOG%" 2>&1
 )
 
-REM Token Sanctum para o Flutter (evita Unauthenticated)
+REM Token Sanctum para o admin Agro Rural (evita Unauthenticated)
 if exist "%~dp0ensure-agro-token.php" (
   >>"%LOG%" echo ensure-agro-token ...
   if defined PHPRC (

@@ -1,0 +1,9 @@
+# Ignore build artifacts
+private/
+stage/
+output/
+*.exe
+DESBLOQUEIO.txt
+.passphrase
+.env
+.agro_token.txt

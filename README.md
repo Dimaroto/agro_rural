@@ -108,7 +108,11 @@ Guia detalhado: [`deploy/vercel/DEPLOY-VERCEL.md`](deploy/vercel/DEPLOY-VERCEL.m
 
 ## Emissor NF-e (local)
 
-Pasta [`emissor_nfe/`](emissor_nfe/) — Laravel + NFePHP. Roda em `127.0.0.1:8000` no PC do lojista; tabelas fiscais no schema Postgres `emissor` do mesmo Neon. Setup: [`emissor_nfe/SETUP.md`](emissor_nfe/SETUP.md).
+Pasta [`emissor_nfe/`](emissor_nfe/) — Laravel + NFePHP em `127.0.0.1:8000` no PC do lojista; schema Postgres `emissor` no mesmo Neon.
+
+- **Instalador Windows:** [`installer/`](installer/) → `AgroRural-Setup-*.exe` (protocolo `agro-emissor://` para Iniciar/Configurar na engrenagem do admin).
+- **Setup e checklist:** [`emissor_nfe/SETUP.md`](emissor_nfe/SETUP.md).
+- No admin: Engrenagem → LED + **Iniciar emissor** / **Configurar emissor** + painel **Fiscal / NF-e**.
 
 ## Estrutura
 

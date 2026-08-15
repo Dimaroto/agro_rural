@@ -34,6 +34,9 @@ class UpdateEmpresaRequest extends FormRequest
             'crt' => ['sometimes', 'integer', Rule::in([1, 2, 3])],
             'ambiente' => ['sometimes', Rule::in(['homologacao', 'producao'])],
             'ativa' => ['sometimes', 'boolean'],
+            'inscricao_municipal' => ['nullable', 'string', 'max:30'],
+            'csc_id' => ['nullable', 'string', 'max:10'],
+            'csc_token' => ['nullable', 'string', 'max:60'],
         ];
     }
 

@@ -2,7 +2,7 @@
 
 /**
  * Garante um token Sanctum em .agro_token.txt (+ LocalAppData\config)
- * para o app Flutter emitir NF-e sem Unauthenticated.
+ * para o admin Agro Rural emitir NF-e sem Unauthenticated.
  *
  * Uso:
  *   runtime\php\php.exe scripts\ensure-agro-token.php
@@ -71,7 +71,7 @@ if (! $user) {
     exit(1);
 }
 
-// Revoga tokens antigos do app mecanica para nao acumular
+// Revoga tokens antigos agro-app para nao acumular
 $user->tokens()->where('name', 'agro-app')->delete();
 $plain = $user->createToken('agro-app')->plainTextToken;
 writeTokenFiles($plain, $tokenFile, $configDir, $configToken);
