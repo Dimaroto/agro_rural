@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { DevSwCleanup } from "@/components/DevSwCleanup";
+import { FullscreenHotkey } from "@/components/FullscreenHotkey";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 
@@ -53,6 +54,7 @@ export default async function RootLayout({
       <body className="min-h-full font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider initialTheme={serverTheme ?? undefined}>
           <DevSwCleanup />
+          <FullscreenHotkey />
           {children}
         </ThemeProvider>
       </body>

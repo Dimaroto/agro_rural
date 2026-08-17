@@ -1,4 +1,4 @@
-# Build do instalador Windows — Agro Rural (emissor NF-e)
+# Build do instalador Windows - Agro Rural (emissor NF-e)
 # Uso:
 #   powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1
 # Pendrive (embute .env Neon criptografado):
@@ -6,10 +6,11 @@
 #   2) powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1 -IncludeSecrets
 
 param(
-    [string]$Version = '1.0.0',
+    [string]$Version = '1.1.0',
     [switch]$SkipComposer,
     [switch]$IncludeSecrets,
-    [switch]$SkipCompile
+    [switch]$SkipCompile,
+    [switch]$SkipDesktop
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,6 +19,7 @@ Set-Location $Root
 
 $InstallerDir = Join-Path $Root 'installer'
 $Stage = Join-Path $InstallerDir 'stage'
+$StageApp = Join-Path $Stage 'app'
 $StageEmissor = Join-Path $Stage 'emissor_nfe'
 $OutputDir = Join-Path $InstallerDir 'output'
 $Iss = Join-Path $InstallerDir 'agro_rural.iss'
@@ -27,7 +29,7 @@ $EmissorSrc = Join-Path $Root 'emissor_nfe'
 Write-Host "== Agro Rural Setup build ($Version) ==" -ForegroundColor Cyan
 Write-Host "Root: $Root"
 if ($IncludeSecrets) {
-    Write-Host 'IncludeSecrets: ON — o Setup CONTERA senha Neon / APP_KEY. So para pendrive privado.' -ForegroundColor Yellow
+    Write-Host 'IncludeSecrets: ON - o Setup CONTERA senha Neon / APP_KEY. So para pendrive privado.' -ForegroundColor Yellow
 }
 
 function Find-ISCC {
@@ -59,6 +61,41 @@ if (-not $iscc -and -not $SkipCompile) {
     throw 'ISCC.exe nao encontrado. Instale Inno Setup 6 ou use -SkipCompile.'
 }
 if ($iscc) { Write-Host "ISCC: $iscc" }
+
+# Logo Edem (ICO)
+$logoIco = Join-Path $InstallerDir 'assets\logo.ico'
+$desktopDir = Join-Path $Root 'desktop'
+$desktopIco = Join-Path $desktopDir 'assets\logo.ico'
+if ((Test-Path $logoIco) -and -not (Test-Path $desktopIco)) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $desktopDir 'assets') | Out-Null
+    Copy-Item $logoIco $desktopIco -Force
+}
+
+# App Windows (Electron)
+if (-not $SkipDesktop) {
+    Write-Host 'Empacotando app Windows (Electron) ...' -ForegroundColor Cyan
+    if (-not (Test-Path (Join-Path $desktopDir 'package.json'))) {
+        throw 'Pasta desktop/ ausente.'
+    }
+    Push-Location $desktopDir
+    try {
+        $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
+        if (-not (Test-Path (Join-Path $desktopDir 'node_modules'))) {
+            npm install --no-fund --no-audit
+            if ($LASTEXITCODE -ne 0) { throw "npm install (desktop) falhou ($LASTEXITCODE)" }
+        }
+        npm run pack
+        if ($LASTEXITCODE -ne 0) { throw "electron-builder falhou ($LASTEXITCODE)" }
+    } finally {
+        Pop-Location
+    }
+}
+
+$unpacked = Join-Path $desktopDir 'dist\win-unpacked'
+$appExe = Join-Path $unpacked 'AgroRural.exe'
+if (-not (Test-Path $appExe)) {
+    throw "AgroRural.exe nao encontrado em $unpacked. Rode sem -SkipDesktop."
+}
 
 # PHP portatil
 $preparePhp = Join-Path $EmissorSrc 'scripts\prepare-portable-php.ps1'
@@ -99,8 +136,17 @@ if (-not $SkipComposer) {
 # Stage
 Write-Host 'Montando installer/stage ...' -ForegroundColor Cyan
 if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $StageApp | Out-Null
 New-Item -ItemType Directory -Force -Path $StageEmissor | Out-Null
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+
+Write-Host 'Copiando app Windows para o stage ...' -ForegroundColor Cyan
+robocopy $unpacked $StageApp /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "robocopy app falhou ($LASTEXITCODE)" }
+$global:LASTEXITCODE = 0
+if (-not (Test-Path (Join-Path $StageApp 'AgroRural.exe'))) {
+    throw 'stage/app/AgroRural.exe ausente.'
+}
 
 $excludeDirs = @(
     'node_modules', '.git', 'storage\logs', 'storage\framework\cache',
@@ -132,7 +178,7 @@ Copy-Item (Join-Path $InstallerDir 'README-INSTALACAO.txt') (Join-Path $StageEmi
 $portablePhp = Join-Path $EmissorSrc 'runtime\php'
 $portablePhpStage = Join-Path $StageEmissor 'runtime\php'
 if (-not (Test-Path (Join-Path $portablePhp 'php.exe'))) {
-    throw 'runtime/php ausente — rode emissor_nfe\scripts\prepare-portable-php.ps1'
+    throw 'runtime/php ausente. Rode emissor_nfe\scripts\prepare-portable-php.ps1'
 }
 New-Item -ItemType Directory -Force -Path (Join-Path $StageEmissor 'runtime') | Out-Null
 if (Test-Path $portablePhpStage) { Remove-Item $portablePhpStage -Recurse -Force }

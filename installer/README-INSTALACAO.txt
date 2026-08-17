@@ -1,26 +1,24 @@
-# Instalador Windows — Agro Rural (emissor NF-e)
-# Coloque este arquivo em installer\README-INSTALACAO.txt (embutido no Setup).
+# Instalador Windows — Agro Rural (Edem Software)
 
-Agro Rural — instalacao do emissor NF-e
+Agro Rural — app Windows + emissor NF-e
 =======================================
 
-O catalogo/admin fica na nuvem:
-  https://agroruralzortea.com.br/admin
-
 Este Setup instala no seu PC:
+  - App Agro Rural (janela nativa, nao e so um link da internet)
   - Emissor NF-e local (Laravel + PHP) em 127.0.0.1:8000
-  - Protocolo agro-emissor:// (botao Iniciar emissor na engrenagem do admin)
-  - Atalhos para admin e para iniciar o emissor
+  - Atalho do programa (como Mecanica Bedendo)
 
 Pasta de instalacao (por usuario):
   %LOCALAPPDATA%\Agro Rural Zortea\Agro Rural\
 
 Apos instalar:
-  1. Abra o Admin no navegador
-  2. Engrenagem → Iniciar emissor (aguarde ficar verde)
-  3. Engrenagem → Configurar emissor / Fiscal: empresa, certificado A1, numeracao, token
-  4. Em Vendas, use Emitir NF-e / NFC-e
+  1. Abra o atalho Agro Rural
+  2. F11 = tela cheia
+  3. Barra superior: Iniciar emissor (vermelho) ou Configurar emissor (verde)
+     — o painel do emissor abre em uma janela separada
+  4. No admin, em Vendas, use Emitir NF-e / NFC-e
 
-Requisitos: Windows 10/11 64-bit, conexao com o Neon (banco) e certificado A1 (.pfx).
+Requisitos: Windows 10/11 64-bit, conexao com a internet (admin na nuvem),
+Neon (banco) e certificado A1 (.pfx).
 
 Nao rode o Setup como administrador (instala em LocalAppData do seu usuario).

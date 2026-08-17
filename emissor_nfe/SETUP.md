@@ -14,9 +14,9 @@ Pasta versionada junto com o app Next.js (`agro_rural`). Não inclui `vendor/`, 
 1. Na máquina de build: `powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1`
 2. Entregue `installer\output\AgroRural-Setup-*.exe` (opcional: `-IncludeSecrets` + `DESBLOQUEIO.txt` no pendrive).
 3. No PC da loja: rode o Setup **sem** “Executar como administrador”.
-4. Abra https://agroruralzortea.com.br/admin → engrenagem:
-   - LED vermelho → **Iniciar emissor** (`agro-emissor://`)
-   - LED verde → **Configurar emissor** / preencha **Fiscal / NF-e**
+4. Abra o atalho **Agro Rural** (app Windows, não é link da internet):
+   - **F11** tela cheia
+   - Barra: **Iniciar emissor** (vermelho) ou **Configurar emissor** (verde) — painel em janela separada
 5. Em Vendas, use **Emitir NF-e**.
 
 Detalhes: [`installer/README.md`](../installer/README.md).

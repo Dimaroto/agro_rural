@@ -124,6 +124,16 @@ export function SettingsBar({
     notifPref !== "disabled" && notifPermission === "granted";
 
   function onStartEmissor() {
+    const desktop = (
+      window as Window & {
+        agroDesktop?: { startEmissor: () => Promise<void> };
+      }
+    ).agroDesktop;
+    if (desktop?.startEmissor) {
+      setStartHint("Iniciando emissor local...");
+      void desktop.startEmissor();
+      return;
+    }
     setStartHint(
       "Se o navegador perguntar, permita abrir o aplicativo. Sem o instalador, use o atalho Iniciar emissor NF-e."
     );
@@ -308,7 +318,18 @@ export function SettingsBar({
               {emissorOnline ? (
                 <button
                   type="button"
-                  onClick={() => openEmissorConfig()}
+                  onClick={() => {
+                    const desktop = (
+                      window as Window & {
+                        agroDesktop?: { openEmissor: () => void };
+                      }
+                    ).agroDesktop;
+                    if (desktop?.openEmissor) {
+                      desktop.openEmissor();
+                      return;
+                    }
+                    openEmissorConfig();
+                  }}
                   className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                 >
                   Configurar emissor

@@ -1,39 +1,31 @@
-# Instalador Windows — Agro Rural
+# Instalador Windows — Agro Rural (Edem Software)
 
-Gera `AgroRural-Setup-{version}.exe` com o emissor NF-e local (sem app desktop).
+Gera `AgroRural-Setup-{version}.exe` com o **app Windows** (janela nativa) + emissor NF-e local, no mesmo estilo da Mecânica Bedendo.
 
 ## Pré-requisitos
 
 - Windows 10/11
-- [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`ISCC.exe`) — o script tenta instalar via winget
-- Rede (para baixar PHP portátil / Composer na máquina de build)
+- Node.js 20+ (para empacotar o Electron)
+- [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+- Rede (PHP portátil / Composer / Electron)
 
 ## Build
 
 ```powershell
-# Setup sem .env embutido (loja configura depois)
-powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1 -Version 1.0.0
-
-# Pendrive com Neon (criptografado)
-New-Item -ItemType Directory -Force -Path installer\private | Out-Null
-Copy-Item emissor_nfe\.env installer\private\.env
-powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1 -Version 1.0.0 -IncludeSecrets
+powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1 -Version 1.1.0
 ```
 
-Saída: `installer\output\AgroRural-Setup-*.exe` (+ `DESBLOQUEIO.txt` se `-IncludeSecrets`).
+Saída: `installer\output\AgroRural-Setup-*.exe`
 
-Só montar stage (sem compilar): `-SkipCompile`.
+- `-SkipDesktop` — não recompila o app Electron (usa `desktop\dist\win-unpacked` já existente)
+- `-SkipComposer` / `-SkipCompile` / `-IncludeSecrets` — iguais ao fluxo anterior
 
 ## O que o Setup instala
 
 | Item | Destino |
 |------|---------|
-| Emissor Laravel + PHP | `%LOCALAPPDATA%\Agro Rural Zortea\Agro Rural\emissor_nfe\` |
-| Protocolo `agro-emissor://` | HKCU (botão Iniciar no admin web) |
-| Atalhos | Admin web + Iniciar emissor |
+| App Windows `AgroRural.exe` | `%LOCALAPPDATA%\Agro Rural Zortea\Agro Rural\` |
+| Emissor Laravel + PHP | `...\emissor_nfe\` |
+| Atalho | Agro Rural (não é link da internet) |
 
-## Fluxo no PC do lojista
-
-1. Rodar o Setup (sem “Executar como administrador”)
-2. Abrir https://agroruralzortea.com.br/admin
-3. Engrenagem → **Iniciar emissor** → aguardar verde → **Configurar emissor** / **Fiscal**
+No app: barra **Iniciar emissor** / **Configurar emissor** (tela separada) e **F11** tela cheia.

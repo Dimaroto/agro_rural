@@ -54,7 +54,9 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 
-# Emissor NFe local (Laravel)
+/desktop/node_modules/
+/desktop/dist/
+/emissor_nfe/composer.phar
 /emissor_nfe/vendor/
 /emissor_nfe/node_modules/
 /emissor_nfe/.env
