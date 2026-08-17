@@ -22,6 +22,9 @@
   --catalog-surface: #E8E2D4;
   --background: var(--color-sage-light);
   --foreground: var(--color-primary-dark);
+  --brand-fill: var(--color-primary);
+  --brand-fill-hover: var(--color-primary-dark);
+  --brand-shadow: rgba(74, 103, 65, 0.32);
   --catalog-paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   --catalog-leaf-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cpath fill='%232D4C1E' d='M40 8C26 24 14 34 10 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z'/%3E%3Cpath fill='%234A6741' d='M40 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z'/%3E%3C/svg%3E");
   --catalog-lavender-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 8c-2 8-6 14-6 22 0 4 2 8 6 10 4-2 6-6 6-10 0-8-4-14-6-22z' fill='%23C5A059' opacity='0.28'/%3E%3Ccircle cx='32' cy='42' r='4' fill='%232D4C1E' opacity='0.15'/%3E%3Cpath d='M32 46v12M28 50l4-2 4 2M26 54l6-1 6 1' stroke='%232D4C1E' stroke-width='1.5' stroke-linecap='round' opacity='0.18'/%3E%3C/svg%3E");
@@ -38,12 +41,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
 
-  --color-brand: #4A6741;
-  --color-brand-dark: #2D4C1E;
+  --color-brand: var(--color-primary);
+  --color-brand-dark: var(--color-primary-dark);
   --color-brand-cream: #F4F0E6;
   --color-brand-beige: #E8E2D4;
-  --color-brand-light: #8BA56A;
-  --color-brand-sage: #8BA56A;
+  --color-brand-light: var(--color-primary-light);
+  --color-brand-sage: var(--color-primary-light);
   --color-brand-warm: #C5A059;
   --color-gold: #C5A059;
   --color-gold-light: #E8D5A3;
@@ -52,14 +55,14 @@
   --color-emerald-50: #f3f6ee;
   --color-emerald-100: #e4ead8;
   --color-emerald-200: #c9d4b3;
-  --color-emerald-300: #8BA56A;
-  --color-emerald-400: #6B8A4A;
-  --color-emerald-500: #4A6741;
-  --color-emerald-600: #3D5636;
-  --color-emerald-700: #2D4C1E;
-  --color-emerald-800: #243D18;
-  --color-emerald-900: #1A2E12;
-  --color-emerald-950: #0F1C0A;
+  --color-emerald-300: var(--color-primary-light);
+  --color-emerald-400: var(--color-primary-light);
+  --color-emerald-500: var(--color-primary);
+  --color-emerald-600: var(--color-primary);
+  --color-emerald-700: var(--color-primary-dark);
+  --color-emerald-800: var(--color-primary-dark);
+  --color-emerald-900: var(--color-charcoal);
+  --color-emerald-950: var(--color-charcoal);
 
   --color-amber-50: #faf6ec;
   --color-amber-100: #f3e8c9;
@@ -369,7 +372,12 @@ html {
   }
 
   .admin-btn-primary {
-    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-sm transition;
+    background: var(--brand-fill, var(--color-primary));
+  }
+
+  .admin-btn-primary:hover {
+    background: var(--brand-fill-hover, var(--color-primary-dark));
   }
 
   .admin-btn-secondary {
@@ -1484,12 +1492,10 @@ html {
   }
 
   .catalog-btn-primary {
-    background:
-      radial-gradient(circle at 18% 0%, rgba(255, 252, 247, 0.28), transparent 35%),
-      linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 54%, var(--color-gold) 100%);
+    background: var(--brand-fill, var(--color-primary));
     color: #fff;
     box-shadow:
-      0 12px 26px rgba(74, 103, 65, 0.3),
+      0 12px 26px var(--brand-shadow, rgba(74, 103, 65, 0.3)),
       0 2px 0 rgba(255, 252, 247, 0.22) inset;
     transition:
       background 0.25s ease,
@@ -1498,11 +1504,9 @@ html {
   }
 
   .catalog-btn-primary:hover {
-    background:
-      radial-gradient(circle at 18% 0%, rgba(255, 252, 247, 0.34), transparent 35%),
-      linear-gradient(135deg, #2D4C1E 0%, #4A6741 48%, var(--color-gold) 100%);
+    background: var(--brand-fill-hover, var(--color-primary-dark));
     box-shadow:
-      0 16px 34px rgba(74, 103, 65, 0.38),
+      0 16px 34px var(--brand-shadow, rgba(74, 103, 65, 0.38)),
       0 2px 0 rgba(255, 252, 247, 0.24) inset;
     transform: translateY(-2px);
   }
@@ -1512,9 +1516,9 @@ html {
   }
 
   .catalog-filter-active {
-    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+    background: var(--brand-fill, var(--color-primary));
     color: #fff;
-    box-shadow: 0 2px 8px rgba(74, 103, 65, 0.25);
+    box-shadow: 0 2px 8px var(--brand-shadow, rgba(74, 103, 65, 0.25));
   }
 
   .catalog-filter-idle {
@@ -2332,12 +2336,12 @@ body:has(.catalog-page) {
 }
 
 .catalog-btn-primary {
-  background: var(--color-primary-dark) !important;
+  background: var(--brand-fill, var(--color-primary)) !important;
   color: #fff !important;
 }
 
 .catalog-filter-active {
-  background: var(--color-primary) !important;
+  background: var(--brand-fill, var(--color-primary)) !important;
   color: #fff !important;
 }
 

@@ -15,6 +15,7 @@ model Store {
   whatsapp        String?
   logoUrl         String?
   bannerUrl       String?
+  themeJson       String?
   active          Boolean  @default(true)
   nextOrderNumber Int      @default(1)
   nextProductCode Int      @default(1)

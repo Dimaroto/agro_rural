@@ -1,12 +1,48 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import {
+  parseBrandTheme,
+  serializeBrandTheme,
+  type BrandTheme,
+} from "@/lib/brand-theme";
 import { z } from "zod";
+
+const hex = z
+  .string()
+  .regex(/^#([0-9a-fA-F]{6})$/, "Use uma cor hexadecimal (#RRGGBB).");
+
+const themeSchema = z.object({
+  mode: z.enum(["solid", "gradient"]),
+  from: hex,
+  to: hex,
+  shape: z.enum(["linear", "radial", "conic"]),
+  angle: z.number().int().min(0).max(360),
+});
 
 const patchSchema = z.object({
   whatsapp: z.string().optional(),
   bannerUrl: z.string().nullable().optional(),
+  theme: themeSchema.optional(),
 });
+
+function storePayload(store: {
+  id: string;
+  name: string;
+  slug: string;
+  whatsapp: string | null;
+  bannerUrl: string | null;
+  themeJson: string | null;
+}) {
+  return {
+    id: store.id,
+    name: store.name,
+    slug: store.slug,
+    whatsapp: store.whatsapp,
+    bannerUrl: store.bannerUrl,
+    theme: parseBrandTheme(store.themeJson),
+  };
+}
 
 export async function GET() {
   const session = await auth();
@@ -22,6 +58,7 @@ export async function GET() {
       slug: true,
       whatsapp: true,
       bannerUrl: true,
+      themeJson: true,
     },
   });
 
@@ -29,7 +66,7 @@ export async function GET() {
     return NextResponse.json({ error: "Loja não encontrada" }, { status: 404 });
   }
 
-  return NextResponse.json(store);
+  return NextResponse.json(storePayload(store));
 }
 
 export async function PATCH(req: Request) {
@@ -46,6 +83,7 @@ export async function PATCH(req: Request) {
   const data: {
     whatsapp?: string | null;
     bannerUrl?: string | null;
+    themeJson?: string | null;
   } = {};
 
   if (body.data.whatsapp !== undefined) {
@@ -67,6 +105,10 @@ export async function PATCH(req: Request) {
     data.bannerUrl = url;
   }
 
+  if (body.data.theme !== undefined) {
+    data.themeJson = serializeBrandTheme(body.data.theme as BrandTheme);
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Nada para atualizar" }, { status: 400 });
   }
@@ -80,8 +122,9 @@ export async function PATCH(req: Request) {
       slug: true,
       whatsapp: true,
       bannerUrl: true,
+      themeJson: true,
     },
   });
 
-  return NextResponse.json(store);
+  return NextResponse.json(storePayload(store));
 }

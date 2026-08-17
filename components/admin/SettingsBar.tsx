@@ -11,6 +11,7 @@ import {
   type PdvNotifPref,
 } from "@/lib/pdv-notifications";
 import { BannerImageField } from "@/components/admin/BannerImageField";
+import { BrandColorPanel } from "@/components/admin/BrandColorPanel";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
 import { checkEmissorUp } from "@/lib/nfe/client";
 import { openEmissorFromUi, startEmissorFromUi } from "@/lib/nfe/launcher";
@@ -18,11 +19,13 @@ import { openEmissorFromUi, startEmissorFromUi } from "@/lib/nfe/launcher";
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
   initialBannerUrl?: string | null;
+  initialTheme?: import("@/lib/brand-theme").BrandTheme | string | null;
 };
 
 export function SettingsBar({
   initialWhatsapp,
   initialBannerUrl,
+  initialTheme,
 }: SettingsBarProps) {
   const { theme, setTheme, mounted } = useTheme();
   const router = useRouter();
@@ -273,6 +276,12 @@ export function SettingsBar({
             </div>
           </div>
           </div>
+
+          {showStoreSettings && (
+            <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+              <BrandColorPanel initialTheme={initialTheme} />
+            </div>
+          )}
 
           {showStoreSettings && (
             <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">

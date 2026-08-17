@@ -25,7 +25,7 @@ export default async function AdminLayout({
 
   const store = await prisma.store.findUnique({
     where: { id: session.user.storeId },
-    select: { whatsapp: true, bannerUrl: true },
+    select: { whatsapp: true, bannerUrl: true, themeJson: true },
   });
 
   async function signOutAction() {
@@ -43,6 +43,7 @@ export default async function AdminLayout({
               <SettingsBar
                 initialWhatsapp={store?.whatsapp}
                 initialBannerUrl={store?.bannerUrl}
+                initialTheme={store?.themeJson}
               />
               <AdminSignOutButton signOutAction={signOutAction} />
             </div>

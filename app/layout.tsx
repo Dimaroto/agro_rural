@@ -1,11 +1,15 @@
+import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { DevSwCleanup } from "@/components/DevSwCleanup";
 import { FullscreenHotkey } from "@/components/FullscreenHotkey";
+import { BrandThemeApplier } from "@/components/BrandThemeApplier";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
+import { getDefaultStore } from "@/lib/store";
+import { brandThemeStyle, parseBrandTheme } from "@/lib/brand-theme";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -44,15 +48,20 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const serverTheme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
+  const store = await getDefaultStore().catch(() => null);
+  const brandTheme = parseBrandTheme(store?.themeJson ?? null);
+  const brandStyle = brandThemeStyle(brandTheme);
 
   return (
     <html
       lang="pt-BR"
       className={`${geist.variable} h-full${serverTheme === "dark" ? " dark" : ""}`}
+      style={brandStyle as CSSProperties}
       suppressHydrationWarning
     >
       <body className="min-h-full font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider initialTheme={serverTheme ?? undefined}>
+          <BrandThemeApplier theme={brandTheme} />
           <DevSwCleanup />
           <FullscreenHotkey />
           {children}
