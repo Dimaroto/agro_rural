@@ -80,6 +80,28 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${h(r)}${h(g)}${h(b)}`.toUpperCase();
 }
 
+function mixTwo(a: string, b: string, amount: number): string {
+  const A = hexToRgb(a);
+  const B = hexToRgb(b);
+  const t = Math.max(0, Math.min(1, amount));
+  return rgbToHex(A.r + (B.r - A.r) * t, A.g + (B.g - A.g) * t, A.b + (B.b - A.b) * t);
+}
+
+function relativeLuminance(hex: string): number {
+  const { r, g, b } = hexToRgb(hex);
+  const lin = (v: number) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+export function brandOnFillColor(theme: BrandTheme): string {
+  const t = parseBrandTheme(theme);
+  const sample = t.mode === "gradient" ? mixTwo(t.from, t.to, 0.4) : t.from;
+  return relativeLuminance(sample) > 0.55 ? "#1A2E12" : "#FFFFFF";
+}
+
 export function mixHex(hex: string, amount: number, towards: "black" | "white"): string {
   const { r, g, b } = hexToRgb(hex);
   const t = towards === "white" ? 255 : 0;
@@ -115,8 +137,10 @@ export function brandFillHoverCss(theme: BrandTheme): string {
 export function brandThemeToCssVars(theme: BrandTheme): Record<string, string> {
   const t = parseBrandTheme(theme);
   const primary = t.from;
-  const dark = mixHex(primary, 0.28, "black");
-  const light = mixHex(primary, 0.35, "white");
+  const dark =
+    t.mode === "gradient" ? mixTwo(t.from, t.to, 0.72) : mixHex(primary, 0.28, "black");
+  const light =
+    t.mode === "gradient" ? mixTwo(t.from, t.to, 0.28) : mixHex(primary, 0.35, "white");
   return {
     "--color-primary": primary,
     "--color-primary-dark": dark,
@@ -124,6 +148,7 @@ export function brandThemeToCssVars(theme: BrandTheme): Record<string, string> {
     "--color-charcoal": mixHex(primary, 0.55, "black"),
     "--brand-fill": brandFillCss(t),
     "--brand-fill-hover": brandFillHoverCss(t),
+    "--brand-on-fill": brandOnFillColor(t),
     "--brand-shadow": hexToRgba(primary, 0.32),
   };
 }

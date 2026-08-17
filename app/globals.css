@@ -24,6 +24,7 @@
   --foreground: var(--color-primary-dark);
   --brand-fill: var(--color-primary);
   --brand-fill-hover: var(--color-primary-dark);
+  --brand-on-fill: #ffffff;
   --brand-shadow: rgba(74, 103, 65, 0.32);
   --catalog-paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   --catalog-leaf-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cpath fill='%232D4C1E' d='M40 8C26 24 14 34 10 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z'/%3E%3Cpath fill='%234A6741' d='M40 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z'/%3E%3C/svg%3E");
@@ -1357,8 +1358,8 @@ html {
 
   .catalog-filter-pill--active {
     color: #fff;
-    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
-    box-shadow: 0 3px 12px rgba(74, 103, 65, 0.28);
+    background: var(--brand-fill, var(--color-primary));
+    box-shadow: 0 3px 12px var(--brand-shadow, rgba(74, 103, 65, 0.28));
   }
 
   .catalog-filter-pill--idle {
@@ -1411,9 +1412,9 @@ html {
 
   .catalog-filter-search--active {
     color: #fff;
-    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+    background: var(--brand-fill, var(--color-primary));
     border-color: transparent;
-    box-shadow: 0 3px 12px rgba(74, 103, 65, 0.28);
+    box-shadow: 0 3px 12px var(--brand-shadow, rgba(74, 103, 65, 0.28));
   }
 
   .catalog-filter-search--active:hover {
@@ -1777,17 +1778,22 @@ body:has(.catalog-page) {
   border-radius: 0;
   background:
     radial-gradient(ellipse 80% 58% at 50% 0%, rgba(255, 251, 235, 0.3), transparent 60%),
-    linear-gradient(145deg, #2D4C1E 0%, #4A6741 45%, #8BA56A 100%);
+    var(--brand-fill, linear-gradient(145deg, var(--color-primary-dark) 0%, var(--color-primary) 45%, var(--color-primary-light) 100%));
   box-shadow: none;
 }
 
 .catalog-hero-premium__bg {
   background-image:
-    linear-gradient(90deg, rgba(45, 76, 30, 0.68), rgba(45, 76, 30, 0.18) 52%, rgba(232, 213, 163, 0.2)),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-primary-dark) 68%, transparent),
+      color-mix(in srgb, var(--color-primary-dark) 18%, transparent) 52%,
+      color-mix(in srgb, var(--color-gold-light) 20%, transparent)
+    ),
     radial-gradient(ellipse 42% 34% at 82% 18%, rgba(232, 213, 163, 0.46), transparent 64%),
-    radial-gradient(ellipse 52% 40% at 74% 62%, rgba(92, 205, 167, 0.32), transparent 68%),
-    radial-gradient(ellipse 40% 32% at 18% 24%, rgba(45, 76, 30, 0.32), transparent 70%),
-    linear-gradient(135deg, #2D4C1E 0%, #4A6741 42%, #8BA56A 72%, #E8D5A3 100%);
+    radial-gradient(ellipse 52% 40% at 74% 62%, color-mix(in srgb, var(--color-primary-light) 32%, transparent), transparent 68%),
+    radial-gradient(ellipse 40% 32% at 18% 24%, color-mix(in srgb, var(--color-primary-dark) 32%, transparent), transparent 70%),
+    var(--brand-fill, linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 42%, var(--color-primary-light) 72%, var(--color-gold-light) 100%));
   background-size: cover, auto, auto, auto, auto;
   background-position: center, center, center, center, center;
   background-repeat: no-repeat;
@@ -3133,14 +3139,8 @@ html:has(body.catalog-product-modal-open) {
 .catalog-header {
   max-width: none;
   margin: 0;
-  background: linear-gradient(
-    90deg,
-    var(--color-cream-soft) 0%,
-    color-mix(in srgb, var(--color-sage-light) 70%, var(--color-primary-light)) 35%,
-    var(--color-primary-dark) 72%,
-    #0f2219 100%
-  );
-  color: var(--color-cream-soft);
+  background: var(--brand-fill, var(--color-primary));
+  color: var(--brand-on-fill, var(--color-cream-soft));
   border-radius: 0;
   box-shadow: 0 10px 36px rgba(10, 28, 22, 0.35);
   border: none;
@@ -3148,10 +3148,10 @@ html:has(body.catalog-product-modal-open) {
   overflow: visible;
 }
 
-/* Mobile: header e menu lateral em cor sólida (sem degradê) */
+/* Mobile: header em cor sólida (degradê complexo fica ilegível na barra baixa) */
 @media (max-width: 1023px) {
   .catalog-header {
-    background: var(--color-primary-dark);
+    background: var(--color-primary);
   }
 }
 
@@ -3373,10 +3373,10 @@ html:has(body.catalog-product-modal-open) {
   padding: 0.65rem 1.35rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
-  background: var(--color-primary-dark);
+  color: var(--brand-on-fill, #fff);
+  background: var(--brand-fill, var(--color-primary-dark));
   border: 2px solid color-mix(in srgb, var(--color-primary-dark) 85%, #000);
-  box-shadow: 0 6px 18px rgba(26, 46, 18, 0.22);
+  box-shadow: 0 6px 18px var(--brand-shadow, rgba(26, 46, 18, 0.22));
   transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
@@ -3514,7 +3514,7 @@ html:has(body.catalog-product-modal-open) {
   border-radius: 9999px;
   font-size: 1rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--color-cream-soft) 88%, transparent);
+  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 88%, transparent);
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
@@ -3816,22 +3816,22 @@ html:has(body.catalog-product-modal-open) {
   border-radius: 9999px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--color-cream-soft) 92%, transparent);
+  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 92%, transparent);
 }
 
 .catalog-header__action:hover {
   background: color-mix(in srgb, var(--color-primary) 30%, transparent);
-  color: #fff;
+  color: var(--brand-on-fill, #fff);
 }
 
 .catalog-header__action--muted {
-  color: color-mix(in srgb, var(--color-cream-soft) 65%, transparent);
+  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 65%, transparent);
 }
 
 .catalog-header__account-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--color-cream-soft) 85%, transparent);
+  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 85%, transparent);
 }
 
 .catalog-header__cart {
