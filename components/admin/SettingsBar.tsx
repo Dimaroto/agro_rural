@@ -11,13 +11,9 @@ import {
   type PdvNotifPref,
 } from "@/lib/pdv-notifications";
 import { BannerImageField } from "@/components/admin/BannerImageField";
-import { FiscalSettingsPanel } from "@/components/admin/FiscalSettingsPanel";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
 import { checkEmissorUp } from "@/lib/nfe/client";
-import {
-  launchEmissorStart,
-  openEmissorConfig,
-} from "@/lib/nfe/launcher";
+import { openEmissorFromUi, startEmissorFromUi } from "@/lib/nfe/launcher";
 
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
@@ -124,24 +120,16 @@ export function SettingsBar({
     notifPref !== "disabled" && notifPermission === "granted";
 
   function onStartEmissor() {
-    const desktop = (
-      window as Window & {
-        agroDesktop?: { startEmissor: () => Promise<void> };
-      }
-    ).agroDesktop;
-    if (desktop?.startEmissor) {
-      setStartHint("Iniciando emissor local...");
-      void desktop.startEmissor();
-      return;
-    }
-    setStartHint(
-      "Se o navegador perguntar, permita abrir o aplicativo. Sem o instalador, use o atalho Iniciar emissor NF-e."
-    );
     try {
-      launchEmissorStart();
+      const mode = startEmissorFromUi();
+      setStartHint(
+        mode === "desktop"
+          ? "Iniciando emissor local..."
+          : "Se o navegador perguntar, permita abrir o aplicativo. Sem o instalador, baixe em Emissor."
+      );
     } catch {
       setStartHint(
-        "Não foi possível acionar o protocolo agro-emissor://. Instale o AgroRural-Setup ou rode emissor_nfe\\scripts\\start-local.bat."
+        "Não foi possível iniciar. Abra a aba Emissor e baixe o Setup para Windows."
       );
     }
   }
@@ -318,18 +306,7 @@ export function SettingsBar({
               {emissorOnline ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    const desktop = (
-                      window as Window & {
-                        agroDesktop?: { openEmissor: () => void };
-                      }
-                    ).agroDesktop;
-                    if (desktop?.openEmissor) {
-                      desktop.openEmissor();
-                      return;
-                    }
-                    openEmissorConfig();
-                  }}
+                  onClick={() => openEmissorFromUi()}
                   className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                 >
                   Configurar emissor
@@ -349,10 +326,23 @@ export function SettingsBar({
                 {startHint}
               </p>
             )}
-          </div>
-
-          <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-            <FiscalSettingsPanel online={emissorOnline} />
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                if (unsaved?.isDirty) {
+                  unsaved.requestNavigation({
+                    type: "href",
+                    href: "/admin/emissor",
+                  });
+                  return;
+                }
+                router.push("/admin/emissor");
+              }}
+              className="mt-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+            >
+              Abrir aba Emissor
+            </button>
           </div>
         </div>
       )}

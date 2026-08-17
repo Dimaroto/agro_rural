@@ -29,3 +29,12 @@ Saída: `installer\output\AgroRural-Setup-*.exe`
 | Atalho | Agro Rural (não é link da internet) |
 
 No app: barra **Iniciar emissor** / **Configurar emissor** (tela separada) e **F11** tela cheia.
+
+## Publicar o download em /admin
+
+```powershell
+npm run env:pull
+npm run emissor:upload-setup
+```
+
+Grave a URL impressa em `EMISSOR_SETUP_URL` no projeto Vercel. A aba `/admin/emissor` usa essa URL no botão **Baixar para Windows**.

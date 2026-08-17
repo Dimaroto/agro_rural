@@ -25,6 +25,7 @@
     "admin:update:prod": "npx tsx scripts/update-admin-user.ts --production",
     "db:studio": "prisma studio",
     "env:pull": "npx vercel env pull .env.production.local --yes --environment=production",
+    "emissor:upload-setup": "npx tsx scripts/upload-emissor-setup.ts",
     "deploy": "npx vercel --prod --yes",
     "deploy:preview": "npx vercel --yes"
   },

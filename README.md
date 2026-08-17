@@ -110,7 +110,7 @@ Guia detalhado: [`deploy/vercel/DEPLOY-VERCEL.md`](deploy/vercel/DEPLOY-VERCEL.m
 
 Pasta [`emissor_nfe/`](emissor_nfe/) — Laravel + NFePHP em `127.0.0.1:8000` no PC do lojista; schema Postgres `emissor` no mesmo Neon.
 
-- **Instalador Windows:** [`installer/`](installer/) → `AgroRural-Setup-*.exe` (app nativo + emissor, logo Edem; F11 tela cheia; Iniciar/Configurar emissor em janela separada).
+- **Instalador Windows:** [`installer/`](installer/) → `AgroRural-Setup-*.exe`. O lojista baixa em `/admin/emissor`.
 - **App desktop:** [`desktop/`](desktop/) (Electron).
 - **Setup e checklist:** [`emissor_nfe/SETUP.md`](emissor_nfe/SETUP.md).
 

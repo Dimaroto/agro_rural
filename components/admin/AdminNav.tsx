@@ -15,6 +15,7 @@ const links = [
   { href: "/admin/agendamentos", label: "Agendamentos" },
   { href: "/admin/categorias", label: "Categorias" },
   { href: "/admin/pedidos", label: "Vendas" },
+  { href: "/admin/emissor", label: "Emissor" },
   { href: "/admin/financeiro", label: "Financeiro", prefix: "/admin/financeiro" },
 ];
 

@@ -35,3 +35,34 @@ export function launchEmissorConfig(tab?: EmissorConfigTab): void {
   const q = tab ? `?tab=${tab}` : "";
   window.location.href = `${AGRO_EMISSOR_PROTOCOL}config${q}`;
 }
+
+type AgroDesktop = {
+  startEmissor?: () => Promise<void>;
+  openEmissor?: () => void;
+};
+
+function desktopApi(): AgroDesktop | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as Window & { agroDesktop?: AgroDesktop }).agroDesktop;
+}
+
+/** Inicia o emissor local (app Windows ou protocolo agro-emissor://). */
+export function startEmissorFromUi(): "desktop" | "protocol" {
+  const desktop = desktopApi();
+  if (desktop?.startEmissor) {
+    void desktop.startEmissor();
+    return "desktop";
+  }
+  launchEmissorStart();
+  return "protocol";
+}
+
+/** Abre o painel de configuração (janela do app ou nova aba). */
+export function openEmissorFromUi(tab?: EmissorConfigTab): void {
+  const desktop = desktopApi();
+  if (desktop?.openEmissor) {
+    desktop.openEmissor();
+    return;
+  }
+  openEmissorConfig(tab);
+}

@@ -37,14 +37,14 @@ export function OrderNfeEmitButton({
     try {
       if (!readNfeEmissorToken()) {
         throw new Error(
-          "Cole o token do emissor em Configurações (engrenagem) → NF-e."
+          "Cole o token do emissor em Admin → Emissor."
         );
       }
 
       const up = await checkEmissorUp();
       if (!up) {
         throw new Error(
-          "Emissor local offline. Rode scripts\\start-local.bat em emissor_nfe (http://127.0.0.1:8000)."
+          "Emissor local offline. Abra Admin → Emissor e clique em Iniciar emissor."
         );
       }
 

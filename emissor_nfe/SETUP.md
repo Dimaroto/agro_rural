@@ -12,12 +12,13 @@ Pasta versionada junto com o app Next.js (`agro_rural`). Não inclui `vendor/`, 
 ## Instalador Windows (recomendado no PC do lojista)
 
 1. Na máquina de build: `powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1`
-2. Entregue `installer\output\AgroRural-Setup-*.exe` (opcional: `-IncludeSecrets` + `DESBLOQUEIO.txt` no pendrive).
-3. No PC da loja: rode o Setup **sem** “Executar como administrador”.
-4. Abra o atalho **Agro Rural** (app Windows, não é link da internet):
-   - **F11** tela cheia
-   - Barra: **Iniciar emissor** (vermelho) ou **Configurar emissor** (verde) — painel em janela separada
-5. Em Vendas, use **Emitir NF-e**.
+2. Publique o Setup no Blob: `npm run emissor:upload-setup` e grave `EMISSOR_SETUP_URL` na Vercel.
+3. No PC da loja, abra `/admin` → aba **Emissor** → **Baixar para Windows**.
+4. Rode o Setup **sem** “Executar como administrador”.
+5. Volte em **Emissor** → **Iniciar emissor** (LED verde) → envie o certificado A1 (.pfx).
+6. Em Vendas, use **Emitir NF-e**.
+
+O site só entrega o download e a tela de configuração. O Laravel, o PFX e a SEFAZ ficam no PC (`127.0.0.1:8000`).
 
 Detalhes: [`installer/README.md`](../installer/README.md).
 
