@@ -9,7 +9,7 @@ import { BrandThemeApplier } from "@/components/BrandThemeApplier";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { getDefaultStore } from "@/lib/store";
-import { brandThemeStyle, parseBrandTheme } from "@/lib/brand-theme";
+import { brandThemeStyle, parseBrandThemeDocument } from "@/lib/brand-theme";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -49,7 +49,7 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const serverTheme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   const store = await getDefaultStore().catch(() => null);
-  const brandTheme = parseBrandTheme(store?.themeJson ?? null);
+  const brandTheme = parseBrandThemeDocument(store?.themeJson ?? null);
   const brandStyle = brandThemeStyle(brandTheme);
 
   return (

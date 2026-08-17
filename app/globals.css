@@ -26,6 +26,10 @@
   --brand-fill-hover: var(--color-primary-dark);
   --brand-on-fill: #ffffff;
   --brand-shadow: rgba(74, 103, 65, 0.32);
+  --header-fill: var(--color-primary);
+  --header-text: #ffffff;
+  --page-bg: #e8f6f0;
+  --page-fg: #1a2e12;
   --catalog-paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   --catalog-leaf-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cpath fill='%232D4C1E' d='M40 8C26 24 14 34 10 48c-3 10 2 22 16 26 8 2 18 2 26-2 14-6 20-18 16-28-4-12-14-22-28-36z'/%3E%3Cpath fill='%234A6741' d='M40 18c-6 8-12 14-14 22 6-2 12-6 16-12 2-4 0-8-2-10z'/%3E%3C/svg%3E");
   --catalog-lavender-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 8c-2 8-6 14-6 22 0 4 2 8 6 10 4-2 6-6 6-10 0-8-4-14-6-22z' fill='%23C5A059' opacity='0.28'/%3E%3Ccircle cx='32' cy='42' r='4' fill='%232D4C1E' opacity='0.15'/%3E%3Cpath d='M32 46v12M28 50l4-2 4 2M26 54l6-1 6 1' stroke='%232D4C1E' stroke-width='1.5' stroke-linecap='round' opacity='0.18'/%3E%3C/svg%3E");
@@ -361,6 +365,10 @@ html {
 
   .admin-main:has(.pdv-shell) {
     @apply mx-auto h-[calc(100dvh-3rem)] max-w-none overflow-hidden p-3 sm:h-[calc(100dvh-3.5rem)] sm:p-4 lg:p-4;
+  }
+
+  .admin-main:has(.theme-studio) {
+    @apply mx-auto max-w-none;
   }
 
   .admin-shell:has(.pdv-shell) {
@@ -1561,42 +1569,13 @@ html {
 
 /* Fora do @layer para garantir aplicação em produção */
 .catalog-page {
-  background-color: #e8f6f0 !important;
-  background-image:
-    var(--catalog-paper-texture),
-    radial-gradient(ellipse 90% 68% at 8% -8%, rgba(255, 251, 235, 0.92), transparent 58%),
-    radial-gradient(ellipse 74% 58% at 96% 10%, rgba(74, 103, 65, 0.2), transparent 58%),
-    radial-gradient(ellipse 68% 48% at 12% 78%, rgba(232, 213, 163, 0.28), transparent 62%),
-    radial-gradient(ellipse 56% 42% at 88% 86%, rgba(45, 76, 30, 0.18), transparent 66%),
-    linear-gradient(
-      155deg,
-      #fffbeb 0%,
-      #F4F0E6 22%,
-      #8BA56A 52%,
-      #4A6741 78%,
-      #2D4C1E 100%
-    ) !important;
-  background-blend-mode: overlay, normal, normal, normal, normal, normal !important;
+  background: var(--page-bg, #e8f6f0) !important;
+  color: var(--page-fg, #1a2e12);
   background-attachment: fixed !important;
 }
 
 body:has(.catalog-page) {
-  background-color: #e8f6f0;
-  background-image:
-    var(--catalog-paper-texture),
-    radial-gradient(ellipse 90% 68% at 8% -8%, rgba(255, 251, 235, 0.92), transparent 58%),
-    radial-gradient(ellipse 74% 58% at 96% 10%, rgba(74, 103, 65, 0.2), transparent 58%),
-    radial-gradient(ellipse 68% 48% at 12% 78%, rgba(232, 213, 163, 0.28), transparent 62%),
-    radial-gradient(ellipse 56% 42% at 88% 86%, rgba(45, 76, 30, 0.18), transparent 66%),
-    linear-gradient(
-      155deg,
-      #fffbeb 0%,
-      #F4F0E6 22%,
-      #8BA56A 52%,
-      #4A6741 78%,
-      #2D4C1E 100%
-    );
-  background-blend-mode: overlay, normal, normal, normal, normal, normal;
+  background: var(--page-bg, #e8f6f0);
   background-attachment: fixed;
 }
 
@@ -1778,7 +1757,7 @@ body:has(.catalog-page) {
   border-radius: 0;
   background:
     radial-gradient(ellipse 80% 58% at 50% 0%, rgba(255, 251, 235, 0.3), transparent 60%),
-    var(--brand-fill, linear-gradient(145deg, var(--color-primary-dark) 0%, var(--color-primary) 45%, var(--color-primary-light) 100%));
+    var(--page-bg, var(--brand-fill, linear-gradient(145deg, var(--color-primary-dark) 0%, var(--color-primary) 45%, var(--color-primary-light) 100%)));
   box-shadow: none;
 }
 
@@ -1793,7 +1772,7 @@ body:has(.catalog-page) {
     radial-gradient(ellipse 42% 34% at 82% 18%, rgba(232, 213, 163, 0.46), transparent 64%),
     radial-gradient(ellipse 52% 40% at 74% 62%, color-mix(in srgb, var(--color-primary-light) 32%, transparent), transparent 68%),
     radial-gradient(ellipse 40% 32% at 18% 24%, color-mix(in srgb, var(--color-primary-dark) 32%, transparent), transparent 70%),
-    var(--brand-fill, linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 42%, var(--color-primary-light) 72%, var(--color-gold-light) 100%));
+    var(--page-bg, var(--brand-fill, linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 42%, var(--color-primary-light) 72%, var(--color-gold-light) 100%)));
   background-size: cover, auto, auto, auto, auto;
   background-position: center, center, center, center, center;
   background-repeat: no-repeat;
@@ -3139,8 +3118,8 @@ html:has(body.catalog-product-modal-open) {
 .catalog-header {
   max-width: none;
   margin: 0;
-  background: var(--brand-fill, var(--color-primary));
-  color: var(--brand-on-fill, var(--color-cream-soft));
+  background: var(--header-fill, var(--brand-fill, var(--color-primary)));
+  color: var(--header-text, var(--brand-on-fill, var(--color-cream-soft)));
   border-radius: 0;
   box-shadow: 0 10px 36px rgba(10, 28, 22, 0.35);
   border: none;
@@ -3151,7 +3130,7 @@ html:has(body.catalog-product-modal-open) {
 /* Mobile: header em cor sólida (degradê complexo fica ilegível na barra baixa) */
 @media (max-width: 1023px) {
   .catalog-header {
-    background: var(--color-primary);
+    background: var(--header-fill, var(--color-primary));
   }
 }
 
@@ -3514,7 +3493,7 @@ html:has(body.catalog-product-modal-open) {
   border-radius: 9999px;
   font-size: 1rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 88%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--brand-on-fill, var(--color-cream-soft))) 88%, transparent);
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
@@ -3816,22 +3795,22 @@ html:has(body.catalog-product-modal-open) {
   border-radius: 9999px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 92%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--brand-on-fill, var(--color-cream-soft))) 92%, transparent);
 }
 
 .catalog-header__action:hover {
   background: color-mix(in srgb, var(--color-primary) 30%, transparent);
-  color: var(--brand-on-fill, #fff);
+  color: var(--header-text, var(--brand-on-fill, #fff));
 }
 
 .catalog-header__action--muted {
-  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 65%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--brand-on-fill, var(--color-cream-soft))) 65%, transparent);
 }
 
 .catalog-header__account-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--brand-on-fill, var(--color-cream-soft)) 85%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--brand-on-fill, var(--color-cream-soft))) 85%, transparent);
 }
 
 .catalog-header__cart {
@@ -4002,8 +3981,8 @@ html:has(body.catalog-product-modal-open) {
 }
 
 .catalog-footer {
-  background: var(--color-primary-dark);
-  color: var(--color-cream-soft);
+  background: var(--header-fill, var(--color-primary-dark));
+  color: var(--header-text, var(--color-cream-soft));
   border-top: none;
 }
 
@@ -4033,7 +4012,7 @@ html:has(body.catalog-product-modal-open) {
   margin-top: 0.75rem;
   font-size: 1.05rem;
   line-height: 1.6;
-  color: color-mix(in srgb, var(--color-cream-soft) 70%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--color-cream-soft)) 70%, transparent);
 }
 
 .catalog-footer__label {
@@ -4041,7 +4020,7 @@ html:has(body.catalog-product-modal-open) {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-cream-soft) 85%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--color-cream-soft)) 85%, transparent);
 }
 
 .catalog-footer__links {
@@ -4053,11 +4032,11 @@ html:has(body.catalog-product-modal-open) {
 }
 
 .catalog-footer__links a {
-  color: color-mix(in srgb, var(--color-cream-soft) 88%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--color-cream-soft)) 88%, transparent);
 }
 
 .catalog-footer__links a:hover {
-  color: #fff;
+  color: var(--header-text, #fff);
 }
 
 .catalog-footer__whatsapp {
@@ -4065,15 +4044,15 @@ html:has(body.catalog-product-modal-open) {
   margin-top: 0.75rem;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--color-primary-light);
+  color: var(--header-text, var(--color-primary-light));
 }
 
 .catalog-footer__copy {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid color-mix(in srgb, var(--color-cream-soft) 18%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--header-text, var(--color-cream-soft)) 18%, transparent);
   font-size: 0.8rem;
-  color: color-mix(in srgb, var(--color-cream-soft) 60%, transparent);
+  color: color-mix(in srgb, var(--header-text, var(--color-cream-soft)) 60%, transparent);
   text-align: center;
 }
 

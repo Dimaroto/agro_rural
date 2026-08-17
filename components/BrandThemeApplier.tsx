@@ -3,21 +3,20 @@
 import { useEffect } from "react";
 import {
   applyBrandThemeToDocument,
-  parseBrandTheme,
-  type BrandTheme,
+  parseBrandThemeDocument,
+  type BrandThemeDocument,
 } from "@/lib/brand-theme";
 
 export function BrandThemeApplier({
   theme,
 }: {
-  theme?: BrandTheme | string | null;
+  theme?: BrandThemeDocument | string | null;
 }) {
-  const parsed = parseBrandTheme(theme ?? null);
-  const key = `${parsed.mode}|${parsed.from}|${parsed.to}|${parsed.shape}|${parsed.angle}`;
+  const key = JSON.stringify(parseBrandThemeDocument(theme ?? null));
 
   useEffect(() => {
-    applyBrandThemeToDocument(parsed);
-  }, [key]);
+    applyBrandThemeToDocument(theme ?? null);
+  }, [key, theme]);
 
   return null;
 }

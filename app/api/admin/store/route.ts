@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
-  parseBrandTheme,
-  serializeBrandTheme,
-  type BrandTheme,
+  MAX_BRAND_PRESETS,
+  MAX_PRESET_NAME,
+  parseBrandThemeDocument,
+  serializeBrandThemeDocument,
 } from "@/lib/brand-theme";
 import { z } from "zod";
 
@@ -12,18 +13,33 @@ const hex = z
   .string()
   .regex(/^#([0-9a-fA-F]{6})$/, "Use uma cor hexadecimal (#RRGGBB).");
 
-const themeSchema = z.object({
+const surfaceSchema = z.object({
   mode: z.enum(["solid", "gradient"]),
   from: hex,
   to: hex,
   shape: z.enum(["linear", "radial", "conic"]),
   angle: z.number().int().min(0).max(360),
+  text: hex,
+});
+
+const presetSchema = z.object({
+  id: z.string().min(1).max(80),
+  name: z.string().min(1).max(MAX_PRESET_NAME),
+  header: surfaceSchema,
+  buttons: surfaceSchema,
+  background: surfaceSchema,
+});
+
+const themeDocumentSchema = z.object({
+  version: z.literal(2),
+  activePresetId: z.string().min(1).max(80),
+  presets: z.array(presetSchema).min(1).max(MAX_BRAND_PRESETS),
 });
 
 const patchSchema = z.object({
   whatsapp: z.string().optional(),
   bannerUrl: z.string().nullable().optional(),
-  theme: themeSchema.optional(),
+  theme: themeDocumentSchema.optional(),
 });
 
 function storePayload(store: {
@@ -40,7 +56,7 @@ function storePayload(store: {
     slug: store.slug,
     whatsapp: store.whatsapp,
     bannerUrl: store.bannerUrl,
-    theme: parseBrandTheme(store.themeJson),
+    theme: parseBrandThemeDocument(store.themeJson),
   };
 }
 
@@ -106,7 +122,14 @@ export async function PATCH(req: Request) {
   }
 
   if (body.data.theme !== undefined) {
-    data.themeJson = serializeBrandTheme(body.data.theme as BrandTheme);
+    const doc = parseBrandThemeDocument(body.data.theme);
+    if (!doc.presets.some((p) => p.id === doc.activePresetId)) {
+      return NextResponse.json(
+        { error: "Predefinição ativa inválida." },
+        { status: 400 }
+      );
+    }
+    data.themeJson = serializeBrandThemeDocument(doc);
   }
 
   if (Object.keys(data).length === 0) {

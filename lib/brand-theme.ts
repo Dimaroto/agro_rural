@@ -1,5 +1,9 @@
 export const DEFAULT_BRAND_FROM = "#4A6741";
 export const DEFAULT_BRAND_TO = "#C5A059";
+export const DEFAULT_PAGE_BG = "#E8F6F0";
+export const DEFAULT_PAGE_FG = "#1A2E12";
+export const MAX_BRAND_PRESETS = 20;
+export const MAX_PRESET_NAME = 40;
 
 export type BrandThemeMode = "solid" | "gradient";
 export type BrandThemeShape = "linear" | "radial" | "conic";
@@ -10,6 +14,24 @@ export type BrandTheme = {
   to: string;
   shape: BrandThemeShape;
   angle: number;
+};
+
+export type BrandSurface = BrandTheme & {
+  text: string;
+};
+
+export type BrandPreset = {
+  id: string;
+  name: string;
+  header: BrandSurface;
+  buttons: BrandSurface;
+  background: BrandSurface;
+};
+
+export type BrandThemeDocument = {
+  version: 2;
+  activePresetId: string;
+  presets: BrandPreset[];
 };
 
 export const DEFAULT_BRAND_THEME: BrandTheme = {
@@ -134,23 +156,230 @@ export function brandFillHoverCss(theme: BrandTheme): string {
   return brandFillCss({ ...t, from, to });
 }
 
-export function brandThemeToCssVars(theme: BrandTheme): Record<string, string> {
-  const t = parseBrandTheme(theme);
-  const primary = t.from;
+export function parseBrandSurface(
+  raw: unknown,
+  fallback: BrandTheme = DEFAULT_BRAND_THEME
+): BrandSurface {
+  let data: unknown = raw;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = null;
+    }
+  }
+  const fill = parseBrandTheme(data && typeof data === "object" ? data : fallback);
+  const obj =
+    data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const text = isHexColor(obj.text)
+    ? obj.text.trim().toUpperCase()
+    : brandOnFillColor(fill);
+  return { ...fill, text };
+}
+
+export function clampPresetName(value: unknown): string {
+  const name = typeof value === "string" ? value.trim() : "";
+  if (!name) return "Sem título";
+  return name.slice(0, MAX_PRESET_NAME);
+}
+
+export function newBrandPresetId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export const DEFAULT_HEADER_SURFACE: BrandSurface = {
+  ...DEFAULT_BRAND_THEME,
+  text: "#FFFFFF",
+};
+
+export const DEFAULT_BUTTONS_SURFACE: BrandSurface = {
+  ...DEFAULT_BRAND_THEME,
+  text: "#FFFFFF",
+};
+
+export const DEFAULT_BACKGROUND_SURFACE: BrandSurface = {
+  mode: "solid",
+  from: DEFAULT_PAGE_BG,
+  to: "#F4F0E6",
+  shape: "linear",
+  angle: 180,
+  text: DEFAULT_PAGE_FG,
+};
+
+export function createDefaultPreset(name = "Padrão"): BrandPreset {
+  return {
+    id: newBrandPresetId(),
+    name: clampPresetName(name),
+    header: { ...DEFAULT_HEADER_SURFACE },
+    buttons: { ...DEFAULT_BUTTONS_SURFACE },
+    background: { ...DEFAULT_BACKGROUND_SURFACE },
+  };
+}
+
+function presetFromLegacyFill(fill: BrandTheme, name = "Padrão"): BrandPreset {
+  const text = brandOnFillColor(fill);
+  const surface: BrandSurface = { ...parseBrandTheme(fill), text };
+  return {
+    id: "padrao",
+    name: clampPresetName(name),
+    header: { ...surface },
+    buttons: { ...surface },
+    background: { ...DEFAULT_BACKGROUND_SURFACE },
+  };
+}
+
+export function parseBrandPreset(raw: unknown): BrandPreset {
+  const obj =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const id =
+    typeof obj.id === "string" && obj.id.trim()
+      ? obj.id.trim()
+      : newBrandPresetId();
+  return {
+    id,
+    name: clampPresetName(obj.name),
+    header: parseBrandSurface(obj.header),
+    buttons: parseBrandSurface(obj.buttons),
+    background: parseBrandSurface(obj.background, DEFAULT_BACKGROUND_SURFACE),
+  };
+}
+
+function looksLikeLegacyTheme(obj: Record<string, unknown>): boolean {
+  return (
+    typeof obj.from === "string" ||
+    obj.mode === "solid" ||
+    obj.mode === "gradient"
+  );
+}
+
+function emptyThemeDocument(): BrandThemeDocument {
+  const preset = createDefaultPreset("Padrão");
+  preset.id = "padrao";
+  return { version: 2, activePresetId: "padrao", presets: [preset] };
+}
+
+function looksLikeDocument(obj: Record<string, unknown>): boolean {
+  return obj.version === 2 || Array.isArray(obj.presets);
+}
+
+export function parseBrandThemeDocument(raw: unknown): BrandThemeDocument {
+  let data: unknown = raw;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return emptyThemeDocument();
+    }
+  }
+
+  if (!data || typeof data !== "object") {
+    return emptyThemeDocument();
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (looksLikeDocument(obj)) {
+    const list = Array.isArray(obj.presets) ? obj.presets : [];
+    const presets = list
+      .slice(0, MAX_BRAND_PRESETS)
+      .map((item) => parseBrandPreset(item));
+    if (presets.length === 0) {
+      return emptyThemeDocument();
+    }
+    const active =
+      typeof obj.activePresetId === "string" &&
+      presets.some((p) => p.id === obj.activePresetId)
+        ? obj.activePresetId
+        : presets[0].id;
+    return { version: 2, activePresetId: active, presets };
+  }
+
+  if (looksLikeLegacyTheme(obj)) {
+    const preset = presetFromLegacyFill(parseBrandTheme(obj));
+    return { version: 2, activePresetId: preset.id, presets: [preset] };
+  }
+
+  return emptyThemeDocument();
+}
+
+export function serializeBrandThemeDocument(doc: BrandThemeDocument): string {
+  return JSON.stringify(parseBrandThemeDocument(doc));
+}
+
+export function activePreset(doc: BrandThemeDocument): BrandPreset {
+  const parsed = parseBrandThemeDocument(doc);
+  return (
+    parsed.presets.find((p) => p.id === parsed.activePresetId) ??
+    parsed.presets[0]
+  );
+}
+
+export function cloneBrandPreset(
+  preset: BrandPreset,
+  name = "Sem título"
+): BrandPreset {
+  const parsed = parseBrandPreset(preset);
+  return {
+    ...parsed,
+    id: newBrandPresetId(),
+    name: clampPresetName(name),
+    header: { ...parsed.header },
+    buttons: { ...parsed.buttons },
+    background: { ...parsed.background },
+  };
+}
+
+export function replacePreset(
+  doc: BrandThemeDocument,
+  preset: BrandPreset
+): BrandThemeDocument {
+  const parsed = parseBrandThemeDocument(doc);
+  const next = parseBrandPreset(preset);
+  const index = parsed.presets.findIndex((p) => p.id === next.id);
+  const presets =
+    index >= 0
+      ? parsed.presets.map((p, i) => (i === index ? next : p))
+      : [...parsed.presets, next].slice(0, MAX_BRAND_PRESETS);
+  return { ...parsed, presets, activePresetId: next.id };
+}
+
+export function presetToCssVars(preset: BrandPreset): Record<string, string> {
+  const buttons = parseBrandSurface(preset.buttons);
+  const header = parseBrandSurface(preset.header);
+  const background = parseBrandSurface(
+    preset.background,
+    DEFAULT_BACKGROUND_SURFACE
+  );
+  const primary = buttons.from;
   const dark =
-    t.mode === "gradient" ? mixTwo(t.from, t.to, 0.72) : mixHex(primary, 0.28, "black");
+    buttons.mode === "gradient"
+      ? mixTwo(buttons.from, buttons.to, 0.72)
+      : mixHex(primary, 0.28, "black");
   const light =
-    t.mode === "gradient" ? mixTwo(t.from, t.to, 0.28) : mixHex(primary, 0.35, "white");
+    buttons.mode === "gradient"
+      ? mixTwo(buttons.from, buttons.to, 0.28)
+      : mixHex(primary, 0.35, "white");
   return {
     "--color-primary": primary,
     "--color-primary-dark": dark,
     "--color-primary-light": light,
     "--color-charcoal": mixHex(primary, 0.55, "black"),
-    "--brand-fill": brandFillCss(t),
-    "--brand-fill-hover": brandFillHoverCss(t),
-    "--brand-on-fill": brandOnFillColor(t),
+    "--brand-fill": brandFillCss(buttons),
+    "--brand-fill-hover": brandFillHoverCss(buttons),
+    "--brand-on-fill": buttons.text,
     "--brand-shadow": hexToRgba(primary, 0.32),
+    "--header-fill": brandFillCss(header),
+    "--header-text": header.text,
+    "--page-bg": brandFillCss(background),
+    "--page-fg": background.text,
   };
+}
+
+export function brandThemeToCssVars(theme: BrandTheme): Record<string, string> {
+  return presetToCssVars(presetFromLegacyFill(parseBrandTheme(theme)));
 }
 
 export const LINEAR_DIRECTIONS: { angle: number; label: string }[] = [
@@ -164,15 +393,31 @@ export const LINEAR_DIRECTIONS: { angle: number; label: string }[] = [
   { angle: 315, label: "Cima-esquerda" },
 ];
 
-export function applyBrandThemeToDocument(theme: BrandTheme) {
+export function applyBrandThemeToDocument(
+  theme: BrandTheme | BrandThemeDocument | BrandPreset | string | null
+) {
   if (typeof document === "undefined") return;
-  const vars = brandThemeToCssVars(theme);
+  const vars = brandThemeStyle(theme);
   const root = document.documentElement;
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(key, value);
   }
 }
 
-export function brandThemeStyle(theme: BrandTheme | string | null | undefined) {
-  return brandThemeToCssVars(parseBrandTheme(theme ?? null));
+export function brandThemeStyle(
+  theme: BrandTheme | BrandThemeDocument | BrandPreset | string | null | undefined
+) {
+  if (!theme) {
+    return presetToCssVars(createDefaultPreset());
+  }
+  if (typeof theme === "string") {
+    return presetToCssVars(activePreset(parseBrandThemeDocument(theme)));
+  }
+  if (typeof theme === "object" && "presets" in theme) {
+    return presetToCssVars(activePreset(parseBrandThemeDocument(theme)));
+  }
+  if (typeof theme === "object" && "header" in theme && "buttons" in theme) {
+    return presetToCssVars(parseBrandPreset(theme));
+  }
+  return presetToCssVars(presetFromLegacyFill(parseBrandTheme(theme)));
 }

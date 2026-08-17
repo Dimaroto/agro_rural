@@ -11,7 +11,6 @@ import {
   type PdvNotifPref,
 } from "@/lib/pdv-notifications";
 import { BannerImageField } from "@/components/admin/BannerImageField";
-import { BrandColorPanel } from "@/components/admin/BrandColorPanel";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
 import { checkEmissorUp } from "@/lib/nfe/client";
 import { openEmissorFromUi, startEmissorFromUi } from "@/lib/nfe/launcher";
@@ -19,13 +18,11 @@ import { openEmissorFromUi, startEmissorFromUi } from "@/lib/nfe/launcher";
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
   initialBannerUrl?: string | null;
-  initialTheme?: import("@/lib/brand-theme").BrandTheme | string | null;
 };
 
 export function SettingsBar({
   initialWhatsapp,
   initialBannerUrl,
-  initialTheme,
 }: SettingsBarProps) {
   const { theme, setTheme, mounted } = useTheme();
   const router = useRouter();
@@ -279,7 +276,29 @@ export function SettingsBar({
 
           {showStoreSettings && (
             <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-              <BrandColorPanel initialTheme={initialTheme} />
+              <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                Cores do site
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Header, botões, fundo e predefinições do catálogo.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  if (unsaved?.isDirty) {
+                    unsaved.requestNavigation({
+                      type: "href",
+                      href: "/admin/cores",
+                    });
+                    return;
+                  }
+                  router.push("/admin/cores");
+                }}
+                className="mt-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+              >
+                Configurar cores
+              </button>
             </div>
           )}
 
