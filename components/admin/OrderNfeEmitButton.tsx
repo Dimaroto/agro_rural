@@ -81,9 +81,14 @@ export function OrderNfeEmitButton({
       );
       const prepData = await prep.json().catch(() => ({}));
       if (!prep.ok) {
-        throw new Error(
-          formatApiError(prepData.error, "Não foi possível preparar a nota.")
-        );
+        const apiMsg =
+          typeof prepData.error === "string" && prepData.error.trim()
+            ? prepData.error.trim()
+            : formatApiError(
+                prepData.error,
+                "Não foi possível preparar a nota."
+              );
+        throw new Error(apiMsg);
       }
 
       const result = await emitNfeFromBrowser({

@@ -1,4 +1,5 @@
 import { decryptCustomerPii } from "@/lib/customer-field-crypto";
+import { PublicApiError } from "@/lib/public-api-error";
 
 type NfeCustomer = {
   name: string | null;
@@ -57,34 +58,47 @@ export function buildAgroNfePayload(
     ? decryptCustomerPii(order.customer)
     : null;
 
-  const documento = digits(customer?.document);
+  if (!customer) {
+    throw new PublicApiError(
+      "Venda sem cliente cadastrado. Vincule um cliente com CPF/CNPJ e endereço (cidade, UF, CEP)."
+    );
+  }
+
+  const documento = digits(customer.document);
   if (documento.length !== 11 && documento.length !== 14) {
-    throw new Error(
+    throw new PublicApiError(
       "Cliente sem CPF/CNPJ válido. Cadastre o documento em Clientes."
     );
   }
 
   const nome =
-    customer?.name?.trim() ||
+    customer.name?.trim() ||
     order.customerName?.trim() ||
     "CONSUMIDOR";
 
-  const cep = digits(customer?.zipCode);
-  const uf = (customer?.state ?? "").trim().toUpperCase();
-  const cidade = (customer?.city ?? "").trim();
+  const cep = digits(customer.zipCode);
+  const uf = (customer.state ?? "").trim().toUpperCase();
+  const cidade = (customer.city ?? "").trim();
   if (cep.length !== 8 || uf.length !== 2 || !cidade) {
-    throw new Error(
-      "Endereço fiscal incompleto (cidade, UF e CEP). Atualize o cliente."
+    throw new PublicApiError(
+      "Endereço fiscal incompleto (cidade, UF e CEP). Atualize o cliente em Clientes."
+    );
+  }
+
+  const missingNcm = order.items
+    .filter((item) => digits(item.product?.ncm).length !== 8)
+    .map((item) => item.productName);
+  if (missingNcm.length > 0) {
+    const list = missingNcm.slice(0, 3).join(", ");
+    const extra =
+      missingNcm.length > 3 ? ` (+${missingNcm.length - 3})` : "";
+    throw new PublicApiError(
+      `Produto(s) sem NCM (8 dígitos): ${list}${extra}. Edite em Produtos.`
     );
   }
 
   const itens = order.items.map((item) => {
     const ncm = digits(item.product?.ncm);
-    if (ncm.length !== 8) {
-      throw new Error(
-        `Produto "${item.productName}" sem NCM (8 dígitos). Edite o produto.`
-      );
-    }
     return {
       descricao: item.productName,
       quantidade: item.quantity,
@@ -99,7 +113,7 @@ export function buildAgroNfePayload(
   });
 
   if (itens.length === 0) {
-    throw new Error("Pedido sem itens.");
+    throw new PublicApiError("Pedido sem itens.");
   }
 
   return {
@@ -115,14 +129,14 @@ export function buildAgroNfePayload(
     destinatario: {
       nome,
       documento,
-      telefone: digits(customer?.phone || order.customerPhone),
-      email: customer?.email ?? undefined,
-      ie: customer?.ie?.trim() || undefined,
+      telefone: digits(customer.phone || order.customerPhone) || undefined,
+      email: customer.email ?? undefined,
+      ie: customer.ie?.trim() || undefined,
       endereco: {
-        logradouro: customer?.street?.trim() || "NAO INFORMADO",
-        numero: customer?.number?.trim() || "S/N",
-        complemento: customer?.complement?.trim() || undefined,
-        bairro: customer?.district?.trim() || "CENTRO",
+        logradouro: customer.street?.trim() || "NAO INFORMADO",
+        numero: customer.number?.trim() || "S/N",
+        complemento: customer.complement?.trim() || undefined,
+        bairro: customer.district?.trim() || "CENTRO",
         cidade,
         uf,
         cep,
