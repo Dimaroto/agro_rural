@@ -41,7 +41,9 @@
                     <button class="btn btn-primary" type="submit">Usar esta</button>
                 </div>
                 <p class="muted" style="margin:0.45rem 0 0;font-size:0.8rem;">
-                    A ID 2 costuma ser só demonstração. A Agro Rural Zortea é a ID 1 — selecione-a aqui.
+                    Só aparecem empresas deste aplicativo
+                    (<span class="mono">{{ config('emissor.app_slug') }}</span>).
+                    Cadastros de outros produtos (ex.: Mecânica Bedendo) ficam isolados.
                     No admin Agro Rural (Fiscal), use o mesmo <span class="mono">empresaId</span>.
                 </p>
             </div>

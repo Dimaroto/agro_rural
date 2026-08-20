@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,6 +31,7 @@ class Empresa extends Model
         'csc_token',
         'inscricao_municipal',
         'ativa',
+        'app_slug',
     ];
 
     protected function casts(): array
@@ -38,6 +40,32 @@ class Empresa extends Model
             'ativa' => 'boolean',
             'crt' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('app', function (Builder $builder) {
+            $slug = (string) config('emissor.app_slug', 'agro-rural');
+            $builder->where(
+                $builder->getModel()->getTable().'.app_slug',
+                $slug
+            );
+        });
+
+        static::creating(function (Empresa $empresa) {
+            if (! filled($empresa->app_slug)) {
+                $empresa->app_slug = (string) config('emissor.app_slug', 'agro-rural');
+            }
+        });
+    }
+
+    /** @param  Builder<Empresa>  $query */
+    public function scopeForApp(Builder $query, ?string $slug = null): Builder
+    {
+        return $query->where(
+            'app_slug',
+            $slug ?? (string) config('emissor.app_slug', 'agro-rural')
+        );
     }
 
     public function certificado(): HasOne

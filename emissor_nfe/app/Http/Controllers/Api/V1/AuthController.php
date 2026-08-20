@@ -37,9 +37,12 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        $request->user()->detachEmpresasDeOutrosApps();
+
         return response()->json([
             'user' => $request->user(),
-            'empresas' => $request->user()->empresas()->get(['empresas.id', 'cnpj', 'razao_social', 'ambiente']),
+            'empresas' => $request->user()->empresas()->get(['empresas.id', 'cnpj', 'razao_social', 'ambiente', 'app_slug']),
+            'app_slug' => config('emissor.app_slug'),
         ]);
     }
 

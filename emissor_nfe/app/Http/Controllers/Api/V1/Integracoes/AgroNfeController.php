@@ -394,11 +394,14 @@ class AgroNfeController extends Controller
     private function resolverEmpresa(Request $request): Empresa
     {
         $user = $request->user();
+        $user->detachEmpresasDeOutrosApps();
 
         if ($request->filled('empresaId')) {
             $empresa = Empresa::query()->find((int) $request->input('empresaId'));
             if (! $empresa || ! $user->temAcessoEmpresa($empresa)) {
-                throw new InvalidArgumentException('Empresa não encontrada ou sem permissão.');
+                throw new InvalidArgumentException(
+                    'Empresa não encontrada neste aplicativo ou sem permissão.'
+                );
             }
 
             return $empresa->load('certificado');

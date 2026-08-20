@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $slug = (string) config('emissor.app_slug', 'agro-rural');
         $email = (string) env('SEED_ADMIN_EMAIL', 'admin@emissor.local');
         $name = (string) env('SEED_ADMIN_NAME', 'Administrador');
         $passwordFromEnv = env('SEED_ADMIN_PASSWORD');
@@ -36,29 +37,29 @@ class DatabaseSeeder extends Seeder
                 );
             }
         } elseif (filled($passwordFromEnv)) {
-            // So redefine senha se SEED_ADMIN_PASSWORD estiver explicita no .env
             $user->forceFill([
                 'name' => $name,
                 'password' => Hash::make((string) $passwordFromEnv),
             ])->save();
         }
 
-        // Remove conta demo legada se existir e nao for a atual
         User::query()
             ->where('email', 'admin@emissor.local')
             ->where('id', '!=', $user->id)
             ->delete();
 
-        // Prefere empresa real ja existente; so cria demo se o banco estiver vazio.
-        $empresaReal = Empresa::query()
+        $user->detachEmpresasDeOutrosApps();
+
+        // Só empresas deste app (global scope). Nunca a primeira empresa "qualquer" do Neon.
+        $empresaApp = Empresa::query()
             ->where('cnpj', '!=', '00000000000000')
             ->orderBy('id')
             ->first();
 
-        if ($empresaReal) {
-            $user->empresas()->syncWithoutDetaching([$empresaReal->id]);
+        if ($empresaApp) {
+            $user->empresas()->syncWithoutDetaching([$empresaApp->id]);
             $this->command?->info(
-                "Usuario vinculado a empresa real #{$empresaReal->id} ({$empresaReal->razao_social})."
+                "Usuario vinculado a empresa #{$empresaApp->id} ({$empresaApp->razao_social}) [{$slug}]."
             );
 
             return;
@@ -83,6 +84,7 @@ class DatabaseSeeder extends Seeder
                 'crt' => 1,
                 'ambiente' => 'homologacao',
                 'ativa' => true,
+                'app_slug' => $slug,
             ]
         );
 
@@ -104,6 +106,7 @@ class DatabaseSeeder extends Seeder
             ['proximo_numero' => 1]
         );
 
-        $user->empresas()->syncWithoutDetaching([$empresa->id]);
+        $user->empresas()->sync([$empresa->id]);
+        $this->command?->info("Empresa demo [{$slug}] vinculada ao admin.");
     }
 }

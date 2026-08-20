@@ -20,6 +20,8 @@ class EmpresaController extends Controller
     {
         $this->authorize('viewAny', Empresa::class);
 
+        $request->user()->detachEmpresasDeOutrosApps();
+
         $empresas = $request->user()
             ->empresas()
             ->with('certificado')
@@ -157,6 +159,7 @@ class EmpresaController extends Controller
             'cep' => $empresa->cep,
             'crt' => $empresa->crt,
             'ambiente' => $empresa->ambiente,
+            'app_slug' => $empresa->app_slug,
             'csc_id' => $empresa->csc_id,
             'csc_token' => $empresa->csc_token,
             'ativa' => $empresa->ativa,

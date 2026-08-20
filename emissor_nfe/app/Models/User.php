@@ -41,7 +41,29 @@ class User extends Authenticatable
     public function temAcessoEmpresa(int|Empresa $empresa): bool
     {
         $empresaId = $empresa instanceof Empresa ? $empresa->id : $empresa;
+        $slug = (string) config('emissor.app_slug', 'agro-rural');
 
-        return $this->empresas()->where('empresas.id', $empresaId)->exists();
+        return $this->empresas()
+            ->where('empresas.id', $empresaId)
+            ->where('empresas.app_slug', $slug)
+            ->exists();
+    }
+
+    /** Remove vínculos com empresas de outro produto (Bedendo ↔ Agro). */
+    public function detachEmpresasDeOutrosApps(): int
+    {
+        $slug = (string) config('emissor.app_slug', 'agro-rural');
+        $foreignIds = \Illuminate\Support\Facades\DB::table('empresas')
+            ->where('app_slug', '!=', $slug)
+            ->pluck('id');
+
+        if ($foreignIds->isEmpty()) {
+            return 0;
+        }
+
+        return \Illuminate\Support\Facades\DB::table('empresa_user')
+            ->where('user_id', $this->id)
+            ->whereIn('empresa_id', $foreignIds)
+            ->delete();
     }
 }

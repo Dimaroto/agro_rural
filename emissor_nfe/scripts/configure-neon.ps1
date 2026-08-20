@@ -44,14 +44,15 @@ if (-not (Test-Path '.env')) {
 
 $lines = Get-Content '.env' -Encoding UTF8
 $keys = @{
-    'DB_CONNECTION' = 'pgsql'
-    'DB_URL'        = $DatabaseUrl
-    'DB_SSLMODE'    = 'require'
-    'DB_HOST'       = ''
-    'DB_PORT'       = '5432'
-    'DB_DATABASE'   = ''
-    'DB_USERNAME'   = ''
-    'DB_PASSWORD'   = ''
+    'DB_CONNECTION'     = 'pgsql'
+    'DB_URL'            = $DatabaseUrl
+    'DB_SSLMODE'        = 'require'
+    'DB_HOST'           = ''
+    'DB_PORT'           = '5432'
+    'DB_DATABASE'       = ''
+    'DB_USERNAME'       = ''
+    'DB_PASSWORD'       = ''
+    'EMISSOR_APP_SLUG'  = 'agro-rural'
 }
 
 $seen = @{}

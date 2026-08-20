@@ -87,8 +87,8 @@ class ConfiguracaoController extends Controller
             'ambiente' => ['required', Rule::in(['homologacao', 'producao'])],
             'inscricao_municipal' => ['nullable', 'string', 'max:30'],
         ], [
-            'cnpj.unique' => 'Este CNPJ já está cadastrado em outra empresa (provavelmente a ID 1). '
-                .'Troque a empresa ativa acima em vez de alterar o CNPJ da demo.',
+            'cnpj.unique' => 'Este CNPJ já está cadastrado (pode ser de outro produto no mesmo banco). '
+                .'Selecione a empresa correta deste aplicativo ou use outro CNPJ.',
         ])->validate();
 
         $data['cnpj'] = preg_replace('/\D/', '', $data['cnpj']) ?? '';

@@ -6,7 +6,8 @@ Pasta versionada junto com o app Next.js (`agro_rural`). Não inclui `vendor/`, 
 
 - **App web (Vercel):** pedidos, clientes e produtos no **Neon** (schema `public`, Prisma).
 - **Emissor Laravel:** roda **local** em cada PC (`127.0.0.1:8000`); tabelas fiscais no **mesmo Neon**, schema `emissor`.
-- Nos PCs: **mesmo `APP_KEY`** e **mesmas credenciais Neon** no `.env`.
+- **Isolamento por app:** `EMISSOR_APP_SLUG=agro-rural` — empresas e notas da Mecânica Bedendo (`mecanica-bedendo`) não aparecem neste instalador.
+- Nos PCs: **mesmo `APP_KEY`** e **mesmas credenciais Neon** no `.env` (entre PCs Agro; não misturar com o produto Bedendo).
 - O admin em https://agroruralzortea.com.br chama o emissor no browser (`127.0.0.1:8000`) — o servidor Vercel não alcança o localhost.
 
 ## Instalador Windows (recomendado no PC do lojista)
@@ -38,6 +39,8 @@ php artisan key:generate
 
 3. Edite `.env` (ou `scripts\wire-neon.ps1`):
    - `DB_CONNECTION=pgsql`
+   - `EMISSOR_APP_SLUG=agro-rural` (obrigatório — isola da Mecânica Bedendo)
+   - `DB_URL=...`
    - `DB_URL="postgresql://..."` — host sem `-pooler`
    - `DB_SSLMODE=require`
    - `DB_SEARCH_PATH=emissor,public`
@@ -48,9 +51,11 @@ php artisan key:generate
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\wire-neon.ps1 -DatabaseUrl "postgresql://USER:PASS@HOST/neondb?sslmode=require"
 php artisan migrate
+php artisan emissor:isolate-apps
 php artisan db:seed
 ```
 
+`emissor:isolate-apps` marca empresas Bedendo com `app_slug=mecanica-bedendo` e remove vínculos cruzados.
 5. Suba:
 
 ```bat

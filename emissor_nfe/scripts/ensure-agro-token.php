@@ -71,6 +71,8 @@ if (! $user) {
     exit(1);
 }
 
+$user->detachEmpresasDeOutrosApps();
+
 // Revoga tokens antigos agro-app para nao acumular
 $user->tokens()->where('name', 'agro-app')->delete();
 $plain = $user->createToken('agro-app')->plainTextToken;
@@ -80,6 +82,7 @@ echo json_encode([
     'ok' => true,
     'created' => true,
     'user' => $user->email,
+    'app_slug' => config('emissor.app_slug'),
     'token_file' => $tokenFile,
     'token_prefix' => explode('|', $plain, 2)[0].'|…',
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).PHP_EOL;

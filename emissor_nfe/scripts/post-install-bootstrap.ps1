@@ -202,6 +202,22 @@ Normalize-NeonDbUrlInEnvFile -Path $envFile
 $configEnv = Join-Path (Get-SecretsConfigDir) '.env'
 if (Test-Path $configEnv) { Normalize-NeonDbUrlInEnvFile -Path $configEnv }
 
+function Ensure-EmissorAppSlug([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction SilentlyContinue
+    if ($null -eq $raw) { return }
+    if ($raw -match '(?m)^EMISSOR_APP_SLUG=') {
+        $raw = [regex]::Replace($raw, '(?m)^EMISSOR_APP_SLUG=.*$', 'EMISSOR_APP_SLUG=agro-rural')
+    } else {
+        if ($raw -notmatch '\r?\n$') { $raw += "`r`n" }
+        $raw += "EMISSOR_APP_SLUG=agro-rural`r`n"
+    }
+    Set-Content -LiteralPath $Path -Value $raw -Encoding UTF8 -NoNewline
+    Write-BootstrapLog "EMISSOR_APP_SLUG=agro-rural em $Path" 'Green'
+}
+Ensure-EmissorAppSlug -Path $envFile
+if (Test-Path $configEnv) { Ensure-EmissorAppSlug -Path $configEnv }
+
 # ACL so no final (SIDs), depois de todas as leituras/escritas
 if (Get-Command Protect-EnvFileAcl -ErrorAction SilentlyContinue) {
     Protect-EnvFileAcl -Path $envFile
