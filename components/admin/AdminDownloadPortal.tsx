@@ -9,9 +9,13 @@ type PlatformInfo = {
   href: string | null;
 };
 
-function detectClient(windowsSetupUrl: string): PlatformInfo {
+function detectClient(
+  windowsSetupUrl: string,
+  androidApkUrl: string
+): PlatformInfo {
   const ua = navigator.userAgent.toLowerCase();
   const apk =
+    androidApkUrl.trim() ||
     process.env.NEXT_PUBLIC_ADMIN_APK_URL?.trim() ||
     "/downloads/AgroRural-Admin.apk";
   const exe =
@@ -55,15 +59,17 @@ function detectClient(windowsSetupUrl: string): PlatformInfo {
 export function AdminDownloadPortal({
   storeName,
   windowsSetupUrl = "",
+  androidApkUrl = "",
 }: {
   storeName: string;
   windowsSetupUrl?: string;
+  androidApkUrl?: string;
 }) {
   const [info, setInfo] = useState<PlatformInfo | null>(null);
 
   useEffect(() => {
-    setInfo(detectClient(windowsSetupUrl));
-  }, [windowsSetupUrl]);
+    setInfo(detectClient(windowsSetupUrl, androidApkUrl));
+  }, [windowsSetupUrl, androidApkUrl]);
 
   const ready = useMemo(() => info != null, [info]);
   const exeHref = useMemo(
@@ -75,6 +81,7 @@ export function AdminDownloadPortal({
     [windowsSetupUrl]
   );
   const apkHref =
+    androidApkUrl.trim() ||
     process.env.NEXT_PUBLIC_ADMIN_APK_URL?.trim() ||
     "/downloads/AgroRural-Admin.apk";
   const windowsReady = Boolean(windowsSetupUrl.trim() || exeHref.startsWith("http"));

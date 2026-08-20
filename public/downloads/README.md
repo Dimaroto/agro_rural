@@ -18,16 +18,23 @@ NEXT_PUBLIC_EMISSOR_SETUP_URL=<url acima>
 NEXT_PUBLIC_ADMIN_EXE_URL=<url acima>
 ```
 
-## Android
+## Android (pronto)
 
-Sem Android SDK nesta máquina. Para gerar o APK:
+APK no Vercel Blob:
+
+https://tixybegl1h3yln4s.public.blob.vercel-storage.com/admin/AgroRural-Admin.apk
+
+Gerar de novo (requer Android Studio / SDK):
 
 ```powershell
-cd mobile
-npm install
-npx cap add android
-npx cap sync android
-npx cap open android
+npm run mobile:apk
+npm run mobile:upload-apk
 ```
 
-Publique o APK e defina `NEXT_PUBLIC_ADMIN_APK_URL`.
+O portal usa `getAdminApkDownloadUrl()` (env ou fallback Blob).
+
+Opcional na Vercel:
+
+```
+NEXT_PUBLIC_ADMIN_APK_URL=<url do APK>
+```

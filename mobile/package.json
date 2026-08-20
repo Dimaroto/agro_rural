@@ -6,7 +6,8 @@
   "scripts": {
     "sync": "npx cap sync android",
     "open": "npx cap open android",
-    "add:android": "npx cap add android"
+    "add:android": "npx cap add android",
+    "build:apk": "powershell -ExecutionPolicy Bypass -File ./build-android.ps1"
   },
   "dependencies": {
     "@capacitor/android": "^7.2.0",

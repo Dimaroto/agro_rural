@@ -60,6 +60,11 @@ next-env.d.ts
 /mobile/node_modules
 /mobile/android
 /mobile/ios
+/mobile/keystore/
+/installer/output/
+/public/downloads/*.apk
+/public/downloads/*.exe
+!/public/downloads/README.md
 
 # emissor_nfe (app Windows)
 /emissor_nfe/composer.phar

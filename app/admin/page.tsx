@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerAgroAppClient } from "@/lib/admin-app-client-server";
 import { AdminDownloadPortal } from "@/components/admin/AdminDownloadPortal";
 import { getEmissorSetupDownloadUrl } from "@/lib/nfe/setup-url";
+import { getAdminApkDownloadUrl } from "@/lib/nfe/apk-url";
 import { getDashboardStats } from "@/lib/admin-dashboard";
 import { config } from "@/lib/config";
 import { formatPrice } from "@/lib/format";
@@ -43,6 +44,7 @@ export default async function AdminDashboard() {
       <AdminDownloadPortal
         storeName={store?.name ?? "AgroRural"}
         windowsSetupUrl={getEmissorSetupDownloadUrl()}
+        androidApkUrl={getAdminApkDownloadUrl()}
       />
     );
   }

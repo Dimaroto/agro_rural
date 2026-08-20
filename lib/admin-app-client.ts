@@ -68,7 +68,7 @@ export function resolveDownloadUrl(
   if (platform === "android") {
     return (
       process.env.NEXT_PUBLIC_ADMIN_APK_URL?.trim() ||
-      `/downloads/${filename}`
+      "https://tixybegl1h3yln4s.public.blob.vercel-storage.com/admin/AgroRural-Admin.apk"
     );
   }
   return (

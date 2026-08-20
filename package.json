@@ -30,7 +30,9 @@
     "deploy:preview": "npx vercel --yes",
     "desktop:start": "npm --prefix desktop start",
     "desktop:dist": "npm --prefix desktop run dist",
-    "mobile:sync": "npm --prefix mobile run sync"
+    "mobile:sync": "npm --prefix mobile run sync",
+    "mobile:apk": "powershell -ExecutionPolicy Bypass -File mobile/build-android.ps1",
+    "mobile:upload-apk": "npx tsx scripts/upload-admin-apk.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
