@@ -5,11 +5,55 @@ export const NFE_TOKEN_STORAGE_KEY = "agro_nfe_emissor_token";
 
 export function readNfeEmissorToken(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem(NFE_TOKEN_STORAGE_KEY)?.trim() ?? "";
+  const direct = localStorage.getItem(NFE_TOKEN_STORAGE_KEY)?.trim() ?? "";
+  if (direct) return direct;
+  // Compat: login em Notas Fiscais salva em outra chave
+  try {
+    const raw = localStorage.getItem("agrorural_emissor_session");
+    if (!raw) return "";
+    const parsed = JSON.parse(raw) as { token?: string };
+    const sessionToken = parsed.token?.trim() ?? "";
+    if (sessionToken) {
+      localStorage.setItem(NFE_TOKEN_STORAGE_KEY, sessionToken);
+      return sessionToken;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
 }
 
 export function writeNfeEmissorToken(token: string) {
-  localStorage.setItem(NFE_TOKEN_STORAGE_KEY, token.trim());
+  const t = token.trim();
+  localStorage.setItem(NFE_TOKEN_STORAGE_KEY, t);
+  // Mantém sessão das Notas alinhada
+  try {
+    const raw = localStorage.getItem("agrorural_emissor_session");
+    const base =
+      process.env.NEXT_PUBLIC_EMISSOR_URL?.trim() || "http://127.0.0.1:8001";
+    if (raw) {
+      const parsed = JSON.parse(raw) as {
+        token?: string;
+        empresaId?: number | null;
+        baseUrl?: string;
+      };
+      localStorage.setItem(
+        "agrorural_emissor_session",
+        JSON.stringify({
+          token: t,
+          empresaId: parsed.empresaId ?? null,
+          baseUrl: parsed.baseUrl || base,
+        })
+      );
+    } else if (t) {
+      localStorage.setItem(
+        "agrorural_emissor_session",
+        JSON.stringify({ token: t, empresaId: null, baseUrl: base })
+      );
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export type AgroNfeEmitResponse = {

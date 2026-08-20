@@ -128,6 +128,7 @@ export function NotasFiscaisPageClient() {
   const [session, setSession] = useState<EmissorSession | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [tokenPaste, setTokenPaste] = useState("");
   const [notas, setNotas] = useState<NotaRow[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaRow[]>([]);
   const [error, setError] = useState("");
@@ -204,6 +205,19 @@ export function NotasFiscaisPageClient() {
     setError("");
     try {
       const baseUrl = session?.baseUrl || defaultEmissorBaseUrl();
+      const pasted = tokenPaste.trim();
+      if (pasted && !email.trim()) {
+        const next: EmissorSession = {
+          token: pasted,
+          empresaId: null,
+          baseUrl,
+        };
+        saveEmissorSession(next);
+        setSession(next);
+        setTokenPaste("");
+        setInfo("Token salvo. Já pode listar saídas e emitir em Vendas.");
+        return;
+      }
       const res = await emissorFetch<{
         token?: string;
         access_token?: string;
@@ -222,8 +236,48 @@ export function NotasFiscaisPageClient() {
       saveEmissorSession(next);
       setSession(next);
       setPassword("");
+      setTokenPaste("");
     } catch {
       setError("Emissor inacessível.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadLocalToken() {
+    setBusy(true);
+    setError("");
+    try {
+      const baseUrl = session?.baseUrl || defaultEmissorBaseUrl();
+      const res = await fetch(
+        `${baseUrl.replace(/\/$/, "")}/api/v1/integracoes/agro/token-local`,
+        { headers: { Accept: "application/json" }, mode: "cors" }
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        token?: string;
+        mensagem?: string;
+        message?: string;
+      };
+      if (!res.ok || !data.token?.trim()) {
+        setError(
+          data.mensagem ||
+            data.message ||
+            "Token local não encontrado. Gere no emissor (Revisão) e cole acima."
+        );
+        return;
+      }
+      const next: EmissorSession = {
+        token: data.token.trim(),
+        empresaId: null,
+        baseUrl,
+      };
+      saveEmissorSession(next);
+      setSession(next);
+      setInfo("Token carregado do emissor local.");
+    } catch {
+      setError(
+        "Não foi possível ler o token do emissor. Confira se o Laravel está em 127.0.0.1:8001."
+      );
     } finally {
       setBusy(false);
     }
@@ -747,6 +801,11 @@ export function NotasFiscaisPageClient() {
           {!session.token ? (
             <form onSubmit={login} className="finance-form-card max-w-md space-y-3">
               <h2>Entrar no emissor</h2>
+              <p className="text-xs text-zinc-500">
+                Faça login <strong>ou</strong> cole o token Sanctum gerado no
+                emissor (etapa Revisão → Gerar token). Esse token também é usado
+                para emitir NF-e em Vendas.
+              </p>
               <label className="block text-sm">
                 URL
                 <input
@@ -761,7 +820,6 @@ export function NotasFiscaisPageClient() {
                 E-mail
                 <input
                   type="email"
-                  required
                   className="finance-input mt-1 w-full"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -771,15 +829,45 @@ export function NotasFiscaisPageClient() {
                 Senha
                 <input
                   type="password"
-                  required
                   className="finance-input mt-1 w-full"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </label>
-              <button type="submit" disabled={busy} className="btn btn-primary">
-                Conectar
-              </button>
+              <div className="relative py-1 text-center text-xs text-zinc-400">
+                <span className="bg-[var(--admin-card-bg,#fff)] relative z-10 px-2">
+                  ou cole o token
+                </span>
+              </div>
+              <label className="block text-sm">
+                Token Sanctum
+                <input
+                  className="finance-input mt-1 w-full font-mono text-xs"
+                  placeholder="Cole o token gerado no emissor…"
+                  value={tokenPaste}
+                  onChange={(e) => setTokenPaste(e.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  disabled={busy || (!email.trim() && !tokenPaste.trim())}
+                  className="btn btn-primary"
+                >
+                  {tokenPaste.trim() && !email.trim()
+                    ? "Salvar token"
+                    : "Conectar"}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="btn"
+                  onClick={() => void loadLocalToken()}
+                >
+                  Carregar do emissor local
+                </button>
+              </div>
             </form>
           ) : (
             <>

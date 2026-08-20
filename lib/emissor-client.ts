@@ -40,6 +40,10 @@ export function loadEmissorSession(): EmissorSession {
 
 export function saveEmissorSession(session: EmissorSession) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  if (session.token?.trim()) {
+    // Mesmo token usado na emissão em Vendas
+    localStorage.setItem("agro_nfe_emissor_token", session.token.trim());
+  }
 }
 
 export async function emissorFetch<T>(
