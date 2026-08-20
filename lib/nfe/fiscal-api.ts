@@ -1,4 +1,4 @@
-/** Chamadas do admin web → API local do emissor (127.0.0.1:8000). */
+/** Chamadas do admin web → API local do emissor (127.0.0.1:8001). */
 
 import {
   NFE_EMISSOR_BASE_URL,

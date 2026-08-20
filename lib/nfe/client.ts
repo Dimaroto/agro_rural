@@ -27,8 +27,32 @@ export type AgroNfeEmitResponse = {
 export async function checkEmissorUp(
   baseUrl = NFE_EMISSOR_BASE_URL
 ): Promise<boolean> {
+  // No app Windows o admin roda em HTTPS; fetch para http://127.0.0.1 é
+  // bloqueado (mixed content). O status vem do processo Electron.
+  if (typeof window !== "undefined") {
+    const desktop = (
+      window as Window & {
+        agroDesktop?: {
+          isDesktop?: boolean;
+          isEmissorOnline?: () => Promise<boolean>;
+        };
+      }
+    ).agroDesktop;
+    if (desktop?.isDesktop && typeof desktop.isEmissorOnline === "function") {
+      try {
+        return !!(await desktop.isEmissorOnline());
+      } catch {
+        /* cai no fetch */
+      }
+    }
+  }
+
   try {
-    const res = await fetch(`${baseUrl}/up`, { method: "GET", mode: "cors" });
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/up`, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+    });
     return res.ok;
   } catch {
     return false;

@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('agroDesktop', {
   startEmissor: (url) => ipcRenderer.invoke('emissor:start', url),
   openEmissor: (url) => ipcRenderer.invoke('emissor:open', url),
   showAdmin: () => ipcRenderer.invoke('app:show-admin'),
+  isEmissorOnline: () => ipcRenderer.invoke('emissor:online'),
   toggleFullscreen: () => ipcRenderer.invoke('window:fullscreen'),
   onEmissorStatus: (cb) => {
     ipcRenderer.on('emissor:status', (_e, payload) => {

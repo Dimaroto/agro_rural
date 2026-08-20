@@ -301,6 +301,7 @@ app.whenReady().then(() => {
     await startThenShow(url);
     return true;
   });
+  ipcMain.handle('emissor:online', async () => lastOnline);
   ipcMain.handle('app:show-admin', async () => {
     showAdmin();
     return true;

@@ -70,12 +70,28 @@ export function SettingsBar({
 
   useEffect(() => {
     let cancelled = false;
+
     async function poll() {
       const ok = await checkEmissorUp();
       if (!cancelled) setEmissorOnline(ok);
     }
+
     void poll();
     const id = window.setInterval(() => void poll(), 3000);
+
+    const desktop = (
+      window as Window & {
+        agroDesktop?: {
+          onEmissorStatus?: (cb: (online: boolean) => void) => void;
+        };
+      }
+    ).agroDesktop;
+    if (desktop?.onEmissorStatus) {
+      desktop.onEmissorStatus((online) => {
+        if (!cancelled) setEmissorOnline(!!online);
+      });
+    }
+
     return () => {
       cancelled = true;
       window.clearInterval(id);
