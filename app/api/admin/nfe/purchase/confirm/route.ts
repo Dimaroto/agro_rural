@@ -13,7 +13,14 @@ const schema = z.object({
       z.object({
         index: z.number().int().min(0),
         priceCents: z.number().int().min(0),
+        unitCostCents: z.number().int().min(0).optional(),
+        quantity: z.number().positive().optional(),
+        name: z.string().trim().min(1).optional(),
+        barcode: z.string().nullable().optional(),
+        ncm: z.string().nullable().optional(),
+        unit: z.string().nullable().optional(),
         productId: z.string().nullable().optional(),
+        forceNew: z.boolean().optional(),
         skipStock: z.boolean().optional(),
       })
     )

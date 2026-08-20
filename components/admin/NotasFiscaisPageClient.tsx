@@ -31,9 +31,23 @@ type EmpresaRow = {
 
 type PreviewItem = {
   index: number;
-  item: { name: string; quantity: number; unitCostCents: number; totalCents: number };
-  match: { productId: string; name: string; code: number; quantity: number } | null;
+  item: {
+    name: string;
+    quantity: number;
+    unitCostCents: number;
+    totalCents: number;
+    ncm: string | null;
+    unit: string;
+  };
+  match: {
+    productId: string;
+    name: string;
+    code: number;
+    quantity: number;
+  } | null;
   suggestedPriceCents: number;
+  barcode: string | null;
+  sku: string | null;
 };
 
 type Preview = {
@@ -57,6 +71,23 @@ type Preview = {
   }>;
 };
 
+type EditableLine = {
+  index: number;
+  name: string;
+  barcode: string;
+  quantity: string;
+  unitCost: string;
+  price: string;
+  ncm: string;
+  unit: string;
+  productId: string | null;
+  matchCode: number | null;
+  matchName: string | null;
+  matchQty: number | null;
+  forceNew: boolean;
+  skipStock: boolean;
+};
+
 type PurchaseListItem = {
   id: string;
   number: string;
@@ -73,6 +104,25 @@ function formatCents(c: number) {
   return formatPrice(c);
 }
 
+function linesFromPreview(p: Preview): EditableLine[] {
+  return p.items.map((it) => ({
+    index: it.index,
+    name: it.item.name,
+    barcode: it.barcode ?? "",
+    quantity: String(it.item.quantity),
+    unitCost: (it.item.unitCostCents / 100).toFixed(2),
+    price: (it.suggestedPriceCents / 100).toFixed(2),
+    ncm: it.item.ncm ?? "",
+    unit: it.item.unit || "UN",
+    productId: it.match?.productId ?? null,
+    matchCode: it.match?.code ?? null,
+    matchName: it.match?.name ?? null,
+    matchQty: it.match?.quantity ?? null,
+    forceNew: false,
+    skipStock: false,
+  }));
+}
+
 export function NotasFiscaisPageClient() {
   const [tab, setTab] = useState<Tab>("entrada");
   const [session, setSession] = useState<EmissorSession | null>(null);
@@ -87,10 +137,11 @@ export function NotasFiscaisPageClient() {
   const [chave, setChave] = useState("");
   const [xml, setXml] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [prices, setPrices] = useState<Record<number, number>>({});
+  const [lines, setLines] = useState<EditableLine[]>([]);
   const [dueDates, setDueDates] = useState<Record<string, string>>({});
   const [imports, setImports] = useState<PurchaseListItem[]>([]);
   const [msg, setMsg] = useState("");
+  const [showProdutosLink, setShowProdutosLink] = useState(false);
 
   useEffect(() => {
     setSession(loadEmissorSession());
@@ -232,6 +283,7 @@ export function NotasFiscaisPageClient() {
     setBusy(true);
     setError("");
     setMsg("");
+    setShowProdutosLink(false);
     try {
       const res = await fetch("/api/admin/nfe/purchase/preview", {
         method: "POST",
@@ -242,11 +294,7 @@ export function NotasFiscaisPageClient() {
       if (!res.ok) throw new Error(formatApiError(data.error) || "Preview falhou");
       const p = data.preview as Preview;
       setPreview(p);
-      const priceMap: Record<number, number> = {};
-      p.items.forEach((it) => {
-        priceMap[it.index] = it.suggestedPriceCents;
-      });
-      setPrices(priceMap);
+      setLines(linesFromPreview(p));
       const dues: Record<string, string> = {};
       p.charges.forEach((c) => {
         if (c.dueDate) dues[c.number] = c.dueDate;
@@ -259,10 +307,43 @@ export function NotasFiscaisPageClient() {
     }
   }
 
+  function updateLine(index: number, patch: Partial<EditableLine>) {
+    setLines((prev) =>
+      prev.map((row) => (row.index === index ? { ...row, ...patch } : row))
+    );
+  }
+
+  function validateLines(): string | null {
+    for (const row of lines) {
+      if (row.skipStock) continue;
+      if (!row.name.trim()) {
+        return `Informe o nome do item na linha ${row.index + 1}.`;
+      }
+      const qty = Number(row.quantity.replace(",", "."));
+      if (!(qty > 0)) {
+        return `Quantidade inválida na linha ${row.index + 1}.`;
+      }
+      const cost = Number(row.unitCost.replace(",", "."));
+      const price = Number(row.price.replace(",", "."));
+      if (!(cost >= 0) || !(price >= 0)) {
+        return `Custo/preço inválido na linha ${row.index + 1}.`;
+      }
+      if (row.barcode && /[^\d\s]/.test(row.barcode)) {
+        return `Código de barras só pode ter dígitos (linha ${row.index + 1}).`;
+      }
+    }
+    return null;
+  }
+
   async function confirmImport() {
     if (!preview || !xml) return;
     if (preview.alreadyImported) {
       setError("Esta NF-e já foi importada.");
+      return;
+    }
+    const validation = validateLines();
+    if (validation) {
+      setError(validation);
       return;
     }
     setBusy(true);
@@ -273,11 +354,24 @@ export function NotasFiscaisPageClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           xml,
-          itemOverrides: preview.items.map((it) => ({
-            index: it.index,
-            priceCents: prices[it.index] ?? it.suggestedPriceCents,
-            productId: it.match?.productId ?? null,
-          })),
+          itemOverrides: lines.map((row) => {
+            const barcodeDigits = row.barcode.replace(/\D/g, "");
+            return {
+              index: row.index,
+              name: row.name.trim(),
+              barcode: barcodeDigits || null,
+              quantity: Number(row.quantity.replace(",", ".")),
+              unitCostCents: Math.round(
+                Number(row.unitCost.replace(",", ".")) * 100
+              ),
+              priceCents: Math.round(Number(row.price.replace(",", ".")) * 100),
+              ncm: row.ncm.trim() || null,
+              unit: row.unit.trim() || "UN",
+              productId: row.forceNew ? null : row.productId,
+              forceNew: row.forceNew,
+              skipStock: row.skipStock,
+            };
+          }),
           chargeDueDates: Object.fromEntries(
             preview.charges.map((c) => [c.number, dueDates[c.number] || null])
           ),
@@ -286,9 +380,11 @@ export function NotasFiscaisPageClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(formatApiError(data.error) || "Importação falhou");
       setMsg(
-        `Importada: ${data.result.itemsCreated} produtos novos, ${data.result.itemsUpdated} atualizados, ${data.result.lancamentosCriados} contas a pagar.`
+        `Importada: ${data.result.itemsCreated} produto(s) novo(s), ${data.result.itemsUpdated} atualizado(s), ${data.result.lancamentosCriados} conta(s) a pagar.`
       );
+      setShowProdutosLink(true);
       setPreview(null);
+      setLines([]);
       setXml("");
       setChave("");
       await loadImports();
@@ -331,7 +427,16 @@ export function NotasFiscaisPageClient() {
       </div>
 
       {error ? <p className="admin-error">{error}</p> : null}
-      {msg ? <p className="admin-success">{msg}</p> : null}
+      {msg ? (
+        <p className="admin-success">
+          {msg}{" "}
+          {showProdutosLink ? (
+            <Link href="/admin/produtos" className="underline font-semibold">
+              Abrir Produtos
+            </Link>
+          ) : null}
+        </p>
+      ) : null}
       {info ? <p className="admin-info">{info}</p> : null}
 
       {tab === "entrada" ? (
@@ -398,39 +503,145 @@ export function NotasFiscaisPageClient() {
                 Total: <strong>{formatCents(preview.nota.totalCents)}</strong>
               </p>
 
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Revise e ajuste os itens antes de confirmar. Eles serão cadastrados
+                ou atualizados em Produtos com o estoque informado.
+              </p>
+
               <div className="finance-table-wrap">
                 <table className="finance-table">
                   <thead>
                     <tr>
-                      <th>Produto</th>
+                      <th>Nome</th>
+                      <th>Cód. barras</th>
                       <th>Qtd</th>
                       <th>Custo</th>
-                      <th>Match</th>
-                      <th>Preço venda (R$)</th>
+                      <th>Preço venda</th>
+                      <th>NCM</th>
+                      <th>Vínculo</th>
+                      <th>Ignorar estoque</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {preview.items.map((it) => (
-                      <tr key={it.index}>
-                        <td>{it.item.name}</td>
-                        <td>{it.item.quantity}</td>
-                        <td>{formatCents(it.item.unitCostCents)}</td>
+                    {lines.map((row) => (
+                      <tr key={row.index} className={row.skipStock ? "opacity-60" : undefined}>
                         <td>
-                          {it.match
-                            ? `#${String(it.match.code).padStart(4, "0")} (est. ${it.match.quantity})`
-                            : "Novo"}
+                          <input
+                            className="finance-input min-w-[10rem]"
+                            value={row.name}
+                            disabled={row.skipStock}
+                            onChange={(e) =>
+                              updateLine(row.index, { name: e.target.value })
+                            }
+                          />
                         </td>
                         <td>
                           <input
-                            className="finance-input"
+                            className="finance-input min-w-[7rem]"
+                            inputMode="numeric"
+                            placeholder="—"
+                            value={row.barcode}
+                            disabled={row.skipStock}
+                            onChange={(e) =>
+                              updateLine(row.index, {
+                                barcode: e.target.value.replace(/\D/g, ""),
+                              })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="finance-input w-20"
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={row.quantity}
+                            disabled={row.skipStock}
+                            onChange={(e) =>
+                              updateLine(row.index, { quantity: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="finance-input w-24"
                             type="number"
                             step="0.01"
                             min="0"
-                            value={((prices[it.index] ?? it.suggestedPriceCents) / 100).toFixed(2)}
+                            value={row.unitCost}
+                            disabled={row.skipStock}
                             onChange={(e) =>
-                              setPrices({
-                                ...prices,
-                                [it.index]: Math.round(Number(e.target.value) * 100),
+                              updateLine(row.index, { unitCost: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="finance-input w-24"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.price}
+                            disabled={row.skipStock}
+                            onChange={(e) =>
+                              updateLine(row.index, { price: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="finance-input w-24"
+                            value={row.ncm}
+                            disabled={row.skipStock}
+                            onChange={(e) =>
+                              updateLine(row.index, {
+                                ncm: e.target.value.replace(/\D/g, "").slice(0, 8),
+                              })
+                            }
+                          />
+                        </td>
+                        <td className="text-xs whitespace-nowrap">
+                          {row.forceNew || !row.productId ? (
+                            <span className="inline-flex flex-col gap-1">
+                              <span>Novo produto</span>
+                              {row.productId ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm"
+                                  onClick={() =>
+                                    updateLine(row.index, { forceNew: false })
+                                  }
+                                >
+                                  Religar #{String(row.matchCode).padStart(4, "0")}
+                                </button>
+                              ) : null}
+                            </span>
+                          ) : (
+                            <span className="inline-flex flex-col gap-1">
+                              <span>
+                                #{String(row.matchCode).padStart(4, "0")}
+                                {row.matchQty != null ? ` · est. ${row.matchQty}` : ""}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() =>
+                                  updateLine(row.index, { forceNew: true })
+                                }
+                              >
+                                Usar como novo
+                              </button>
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            aria-label={`Ignorar estoque linha ${row.index + 1}`}
+                            checked={row.skipStock}
+                            onChange={(e) =>
+                              updateLine(row.index, {
+                                skipStock: e.target.checked,
                               })
                             }
                           />
@@ -440,6 +651,10 @@ export function NotasFiscaisPageClient() {
                   </tbody>
                 </table>
               </div>
+              <p className="text-xs text-zinc-500">
+                &quot;Ignorar estoque&quot; mantém o item só no registro da nota, sem
+                criar ou atualizar produto.
+              </p>
 
               <h3 className="text-sm font-semibold">Parcelas (contas a pagar)</h3>
               <div className="finance-table-wrap">

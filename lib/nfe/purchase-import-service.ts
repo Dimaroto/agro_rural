@@ -12,7 +12,15 @@ import { createLedgerEntry, ensureDefaultFinanceCategories } from "@/lib/finance
 export type ConfirmItemOverride = {
   index: number;
   priceCents: number;
+  unitCostCents?: number;
+  quantity?: number;
+  name?: string;
+  barcode?: string | null;
+  ncm?: string | null;
+  unit?: string | null;
+  /** null = forçar produto novo; undefined = auto-match; string = vincular */
   productId?: string | null;
+  forceNew?: boolean;
   skipStock?: boolean;
 };
 
@@ -50,6 +58,30 @@ export type PurchasePreview = {
 function qtyInt(q: number): number {
   const n = Math.round(q);
   return n > 0 ? n : Math.max(1, Math.floor(q));
+}
+
+function normalizeOverrideBarcode(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const digits = String(raw).replace(/\D/g, "");
+  return digits.length > 0 ? digits : null;
+}
+
+function resolveLineFields(
+  item: PurchaseItem,
+  ov: ConfirmItemOverride | undefined
+) {
+  const name = (ov?.name?.trim() || item.name).trim();
+  const barcode =
+    ov && "barcode" in ov
+      ? normalizeOverrideBarcode(ov.barcode)
+      : barcodeFromPurchaseItem(item);
+  const quantity = ov?.quantity != null ? ov.quantity : item.quantity;
+  const unitCostCents =
+    ov?.unitCostCents != null ? ov.unitCostCents : item.unitCostCents;
+  const ncm = ov?.ncm !== undefined ? ov.ncm || null : item.ncm;
+  const unit = (ov?.unit?.trim() || item.unit || "UN").trim();
+  const totalCents = Math.round(quantity * unitCostCents);
+  return { name, barcode, quantity, unitCostCents, ncm, unit, totalCents };
 }
 
 export async function previewPurchaseImport(
@@ -233,21 +265,23 @@ export async function confirmPurchaseImport(
     for (let i = 0; i < nota.items.length; i++) {
       const item = nota.items[i]!;
       const ov = overrideMap.get(i);
+      const line = resolveLineFields(item, ov);
+
       if (ov?.skipStock) {
         await tx.purchaseInvoiceItem.create({
           data: {
             purchaseInvoiceId: invoice.id,
-            productId: ov.productId ?? null,
+            productId: ov.forceNew ? null : (ov.productId ?? null),
             lineNumber: i + 1,
             supplierCode: item.supplierCode || null,
-            barcode: barcodeFromPurchaseItem(item),
-            name: item.name,
-            ncm: item.ncm,
+            barcode: line.barcode,
+            name: line.name,
+            ncm: line.ncm,
             cfop: item.cfop,
-            unit: item.unit,
-            quantity: item.quantity,
-            unitCostCents: item.unitCostCents,
-            totalCents: item.totalCents,
+            unit: line.unit,
+            quantity: line.quantity,
+            unitCostCents: line.unitCostCents,
+            totalCents: line.totalCents,
             origin: item.origin,
             csosn: item.csosn,
           },
@@ -255,44 +289,70 @@ export async function confirmPurchaseImport(
         continue;
       }
 
-      const barcode = barcodeFromPurchaseItem(item);
       const skuHint = skuFromPurchaseItem(item);
-      let product =
-        (ov?.productId
-          ? await tx.product.findFirst({
-              where: { id: ov.productId, storeId },
-            })
-          : null) ??
-        (barcode
-          ? await tx.product.findFirst({ where: { storeId, barcode } })
-          : null);
+      const forceNew = ov?.forceNew === true || ov?.productId === null;
 
-      if (!product && skuHint) {
-        const codeNum = Number(skuHint);
-        if (Number.isFinite(codeNum) && codeNum > 0) {
+      let product = null as Awaited<
+        ReturnType<typeof tx.product.findFirst>
+      >;
+
+      if (!forceNew) {
+        if (ov?.productId) {
           product = await tx.product.findFirst({
-            where: { storeId, code: codeNum },
+            where: { id: ov.productId, storeId },
           });
+        }
+        if (!product && line.barcode) {
+          product = await tx.product.findFirst({
+            where: { storeId, barcode: line.barcode },
+          });
+        }
+        if (!product && skuHint) {
+          const codeNum = Number(skuHint);
+          if (Number.isFinite(codeNum) && codeNum > 0) {
+            product = await tx.product.findFirst({
+              where: { storeId, code: codeNum },
+            });
+          }
         }
       }
 
-      const addQty = qtyInt(item.quantity);
-      const priceCents = ov?.priceCents ?? product?.priceCents ?? item.unitCostCents;
+      const addQty = qtyInt(line.quantity);
+      const priceCents =
+        ov?.priceCents ?? product?.priceCents ?? line.unitCostCents;
+
+      // Evita colisão de barcode único na loja ao criar/atualizar
+      if (line.barcode) {
+        const conflict = await tx.product.findFirst({
+          where: {
+            storeId,
+            barcode: line.barcode,
+            ...(product ? { id: { not: product.id } } : {}),
+          },
+          select: { id: true, code: true },
+        });
+        if (conflict) {
+          throw new PublicApiError(
+            `Código de barras ${line.barcode} já usado no produto #${String(conflict.code).padStart(4, "0")}. Ajuste antes de confirmar.`
+          );
+        }
+      }
 
       if (product) {
         const newQty = product.quantity + addQty;
         await tx.product.update({
           where: { id: product.id },
           data: {
+            name: line.name,
             quantity: newQty,
-            custoCents: item.unitCostCents,
+            custoCents: line.unitCostCents,
             priceCents,
-            ncm: item.ncm ?? product.ncm,
+            ncm: line.ncm ?? product.ncm,
             cfopDefault: item.cfop ?? product.cfopDefault,
             csosn: item.csosn ?? product.csosn,
             origemMercadoria: item.origin ?? product.origemMercadoria,
-            unidadeComercial: item.unit || product.unidadeComercial,
-            barcode: product.barcode ?? barcode,
+            unidadeComercial: line.unit || product.unidadeComercial,
+            barcode: line.barcode ?? product.barcode,
           },
         });
         await tx.inventoryMovement.create({
@@ -317,17 +377,17 @@ export async function confirmPurchaseImport(
           data: {
             storeId,
             categoryId: defaultCategory.id,
-            name: item.name,
+            name: line.name,
             code,
-            barcode: barcode ?? undefined,
+            barcode: line.barcode ?? undefined,
             priceCents,
-            custoCents: item.unitCostCents,
+            custoCents: line.unitCostCents,
             quantity: addQty,
-            ncm: item.ncm,
+            ncm: line.ncm,
             cfopDefault: item.cfop ?? "5102",
             csosn: item.csosn ?? "102",
             origemMercadoria: item.origin ?? "0",
-            unidadeComercial: item.unit || "UN",
+            unidadeComercial: line.unit || "UN",
             categoryLinks: {
               create: { categoryId: defaultCategory.id },
             },
@@ -352,14 +412,14 @@ export async function confirmPurchaseImport(
           productId: product.id,
           lineNumber: i + 1,
           supplierCode: item.supplierCode || null,
-          barcode,
-          name: item.name,
-          ncm: item.ncm,
+          barcode: line.barcode,
+          name: line.name,
+          ncm: line.ncm,
           cfop: item.cfop,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitCostCents: item.unitCostCents,
-          totalCents: item.totalCents,
+          unit: line.unit,
+          quantity: line.quantity,
+          unitCostCents: line.unitCostCents,
+          totalCents: line.totalCents,
           origin: item.origin,
           csosn: item.csosn,
         },
