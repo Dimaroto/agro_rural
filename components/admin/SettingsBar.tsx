@@ -327,7 +327,7 @@ export function SettingsBar({
                     }`}
                   />
                   {emissorOnline
-                    ? "Online em 127.0.0.1:8000"
+                    ? "Online em 127.0.0.1:8001"
                     : "Offline — inicie no PC da loja"}
                 </p>
               </div>

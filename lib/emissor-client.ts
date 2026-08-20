@@ -14,7 +14,7 @@ export function defaultEmissorBaseUrl(): string {
     if (desktop?.emissorBaseUrl) return desktop.emissorBaseUrl;
   }
   return (
-    process.env.NEXT_PUBLIC_EMISSOR_URL?.trim() || "http://127.0.0.1:8000"
+    process.env.NEXT_PUBLIC_EMISSOR_URL?.trim() || "http://127.0.0.1:8001"
   );
 }
 

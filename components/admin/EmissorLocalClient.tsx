@@ -76,7 +76,7 @@ export function EmissorLocalClient({
                 }`}
               />
               {online
-                ? "Emissor online em 127.0.0.1:8000"
+                ? "Emissor online em 127.0.0.1:8001"
                 : "Emissor offline — instale e inicie neste computador"}
             </p>
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">

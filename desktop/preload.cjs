@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('agroDesktop', {
   isDesktop: true,
-  emissorBaseUrl: 'http://127.0.0.1:8000',
+  emissorBaseUrl: 'http://127.0.0.1:8001',
   startEmissor: (url) => ipcRenderer.invoke('emissor:start', url),
   openEmissor: (url) => ipcRenderer.invoke('emissor:open', url),
   showAdmin: () => ipcRenderer.invoke('app:show-admin'),

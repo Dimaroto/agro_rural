@@ -13,7 +13,7 @@ const { spawn } = require('child_process');
 const ADMIN_URL =
   process.env.AGRO_ADMIN_URL ||
   'https://agroruralzortea.com.br/admin/app-boot?client=desktop';
-const EMISSOR_URL = 'http://127.0.0.1:8000';
+const EMISSOR_URL = 'http://127.0.0.1:8001';
 const EMISSOR_HOME = `${EMISSOR_URL}/`;
 const TOOLBAR_H = 44;
 
@@ -84,7 +84,7 @@ function isEmissorUrl(url) {
   try {
     const u = new URL(url);
     const host = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
-    const port = !u.port || u.port === '8000';
+    const port = u.port === '8001';
     return host && port && (u.protocol === 'http:' || u.protocol === 'https:');
   } catch {
     return false;
@@ -181,7 +181,7 @@ async function ensureEmissorOnline() {
   broadcastStatus(online);
   if (!online) {
     throw new Error(
-      'Emissor offline em 127.0.0.1:8000. Rode emissor_nfe\\scripts\\start-local.bat'
+      'Emissor offline em 127.0.0.1:8001. Rode emissor_nfe\\scripts\\start-local.bat'
     );
   }
 }

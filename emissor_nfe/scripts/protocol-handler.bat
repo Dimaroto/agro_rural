@@ -35,5 +35,5 @@ if not errorlevel 1 set "TAB=?tab=integracao"
 echo %RAW% | findstr /I /C:"tab=empresa" >nul
 if not errorlevel 1 set "TAB=?tab=empresa"
 
-start "" "http://127.0.0.1:8000/configuracoes%TAB%"
+start "" "http://127.0.0.1:8001/configuracoes%TAB%"
 exit /b 0

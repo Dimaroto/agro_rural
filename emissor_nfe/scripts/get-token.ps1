@@ -6,7 +6,7 @@
 param(
     [string]$Email = $env:SEED_ADMIN_EMAIL,
     [string]$Password = $env:SEED_ADMIN_PASSWORD,
-    [string]$BaseUrl = 'http://127.0.0.1:8000'
+    [string]$BaseUrl = 'http://127.0.0.1:8001'
 )
 
 $ErrorActionPreference = 'Stop'

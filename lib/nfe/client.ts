@@ -1,6 +1,6 @@
 /** Configuração local do emissor (browser). */
 
-export const NFE_EMISSOR_BASE_URL = "http://127.0.0.1:8000";
+export const NFE_EMISSOR_BASE_URL = "http://127.0.0.1:8001";
 export const NFE_TOKEN_STORAGE_KEY = "agro_nfe_emissor_token";
 
 export function readNfeEmissorToken(): string {

@@ -55,7 +55,7 @@ export function FiscalPageClient() {
       );
       if (!emp.ok) {
         setInfo(
-          "Não foi possível falar com o emissor. No Windows o app inicia o Laravel em 127.0.0.1:8000; no Android configure NEXT_PUBLIC_EMISSOR_URL."
+          "Não foi possível falar com o emissor. No Windows o app inicia o Laravel em 127.0.0.1:8001; no Android configure NEXT_PUBLIC_EMISSOR_URL."
         );
         return;
       }
@@ -172,7 +172,7 @@ export function FiscalPageClient() {
               onChange={(e) =>
                 setSession({ ...session, baseUrl: e.target.value })
               }
-              placeholder="http://127.0.0.1:8000"
+              placeholder="http://127.0.0.1:8001"
             />
           </label>
           <label className="block text-sm">

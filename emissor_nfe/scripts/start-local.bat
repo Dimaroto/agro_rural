@@ -1,25 +1,30 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title Emissor NFe
+title Emissor NFe — Agro Rural
+
+REM Porta dedicada do Agro Rural (Bedendo usa 8000 — nao compartilhar)
+set "EMISSOR_PORT=8001"
+set "EMISSOR_HOST=127.0.0.1"
 
 set "LOGDIR=%LOCALAPPDATA%\Agro Rural Zortea\emissor\logs"
 if not exist "%LOGDIR%" mkdir "%LOGDIR%" >nul 2>&1
 set "LOG=%LOGDIR%\emissor-start.log"
 >>"%LOG%" echo ===== %DATE% %TIME% =====
 >>"%LOG%" echo cwd=%CD%
+>>"%LOG%" echo porta=!EMISSOR_PORT!
 
 cd /d "%~dp0.."
 set "EMISSOR_ROOT=%CD%"
 
-REM Se ja ha servidor na 8000, nao reinicia (evita lock no log / CMD extra)
+REM So considera "ja rodando" se a PORTA DO AGRO estiver ocupada (nao a 8000 da Bedendo)
 set "ALREADY="
-for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr ":8000" ^| findstr "LISTENING"') do (
+for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr ":!EMISSOR_PORT!" ^| findstr "LISTENING"') do (
   set "ALREADY=%%P"
 )
 if defined ALREADY (
-  >>"%LOG%" echo Porta 8000 ja LISTENING PID=!ALREADY! — saindo sem restart
+  >>"%LOG%" echo Porta !EMISSOR_PORT! ja LISTENING PID=!ALREADY! — saindo sem restart
   if /I "%AGRO_EMISSOR_HIDDEN%"=="1" exit /b 0
-  echo Emissor ja esta rodando em http://127.0.0.1:8000
+  echo Emissor Agro Rural ja esta rodando em http://!EMISSOR_HOST!:!EMISSOR_PORT!
   exit /b 0
 )
 
@@ -82,6 +87,11 @@ if not exist "%EMISSOR_ROOT%\.env" (
   exit /b 1
 )
 
+REM Garante slug + porta Agro no .env (nao herdar Bedendo)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0ensure-agro-env.ps1" -EnvPath "%EMISSOR_ROOT%\.env" -Port "%EMISSOR_PORT%" >>"%LOG%" 2>&1
+if exist "%SECRETS_DIR%\.env" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0ensure-agro-env.ps1" -EnvPath "%SECRETS_DIR%\.env" -Port "%EMISSOR_PORT%" >>"%LOG%" 2>&1
+)
 if not exist "%EMISSOR_ROOT%\vendor\autoload.php" (
   >>"%LOG%" echo [ERRO] vendor ausente
   echo vendor ausente.
@@ -115,18 +125,25 @@ if not exist "%PDOCHK%" (
   exit /b 1
 )
 
-if defined PHPRC (
-  "%PHP%" -c "%PHPRC%" "%PDOCHK%"
+REM pgsql so e obrigatorio se DB_CONNECTION=pgsql
+set "NEED_PG=0"
+findstr /B /I "DB_CONNECTION=pgsql" "%EMISSOR_ROOT%\.env" >nul 2>&1 && set "NEED_PG=1"
+if "!NEED_PG!"=="1" (
+  if defined PHPRC (
+    "%PHP%" -c "%PHPRC%" "%PDOCHK%"
+  ) else (
+    "%PHP%" "%PDOCHK%"
+  )
+  set "PDO_RC=!ERRORLEVEL!"
+  if not "!PDO_RC!"=="0" (
+    >>"%LOG%" echo [ERRO] PDO sem pgsql
+    echo ERRO: could not find driver ^(pgsql^). Log: %LOG%
+    if /I "%AGRO_EMISSOR_HIDDEN%"=="1" exit /b 1
+    pause
+    exit /b 1
+  )
 ) else (
-  "%PHP%" "%PDOCHK%"
-)
-set "PDO_RC=!ERRORLEVEL!"
-if not "!PDO_RC!"=="0" (
-  >>"%LOG%" echo [ERRO] PDO sem pgsql
-  echo ERRO: could not find driver ^(pgsql^). Log: %LOG%
-  if /I "%AGRO_EMISSOR_HIDDEN%"=="1" exit /b 1
-  pause
-  exit /b 1
+  >>"%LOG%" echo DB nao-pgsql — pulando check pdo_pgsql
 )
 
 REM Pastas Laravel gravaveis (evita mkdir Permission denied)
@@ -158,19 +175,19 @@ if not exist "!ROUTER!" (
   exit /b 1
 )
 
->>"%LOG%" echo Iniciando php -S 127.0.0.1:8000 router=!ROUTER!
+>>"%LOG%" echo Iniciando php -S !EMISSOR_HOST!:!EMISSOR_PORT! router=!ROUTER!
 cd /d "%EMISSOR_ROOT%\public"
 if defined PHPRC (
   if /I "%AGRO_EMISSOR_HIDDEN%"=="1" (
-    "%PHP%" -c "%PHPRC%" -S 127.0.0.1:8000 "!ROUTER!" >>"%LOG%" 2>&1
+    "%PHP%" -c "%PHPRC%" -S !EMISSOR_HOST!:!EMISSOR_PORT! "!ROUTER!" >>"%LOG%" 2>&1
   ) else (
-    "%PHP%" -c "%PHPRC%" -S 127.0.0.1:8000 "!ROUTER!"
+    "%PHP%" -c "%PHPRC%" -S !EMISSOR_HOST!:!EMISSOR_PORT! "!ROUTER!"
   )
 ) else (
   if /I "%AGRO_EMISSOR_HIDDEN%"=="1" (
-    "%PHP%" -S 127.0.0.1:8000 "!ROUTER!" >>"%LOG%" 2>&1
+    "%PHP%" -S !EMISSOR_HOST!:!EMISSOR_PORT! "!ROUTER!" >>"%LOG%" 2>&1
   ) else (
-    "%PHP%" -S 127.0.0.1:8000 "!ROUTER!"
+    "%PHP%" -S !EMISSOR_HOST!:!EMISSOR_PORT! "!ROUTER!"
   )
 )
 set "RC=!ERRORLEVEL!"

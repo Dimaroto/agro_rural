@@ -126,13 +126,13 @@ function Normalize-NeonDbUrlInEnvFile {
         $raw = $raw.TrimEnd() + "`r`nSESSION_DRIVER=file`r`n"
         $changed = $true
     }
-    # Painel do app usa 127.0.0.1 — APP_URL=localhost quebra POST/redirect do certificado no WebView
-    if ($raw -match '(?m)^APP_URL\s*=\s*https?://localhost(:\d+)?\s*$') {
-        $raw = [regex]::Replace($raw, '(?m)^APP_URL\s*=\s*https?://localhost(:\d+)?\s*$', 'APP_URL=http://127.0.0.1:8000')
+    # Painel do app usa 127.0.0.1:8001 — porta 8000 e da Mecanica Bedendo
+    if ($raw -match '(?m)^APP_URL\s*=') {
+        $raw = [regex]::Replace($raw, '(?m)^APP_URL\s*=.*$', 'APP_URL=http://127.0.0.1:8001')
         $changed = $true
-        Write-BootstrapLog 'APP_URL=http://127.0.0.1:8000 (compat WebView do app).' 'Yellow'
-    } elseif ($raw -notmatch '(?m)^APP_URL\s*=') {
-        $raw = $raw.TrimEnd() + "`r`nAPP_URL=http://127.0.0.1:8000`r`n"
+        Write-BootstrapLog 'APP_URL=http://127.0.0.1:8001 (porta Agro; Bedendo fica na 8000).' 'Yellow'
+    } else {
+        $raw = $raw.TrimEnd() + "`r`nAPP_URL=http://127.0.0.1:8001`r`n"
         $changed = $true
     }
     if ($changed) {

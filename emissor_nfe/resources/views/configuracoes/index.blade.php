@@ -272,7 +272,7 @@
         @elseif ($tab === 'integracao')
             <div class="help">
                 <strong>No admin Agro Rural:</strong> Engrenagem → Fiscal / NF-e → cole URL, token e confirme a empresa.
-                URL local típica: <span class="mono">http://127.0.0.1:8000</span>.
+                URL local típica: <span class="mono">http://127.0.0.1:8001</span>.
                 Use o <span class="mono">empresaId</span> da empresa ativa
                 (<strong>#{{ $empresa->id }}</strong> (não a demo, se houver).
             </div>
