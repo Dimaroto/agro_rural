@@ -195,7 +195,9 @@ function createMainWindow() {
     icon: path.join(__dirname, 'assets', 'logo.ico'),
     backgroundColor: '#0f3d2e',
     autoHideMenuBar: true,
-    show: false,
+    // Com BrowserView a janela principal nao navega — ready-to-show pode
+    // nunca disparar e o app fica "aberto" sem janela visivel.
+    show: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -237,10 +239,7 @@ function createMainWindow() {
   mainWindow.on('resize', layoutViews);
   mainWindow.on('enter-full-screen', layoutViews);
   mainWindow.on('leave-full-screen', layoutViews);
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.focus();
-  });
+  mainWindow.focus();
   mainWindow.on('closed', () => {
     mainWindow = null;
     toolbarView = null;
