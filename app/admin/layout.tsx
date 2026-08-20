@@ -41,9 +41,9 @@ export default async function AdminLayout({
     <UnsavedChangesProvider>
       <div className="admin-shell">
         <header className="admin-nav">
-          <div className="mx-auto flex h-12 max-w-5xl items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4 lg:h-14">
+          <div className="admin-nav__inner">
             <AdminNav />
-            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <div className="admin-nav__actions">
               {showAppChrome && (
                 <SettingsBar
                   initialWhatsapp={store?.whatsapp}

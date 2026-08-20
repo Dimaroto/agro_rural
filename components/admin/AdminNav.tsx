@@ -111,43 +111,36 @@ export function AdminNav() {
   const links = isApp ? appLinks : [];
 
   return (
-    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-3">
-        <Link href="/admin" className="shrink-0" onClick={handleLogoClick}>
-          <BrandLogo size="sm" priority />
-        </Link>
+    <div className="admin-nav__brand-row">
+      <Link href="/admin" className="admin-nav__logo" onClick={handleLogoClick}>
+        <BrandLogo size="sm" priority />
+      </Link>
 
-        {isApp ? (
-          <nav
-            className="hidden items-center gap-1 md:flex"
-            aria-label="Administração"
-          >
-            {links.map((link) => (
-              <NavLink
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                active={isActive(
-                  pathname,
-                  link.href,
-                  link.exact,
-                  link.prefix
-                )}
-              />
-            ))}
-          </nav>
-        ) : (
-          <p className="hidden text-sm font-medium text-[#2D4C1E]/70 md:block dark:text-zinc-400">
-            Download do Admin
-          </p>
-        )}
-      </div>
+      {isApp ? (
+        <nav className="admin-nav__links" aria-label="Administração">
+          {links.map((link) => (
+            <NavLink
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              active={isActive(
+                pathname,
+                link.href,
+                link.exact,
+                link.prefix
+              )}
+            />
+          ))}
+        </nav>
+      ) : (
+        <p className="admin-nav__portal-hint">Download do Admin</p>
+      )}
 
       {isApp && (
         <>
           <button
             type="button"
-            className="admin-nav__menu-btn shrink-0 md:hidden"
+            className="admin-nav__menu-btn"
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
@@ -163,12 +156,12 @@ export function AdminNav() {
             <>
               <button
                 type="button"
-                className="admin-nav__backdrop md:hidden"
+                className="admin-nav__backdrop"
                 aria-label="Fechar menu"
                 onClick={() => setMobileOpen(false)}
               />
               <nav
-                className="admin-nav__mobile md:hidden"
+                className="admin-nav__mobile"
                 aria-label="Administração mobile"
               >
                 {links.map((link) => (
