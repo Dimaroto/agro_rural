@@ -6,7 +6,7 @@ O instalador completo (app + emissor NF-e) está no Vercel Blob:
 
 https://tixybegl1h3yln4s.public.blob.vercel-storage.com/emissor/AgroRural-Setup.exe
 
-Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.1.exe`
+Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.2.exe`
 
 O portal `/admin` usa `getEmissorSetupDownloadUrl()` (env ou esse fallback).
 

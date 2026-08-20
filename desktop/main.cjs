@@ -14,19 +14,16 @@ const ADMIN_URL =
   process.env.AGRO_ADMIN_URL ||
   'https://agroruralzortea.com.br/admin/app-boot?client=desktop';
 const EMISSOR_URL = 'http://127.0.0.1:8000';
-const EMISSOR_CONFIG = `${EMISSOR_URL}/configuracoes`;
+const EMISSOR_HOME = `${EMISSOR_URL}/`;
 const TOOLBAR_H = 44;
 
 let mainWindow = null;
 let toolbarView = null;
 let adminView = null;
-let emissorWindow = null;
+/** @type {'admin' | 'emissor'} */
+let contentMode = 'admin';
 let pollTimer = null;
 let lastOnline = false;
-
-function isDev() {
-  return !app.isPackaged;
-}
 
 function resolveEmissorRoot() {
   const exeDir = path.dirname(app.getPath('exe'));
@@ -83,23 +80,33 @@ function checkEmissorUp() {
   });
 }
 
+function isEmissorUrl(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+    const port = !u.port || u.port === '8000';
+    return host && port && (u.protocol === 'http:' || u.protocol === 'https:');
+  } catch {
+    return false;
+  }
+}
+
 function broadcastStatus(online) {
   lastOnline = online;
-  if (toolbarView && !toolbarView.webContents.isDestroyed()) {
-    toolbarView.webContents.send('emissor:status', online);
+  const payload = { online: !!online, mode: contentMode };
+  for (const view of [toolbarView, adminView]) {
+    if (view && !view.webContents.isDestroyed()) {
+      view.webContents.send('emissor:status', payload);
+    }
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('emissor:status', online);
-  }
-  if (adminView && !adminView.webContents.isDestroyed()) {
-    adminView.webContents.send('emissor:status', online);
+    mainWindow.webContents.send('emissor:status', payload);
   }
 }
 
 async function pollOnce() {
   const online = await checkEmissorUp();
-  if (online !== lastOnline) broadcastStatus(online);
-  else broadcastStatus(online);
+  broadcastStatus(online);
 }
 
 function layoutViews() {
@@ -112,7 +119,12 @@ function layoutViews() {
     toolbarView.setAutoResize({ width: true });
   }
   if (adminView) {
-    adminView.setBounds({ x: 0, y: bar, width, height: Math.max(0, height - bar) });
+    adminView.setBounds({
+      x: 0,
+      y: bar,
+      width,
+      height: Math.max(0, height - bar),
+    });
     adminView.setAutoResize({ width: true, height: true });
   }
 }
@@ -134,38 +146,28 @@ function toggleFullscreen() {
   return mainWindow.isFullScreen();
 }
 
-function openEmissorWindow() {
-  if (emissorWindow && !emissorWindow.isDestroyed()) {
-    emissorWindow.show();
-    emissorWindow.focus();
-    emissorWindow.loadURL(EMISSOR_CONFIG);
-    return;
-  }
-  emissorWindow = new BrowserWindow({
-    width: 1100,
-    height: 800,
-    title: 'Emissor NF-e — Agro Rural',
-    icon: path.join(__dirname, 'assets', 'logo.ico'),
-    backgroundColor: '#0f1419',
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  attachF11(emissorWindow.webContents);
-  emissorWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: 'deny' };
-  });
-  emissorWindow.on('closed', () => {
-    emissorWindow = null;
-  });
-  emissorWindow.loadURL(EMISSOR_CONFIG);
+function showAdmin() {
+  if (!adminView || adminView.webContents.isDestroyed()) return;
+  contentMode = 'admin';
+  adminView.webContents.loadURL(ADMIN_URL);
+  broadcastStatus(lastOnline);
 }
 
-async function startThenOpen() {
+function showEmissor(url) {
+  if (!adminView || adminView.webContents.isDestroyed()) return;
+  const target =
+    typeof url === 'string' && url.trim() && isEmissorUrl(url)
+      ? url.trim()
+      : EMISSOR_HOME;
+  contentMode = 'emissor';
+  adminView.webContents.loadURL(target);
+  broadcastStatus(lastOnline);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.focus();
+  }
+}
+
+async function ensureEmissorOnline() {
   const already = await checkEmissorUp();
   if (!already) {
     startEmissorHidden();
@@ -182,7 +184,11 @@ async function startThenOpen() {
       'Emissor offline em 127.0.0.1:8000. Rode emissor_nfe\\scripts\\start-local.bat'
     );
   }
-  openEmissorWindow();
+}
+
+async function startThenShow(url) {
+  await ensureEmissorOnline();
+  showEmissor(url);
 }
 
 function createMainWindow() {
@@ -195,8 +201,6 @@ function createMainWindow() {
     icon: path.join(__dirname, 'assets', 'logo.ico'),
     backgroundColor: '#0f3d2e',
     autoHideMenuBar: true,
-    // Com BrowserView a janela principal nao navega — ready-to-show pode
-    // nunca disparar e o app fica "aberto" sem janela visivel.
     show: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -231,9 +235,46 @@ function createMainWindow() {
   attachF11(toolbarView.webContents);
   attachF11(adminView.webContents);
 
+  // Qualquer link do painel para o Laravel fica na mesma janela.
   adminView.webContents.setWindowOpenHandler(({ url }) => {
+    if (isEmissorUrl(url)) {
+      void (async () => {
+        try {
+          await ensureEmissorOnline();
+          showEmissor(url);
+        } catch (e) {
+          const msg = e && e.message ? e.message : String(e);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            const { dialog } = require('electron');
+            dialog.showErrorBox('Emissor NF-e', msg);
+          }
+        }
+      })();
+      return { action: 'deny' };
+    }
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  adminView.webContents.on('will-navigate', (event, url) => {
+    if (isEmissorUrl(url)) {
+      contentMode = 'emissor';
+      broadcastStatus(lastOnline);
+      return;
+    }
+    try {
+      const u = new URL(url);
+      if (
+        u.hostname.includes('agroruralzortea.com.br') ||
+        u.hostname === 'localhost' ||
+        u.hostname === '127.0.0.1'
+      ) {
+        contentMode = 'admin';
+        broadcastStatus(lastOnline);
+      }
+    } catch {
+      /* ignore */
+    }
   });
 
   mainWindow.on('resize', layoutViews);
@@ -252,17 +293,16 @@ app.whenReady().then(() => {
   void pollOnce();
   pollTimer = setInterval(() => void pollOnce(), 3000);
 
-  ipcMain.handle('emissor:start', async () => {
-    await startThenOpen();
+  ipcMain.handle('emissor:start', async (_e, url) => {
+    await startThenShow(url);
     return true;
   });
-  ipcMain.handle('emissor:open', async () => {
-    const online = await checkEmissorUp();
-    if (!online) {
-      await startThenOpen();
-      return true;
-    }
-    openEmissorWindow();
+  ipcMain.handle('emissor:open', async (_e, url) => {
+    await startThenShow(url);
+    return true;
+  });
+  ipcMain.handle('app:show-admin', async () => {
+    showAdmin();
     return true;
   });
   ipcMain.handle('window:fullscreen', () => toggleFullscreen());

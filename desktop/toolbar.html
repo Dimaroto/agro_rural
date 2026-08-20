@@ -41,6 +41,7 @@
     button:disabled { opacity: .55; cursor: default; }
     #btn { background: #dc2626; }
     #btn.online { background: #059669; }
+    #btn.back { background: #1d4ed8; }
     #fs { background: transparent; color: #d1e7dd; border: 1px solid rgba(255,255,255,.18); }
   </style>
 </head>
@@ -48,7 +49,7 @@
   <div class="brand">
     <img src="assets/edem-logo.png" alt="Edem" />
     <span class="title">Agro Rural</span>
-    <span class="hint">F11 tela cheia</span>
+    <span class="hint" id="hint">F11 tela cheia</span>
   </div>
   <div class="actions">
     <span id="led" class="led" title="Emissor NF-e"></span>
@@ -59,21 +60,37 @@
     const led = document.getElementById('led');
     const btn = document.getElementById('btn');
     const fsBtn = document.getElementById('fs');
+    const hint = document.getElementById('hint');
     const api = window.agroDesktop;
     let online = false;
+    let mode = 'admin';
     let busy = false;
 
     function paint() {
       led.classList.toggle('on', online);
-      btn.classList.toggle('online', online);
-      btn.textContent = busy
-        ? (online ? 'Abrindo…' : 'Iniciando…')
-        : (online ? 'Configurar emissor' : 'Iniciar emissor');
+      btn.classList.toggle('online', online && mode === 'admin');
+      btn.classList.toggle('back', mode === 'emissor');
+      if (busy) {
+        btn.textContent = online ? 'Abrindo…' : 'Iniciando…';
+      } else if (mode === 'emissor') {
+        btn.textContent = 'Voltar ao painel';
+        hint.textContent = 'Emissor NF-e na mesma janela';
+      } else if (online) {
+        btn.textContent = 'Abrir emissor';
+        hint.textContent = 'F11 tela cheia';
+      } else {
+        btn.textContent = 'Iniciar emissor';
+        hint.textContent = 'F11 tela cheia';
+      }
       btn.disabled = busy;
     }
 
     if (api && api.onEmissorStatus) {
-      api.onEmissorStatus((v) => { online = !!v; paint(); });
+      api.onEmissorStatus((v, m) => {
+        online = !!v;
+        if (m) mode = m;
+        paint();
+      });
     }
 
     btn.addEventListener('click', async () => {
@@ -81,8 +98,16 @@
       busy = true;
       paint();
       try {
-        if (online) await api.openEmissor();
-        else await api.startEmissor();
+        if (mode === 'emissor') {
+          await api.showAdmin();
+          mode = 'admin';
+        } else if (online) {
+          await api.openEmissor();
+          mode = 'emissor';
+        } else {
+          await api.startEmissor();
+          mode = 'emissor';
+        }
       } catch (e) {
         alert(e && e.message ? e.message : String(e));
       } finally {

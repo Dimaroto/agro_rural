@@ -23,9 +23,14 @@ export function emissorPainelUrl(tab?: EmissorConfigTab): string {
   return `${NFE_EMISSOR_BASE_URL}/configuracoes?tab=${tab}`;
 }
 
-/** Abre o painel Laravel em nova aba (emissor precisa estar online). */
+/** Abre o painel Laravel (no app Windows fica na mesma janela). */
 export function openEmissorConfig(tab?: EmissorConfigTab): void {
   if (typeof window === "undefined") return;
+  const desktop = desktopApi();
+  if (desktop?.openEmissor) {
+    void desktop.openEmissor(emissorPainelUrl(tab));
+    return;
+  }
   window.open(emissorPainelUrl(tab), "_blank", "noopener,noreferrer");
 }
 
@@ -37,8 +42,9 @@ export function launchEmissorConfig(tab?: EmissorConfigTab): void {
 }
 
 type AgroDesktop = {
-  startEmissor?: () => Promise<void>;
-  openEmissor?: () => void;
+  startEmissor?: (url?: string) => Promise<void>;
+  openEmissor?: (url?: string) => void | Promise<void>;
+  showAdmin?: () => Promise<void>;
 };
 
 function desktopApi(): AgroDesktop | undefined {
@@ -50,18 +56,18 @@ function desktopApi(): AgroDesktop | undefined {
 export function startEmissorFromUi(): "desktop" | "protocol" {
   const desktop = desktopApi();
   if (desktop?.startEmissor) {
-    void desktop.startEmissor();
+    void desktop.startEmissor(emissorPainelUrl());
     return "desktop";
   }
   launchEmissorStart();
   return "protocol";
 }
 
-/** Abre o painel de configuração (janela do app ou nova aba). */
+/** Abre o painel de configuração (mesma janela no app Windows, ou nova aba no browser). */
 export function openEmissorFromUi(tab?: EmissorConfigTab): void {
   const desktop = desktopApi();
   if (desktop?.openEmissor) {
-    desktop.openEmissor();
+    void desktop.openEmissor(emissorPainelUrl(tab));
     return;
   }
   openEmissorConfig(tab);
