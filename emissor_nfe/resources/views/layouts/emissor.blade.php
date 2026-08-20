@@ -130,6 +130,41 @@
         .login-card { width: min(420px, 100%); }
         .row-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
         .row-actions .btn { padding: 0.35rem 0.6rem; font-size: 0.8rem; }
+        .steps {
+            display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.15rem;
+            list-style: none; padding: 0;
+        }
+        .steps li a {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.4rem 0.7rem; border-radius: 999px; font-size: 0.78rem;
+            font-weight: 600; color: var(--muted); border: 1px solid var(--border);
+            text-decoration: none; background: rgba(0,0,0,0.18);
+        }
+        .steps li a:hover { color: var(--text); text-decoration: none; }
+        .steps li a.active {
+            color: var(--accent); border-color: rgba(91,159,212,0.45);
+            background: var(--accent-soft);
+        }
+        .steps li a.done { color: var(--ok); border-color: rgba(61,214,140,0.35); }
+        .steps .num {
+            width: 1.2rem; height: 1.2rem; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; background: rgba(255,255,255,0.08);
+        }
+        .steps a.active .num { background: var(--accent); color: #061018; }
+        .check-row {
+            display: flex; align-items: flex-start; gap: 0.65rem;
+            padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px;
+            background: var(--panel-2); margin-bottom: 0.55rem;
+        }
+        .check-row input { width: auto; margin-top: 0.2rem; }
+        .check-row label { margin: 0; color: var(--text); font-size: 0.92rem; }
+        .check-row .desc { color: var(--muted); font-size: 0.82rem; margin-top: 0.15rem; }
+        .span-2 { grid-column: 1 / -1; }
+        .wizard-nav {
+            margin-top: 1.25rem; display: flex; justify-content: space-between;
+            gap: 0.5rem; flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>

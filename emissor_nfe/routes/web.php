@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\ConfiguracaoController;
+use App\Http\Controllers\Web\OnboardingEmpresaController;
 use App\Http\Controllers\Web\PainelController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,11 +18,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/notas/{chave}/xml', [PainelController::class, 'xml'])->name('notas.xml');
     Route::get('/notas/{chave}/danfe', [PainelController::class, 'danfe'])->name('notas.danfe');
 
-    Route::get('/configuracoes', [ConfiguracaoController::class, 'show'])->name('configuracoes');
-    Route::post('/configuracoes/empresa-ativa', [ConfiguracaoController::class, 'selectEmpresa'])->name('configuracoes.empresa-ativa');
-    Route::post('/configuracoes/empresa', [ConfiguracaoController::class, 'updateEmpresa'])->name('configuracoes.empresa');
-    Route::post('/configuracoes/certificado', [ConfiguracaoController::class, 'uploadCertificado'])->name('configuracoes.certificado');
-    Route::post('/configuracoes/numeracao', [ConfiguracaoController::class, 'updateNumeracao'])->name('configuracoes.numeracao');
-    Route::post('/configuracoes/csc', [ConfiguracaoController::class, 'updateCsc'])->name('configuracoes.csc');
+    // Wizard de cadastro fiscal (substitui as abas de /configuracoes)
+    Route::get('/empresas/onboarding', [OnboardingEmpresaController::class, 'index'])->name('empresas.onboarding.index');
+    Route::get('/empresas/onboarding/{etapa}', [OnboardingEmpresaController::class, 'show'])->name('empresas.onboarding.show');
+    Route::post('/empresas/onboarding/{etapa}', [OnboardingEmpresaController::class, 'store'])->name('empresas.onboarding.store');
+    Route::post('/empresas/ativa', [OnboardingEmpresaController::class, 'selectEmpresa'])->name('empresas.ativa');
+    Route::post('/empresas/nova', [OnboardingEmpresaController::class, 'createEmpresa'])->name('empresas.nova');
+
+    Route::get('/configuracoes', fn () => redirect()->route('empresas.onboarding.index'))->name('configuracoes');
+
+    // Token Sanctum para o app Agro
     Route::post('/configuracoes/token', [ConfiguracaoController::class, 'createToken'])->name('configuracoes.token');
+    Route::post('/configuracoes/empresa-ativa', [OnboardingEmpresaController::class, 'selectEmpresa'])->name('configuracoes.empresa-ativa');
 });

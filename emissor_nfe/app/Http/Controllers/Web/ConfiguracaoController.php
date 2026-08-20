@@ -183,8 +183,8 @@ class ConfiguracaoController extends Controller
             @file_put_contents($configDir.DIRECTORY_SEPARATOR.'.agro_token.txt', $token);
         }
 
-        return redirect('/configuracoes?tab=integracao')
-            ->with('success', 'Token gerado. Cole em Configurações → Fiscal no app (ou reinicie o app — ele tenta ler o arquivo local).')
+        return redirect()->route('empresas.onboarding.show', ['etapa' => 'revisao'])
+            ->with('success', 'Token gerado. Use no app Admin ou reinicie o app para ler o arquivo local.')
             ->with('token_criado', $token);
     }
 
