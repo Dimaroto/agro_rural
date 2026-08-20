@@ -437,6 +437,74 @@ html {
     @apply mt-1 text-sm text-[#6b7280] dark:text-zinc-400;
   }
 
+  .admin-tabs {
+    @apply flex flex-wrap gap-1 rounded-2xl border border-[#C9D4B3]/90 bg-[#F7F4EC]/80 p-1 dark:border-zinc-800 dark:bg-zinc-900;
+  }
+
+  .admin-tab {
+    @apply cursor-pointer rounded-xl px-4 py-2 text-sm font-medium text-[#2D4C1E]/70 transition hover:bg-[#E4EAD8]/80 dark:text-zinc-400;
+  }
+
+  .admin-tab--active {
+    @apply bg-[#E4EAD8] text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300;
+  }
+
+  .finance-summary-grid {
+    @apply grid grid-cols-2 gap-3 sm:grid-cols-4;
+  }
+
+  .finance-stat {
+    @apply flex flex-col gap-1 rounded-2xl border border-[#C9D4B3]/90 bg-[#F7F4EC]/95 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900;
+  }
+
+  .finance-stat span {
+    @apply text-xs uppercase tracking-wide text-[#6b7280] dark:text-zinc-500;
+  }
+
+  .finance-stat strong {
+    @apply text-lg font-semibold text-[#2D4C1E] dark:text-zinc-100;
+  }
+
+  .admin-error {
+    @apply rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300;
+  }
+
+  .admin-success {
+    @apply rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300;
+  }
+
+  .admin-info {
+    @apply rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200;
+  }
+
+  .admin-stack {
+    @apply space-y-6;
+  }
+
+  .admin-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .admin-form-grid {
+    @apply grid gap-3 sm:grid-cols-2;
+  }
+
+  .btn {
+    @apply cursor-pointer rounded-xl border border-[#C9D4B3] bg-white px-3 py-2 text-sm font-medium text-[#2D4C1E] transition hover:bg-[#E4EAD8]/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100;
+  }
+
+  .btn-primary {
+    @apply border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800 dark:border-emerald-600 dark:bg-emerald-700;
+  }
+
+  .btn-secondary {
+    @apply border-[#C9D4B3] bg-[#E4EAD8]/60;
+  }
+
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+
   .finance-table-wrap {
     @apply overflow-x-auto rounded-2xl border border-[#C9D4B3]/90 bg-[#F7F4EC]/95 dark:border-zinc-800 dark:bg-zinc-900;
   }

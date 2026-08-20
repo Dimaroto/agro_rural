@@ -264,6 +264,49 @@ export async function createWalkInSale(params: {
     )
   );
 
+  try {
+    const { createLedgerEntry, todayIsoDay } = await import("@/lib/finance-ledger");
+    const methodMap: Record<string, string> = {
+      cash: "dinheiro",
+      pix: "pix",
+      card: "cartao",
+      transfer: "transferencia",
+      receivable: "outro",
+    };
+    if (isReceivable && receivableDueAt) {
+      const due = receivableDueAt.toISOString().slice(0, 10);
+      await createLedgerEntry(params.storeId, {
+        type: "INCOME",
+        status: "PENDING",
+        description: `Pedido #${order.orderNumber ?? order.id.slice(0, 8)} (a prazo)`,
+        amountCents: totalCents,
+        entryDate: due,
+        categoryLabel: "Vendas",
+        paymentMethod: "outro",
+        customerId: customer?.id,
+        customerName,
+        orderId: order.id,
+        dedupeKey: `order_${order.id}_receivable`,
+      });
+    } else if (!isPix) {
+      await createLedgerEntry(params.storeId, {
+        type: "INCOME",
+        status: "CONFIRMED",
+        description: `Pedido #${order.orderNumber ?? order.id.slice(0, 8)}`,
+        amountCents: totalCents,
+        entryDate: todayIsoDay(),
+        categoryLabel: "Vendas",
+        paymentMethod: methodMap[params.paymentMethod] ?? "outro",
+        customerId: customer?.id,
+        customerName,
+        orderId: order.id,
+        dedupeKey: `order_${order.id}_sale`,
+      });
+    }
+  } catch (ledgerErr) {
+    console.error("[pdv:ledger]", ledgerErr);
+  }
+
   return {
     orderId: order.id,
     orderCode: formatOrderCode(order.orderNumber, order.id),
@@ -306,6 +349,25 @@ export async function confirmPdvPayment(params: {
       });
     }
   });
+
+  try {
+    const { createLedgerEntry, todayIsoDay } = await import("@/lib/finance-ledger");
+    await createLedgerEntry(params.storeId, {
+      type: "INCOME",
+      status: "CONFIRMED",
+      description: `Pedido #${order.orderNumber ?? order.id.slice(0, 8)} (PIX)`,
+      amountCents: order.totalCents,
+      entryDate: todayIsoDay(),
+      categoryLabel: "Vendas",
+      paymentMethod: "pix",
+      customerId: order.customerId,
+      customerName: order.customerName,
+      orderId: order.id,
+      dedupeKey: `order_${order.id}_sale`,
+    });
+  } catch (ledgerErr) {
+    console.error("[pdv:confirm:ledger]", ledgerErr);
+  }
 
   return {
     orderId: order.id,

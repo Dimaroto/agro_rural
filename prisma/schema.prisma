@@ -36,6 +36,11 @@ model Store {
   financialSettings     FinancialSettings?
   pushSubscriptions     AdminPushSubscription[]
   appointments          Appointment[]
+  suppliers             Supplier[]
+  purchaseInvoices      PurchaseInvoice[]
+  cashCloses            CashClose[]
+  financeCategories     FinanceCategory[]
+  financialLedgerEntries FinancialLedgerEntry[]
 
   @@map("stores")
 }
@@ -145,6 +150,7 @@ model Product {
   inventoryMovements  InventoryMovement[]
   customizationFields ProductCustomizationField[]
   measures            ProductMeasure[]
+  purchaseInvoiceItems PurchaseInvoiceItem[]
 
   @@unique([storeId, code])
   @@unique([storeId, barcode])
@@ -228,6 +234,7 @@ enum MovementType {
   RELEASE
   SALE
   CANCEL
+  NFE_PURCHASE
 }
 
 model InventoryMovement {
@@ -309,6 +316,7 @@ model Customer {
 
   orders       Order[]
   appointments Appointment[]
+  ledgerEntries FinancialLedgerEntry[]
 
   @@index([storeId])
   @@map("customers")
@@ -343,6 +351,7 @@ model Order {
   items              OrderItem[]
   payment            Payment?
   inventoryMovements InventoryMovement[]
+  ledgerEntries      FinancialLedgerEntry[]
 
   @@unique([storeId, orderNumber])
   @@index([storeId])
@@ -534,6 +543,193 @@ model FinancialSettings {
   updatedAt           DateTime @updatedAt
 
   @@map("financial_settings")
+}
+
+/** Fornecedor (NF-e de entrada / contas a pagar). */
+model Supplier {
+  id               String   @id @default(cuid())
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name             String
+  tradeName        String?
+  document         String
+  ie               String?
+  email            String?
+  phone            String?
+  street           String?
+  number           String?
+  complement       String?
+  district         String?
+  city             String?
+  state            String?
+  zipCode          String?
+  cityCode         String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  purchaseInvoices PurchaseInvoice[]
+  ledgerEntries    FinancialLedgerEntry[]
+
+  @@unique([storeId, document])
+  @@index([storeId])
+  @@map("suppliers")
+}
+
+model PurchaseInvoice {
+  id              String   @id @default(cuid())
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  accessKey       String
+  number          String
+  series          String
+  model           Int      @default(55)
+  issuedAt        DateTime
+  totalCents      Int
+  bcIcmsCents     Int      @default(0)
+  icmsCents       Int      @default(0)
+  pisCents        Int      @default(0)
+  cofinsCents     Int      @default(0)
+  paymentMethod   String?
+  invoiceNumber   String?
+  xmlContent      String?
+  emitenteName    String
+  emitenteDoc     String
+  importedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items         PurchaseInvoiceItem[]
+  ledgerEntries FinancialLedgerEntry[]
+
+  @@unique([storeId, accessKey])
+  @@index([storeId, importedAt])
+  @@index([supplierId])
+  @@map("purchase_invoices")
+}
+
+model PurchaseInvoiceItem {
+  id                String   @id @default(cuid())
+  purchaseInvoiceId String
+  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  productId         String?
+  product           Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  lineNumber        Int      @default(0)
+  supplierCode      String?
+  barcode           String?
+  name              String
+  ncm               String?
+  cfop              String?
+  unit              String   @default("UN")
+  quantity          Float
+  unitCostCents     Int
+  totalCents        Int
+  origin            String?  @default("0")
+  csosn             String?
+  createdAt         DateTime @default(now())
+
+  @@index([purchaseInvoiceId])
+  @@index([productId])
+  @@map("purchase_invoice_items")
+}
+
+enum LedgerEntryType {
+  INCOME
+  EXPENSE
+}
+
+enum LedgerEntryStatus {
+  PENDING
+  CONFIRMED
+}
+
+enum FinanceCategoryKind {
+  INCOME
+  EXPENSE
+}
+
+model FinanceCategory {
+  id        String              @id @default(cuid())
+  storeId   String
+  store     Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  kind      FinanceCategoryKind
+  sortOrder Int                 @default(0)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  entries FinancialLedgerEntry[]
+
+  @@unique([storeId, slug])
+  @@index([storeId, kind])
+  @@map("finance_categories")
+}
+
+/** Lançamento unificado (caixa do dia + contas futuras) — modelo Bedendo. */
+model FinancialLedgerEntry {
+  id                 String            @id @default(cuid())
+  storeId            String
+  store              Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  type               LedgerEntryType
+  status             LedgerEntryStatus @default(CONFIRMED)
+  description        String
+  amountCents        Int
+  /** Data do lançamento / vencimento (null = sem data, só em futuras). */
+  entryDate          DateTime?
+  categoryId         String?
+  category           FinanceCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryLabel      String?
+  paymentMethod      String            @default("outro")
+  customerId         String?
+  customer           Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName       String?
+  supplierId         String?
+  supplier           Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplierName       String?
+  orderId            String?
+  order              Order?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  purchaseInvoiceId  String?
+  purchaseInvoice    PurchaseInvoice?  @relation(fields: [purchaseInvoiceId], references: [id], onDelete: SetNull)
+  nfeKey             String?
+  installmentNo      String?
+  boletoCode         String?
+  notes              String?
+  confirmedAt        DateTime?
+  /** Chave de dedupe (ex.: nfe_{chave}_{dup}, order_{id}_receivable). */
+  dedupeKey          String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@unique([storeId, dedupeKey])
+  @@index([storeId, status, type])
+  @@index([storeId, entryDate])
+  @@index([storeId, nfeKey])
+  @@map("financial_ledger_entries")
+}
+
+model CashClose {
+  id               String   @id @default(cuid())
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** Dia do caixa (somente data, UTC noon). */
+  date             DateTime
+  incomeCents      Int      @default(0)
+  expenseCents     Int      @default(0)
+  balanceCents     Int      @default(0)
+  incomeCount      Int      @default(0)
+  expenseCount     Int      @default(0)
+  notes            String?
+  closedAt         DateTime @default(now())
+  closedByUserId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([storeId, date])
+  @@index([storeId])
+  @@map("cash_closes")
 }
 
 /** Janela deslizante para rate limit de auth (login/registro). */
