@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { config } from "@/lib/config";
 import { formatPrice } from "@/lib/format";
 import { getDashboardStats } from "@/lib/admin-dashboard";
+import { getServerAgroAppClient } from "@/lib/admin-app-client-server";
+import { AdminDownloadPortal } from "@/components/admin/AdminDownloadPortal";
 import { DashboardStatCard } from "@/components/admin/DashboardStatCard";
 import { DashboardAttentionPanel } from "@/components/admin/DashboardAttentionPanel";
 import { RecentOrdersPanel } from "@/components/admin/RecentOrdersPanel";
@@ -31,11 +33,15 @@ export default async function AdminDashboard() {
   if (!session?.user?.storeId) redirect("/admin/login");
 
   const storeId = session.user.storeId;
+  const appClient = await getServerAgroAppClient();
 
-  const [store, stats] = await Promise.all([
-    prisma.store.findUnique({ where: { id: storeId } }),
-    getDashboardStats(storeId),
-  ]);
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
+
+  if (!appClient) {
+    return <AdminDownloadPortal storeName={store?.name ?? "AgroRural"} />;
+  }
+
+  const stats = await getDashboardStats(storeId);
 
   const catalogUrl = config.appUrl;
   const monthLabel = currentMonthLabel();
@@ -143,10 +149,7 @@ export default async function AdminDashboard() {
         </div>
 
         <section className="flex flex-col gap-4">
-          <CatalogLinkCard
-            catalogUrl={catalogUrl}
-            storeName={store?.name}
-          />
+          <CatalogLinkCard catalogUrl={catalogUrl} storeName={store?.name} />
           <WhatsAppStatusCard whatsapp={store?.whatsapp ?? null} />
 
           <div className="flex flex-wrap gap-3">
@@ -156,11 +159,7 @@ export default async function AdminDashboard() {
             <Link href="/admin/categorias" className="admin-btn-secondary">
               Categorias
             </Link>
-            <Link
-              href="/"
-              target="_blank"
-              className="admin-btn-secondary"
-            >
+            <Link href="/" target="_blank" className="admin-btn-secondary">
               Ver catálogo público
             </Link>
           </div>

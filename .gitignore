@@ -54,8 +54,14 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 
+# apps
 /desktop/node_modules/
 /desktop/dist/
+/mobile/node_modules
+/mobile/android
+/mobile/ios
+
+# emissor_nfe (app Windows)
 /emissor_nfe/composer.phar
 /emissor_nfe/vendor/
 /emissor_nfe/node_modules/
@@ -70,3 +76,13 @@ next-env.d.ts
 /emissor_nfe/storage/framework/views/
 /emissor_nfe/php-emissor.ini
 /emissor_nfe/php-emissor.path
+
+# emissor Laravel em services/
+/services/emissor/vendor
+/services/emissor/node_modules
+/services/emissor/storage/logs/*
+/services/emissor/storage/framework/cache/*
+/services/emissor/storage/framework/sessions/*
+/services/emissor/storage/framework/views/*
+/services/emissor/.env
+/services/emissor/.phpunit.result.cache

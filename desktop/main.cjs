@@ -10,7 +10,9 @@ const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
 
-const ADMIN_URL = process.env.AGRO_ADMIN_URL || 'https://agroruralzortea.com.br/admin';
+const ADMIN_URL =
+  process.env.AGRO_ADMIN_URL ||
+  'https://agroruralzortea.com.br/admin/app-boot?client=desktop';
 const EMISSOR_URL = 'http://127.0.0.1:8000';
 const EMISSOR_CONFIG = `${EMISSOR_URL}/configuracoes`;
 const TOOLBAR_H = 44;

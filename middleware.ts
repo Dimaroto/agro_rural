@@ -2,6 +2,12 @@ import { CUSTOMER_SESSION_COOKIE } from "@/lib/session-cookies";
 import { isValidCustomerSessionCookie } from "@/lib/customer-session-token";
 import { isAllowedAdminLogin } from "@/lib/admin-login";
 import { resolveAuthSecret } from "@/lib/auth-secret";
+import {
+  AGRO_APP_CLIENT_COOKIE,
+  AGRO_APP_CLIENT_HEADER,
+  isAdminWebAllowedPath,
+  parseAgroAppClient,
+} from "@/lib/admin-app-client";
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -62,6 +68,40 @@ export async function middleware(req: NextRequest) {
           ? callback
           : "/admin";
       return NextResponse.redirect(new URL(target, req.nextUrl.origin));
+    }
+
+    // Browser: só portal de download + login. Apps: cookie/header liberam o restante.
+    if (authenticated && !isLogin) {
+      const appClient =
+        parseAgroAppClient(req.headers.get(AGRO_APP_CLIENT_HEADER)) ??
+        parseAgroAppClient(req.cookies.get(AGRO_APP_CLIENT_COOKIE)?.value) ??
+        parseAgroAppClient(req.nextUrl.searchParams.get("app"));
+
+      if (
+        !appClient &&
+        !isAdminWebAllowedPath(pathname) &&
+        !pathname.startsWith("/admin/app-boot")
+      ) {
+        return NextResponse.redirect(new URL("/admin", req.nextUrl.origin));
+      }
+
+      if (appClient && req.nextUrl.searchParams.get("app")) {
+        const clean = new URL(pathname, req.nextUrl.origin);
+        req.nextUrl.searchParams.forEach((v, k) => {
+          if (k !== "app") clean.searchParams.set(k, v);
+        });
+        const res = NextResponse.redirect(clean);
+        res.cookies.set(AGRO_APP_CLIENT_COOKIE, appClient, {
+          path: "/",
+          httpOnly: false,
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 365,
+          secure:
+            req.nextUrl.protocol === "https:" ||
+            req.headers.get("x-forwarded-proto") === "https",
+        });
+        return res;
+      }
     }
   }
 

@@ -6,6 +6,7 @@ import { AdminDeviceNotifications } from "@/components/admin/AdminDeviceNotifica
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { UnsavedChangesProvider } from "@/components/admin/UnsavedChangesContext";
 import { prisma } from "@/lib/db";
+import { getServerAgroAppClient } from "@/lib/admin-app-client-server";
 
 export default async function AdminLayout({
   children,
@@ -22,6 +23,9 @@ export default async function AdminLayout({
   if (!session?.user) {
     return <>{children}</>;
   }
+
+  const appClient = await getServerAgroAppClient();
+  const showAppChrome = Boolean(appClient);
 
   const store = await prisma.store.findUnique({
     where: { id: session.user.storeId },
@@ -40,15 +44,17 @@ export default async function AdminLayout({
           <div className="mx-auto flex h-12 max-w-5xl items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4 lg:h-14">
             <AdminNav />
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-              <SettingsBar
-                initialWhatsapp={store?.whatsapp}
-                initialBannerUrl={store?.bannerUrl}
-              />
+              {showAppChrome && (
+                <SettingsBar
+                  initialWhatsapp={store?.whatsapp}
+                  initialBannerUrl={store?.bannerUrl}
+                />
+              )}
               <AdminSignOutButton signOutAction={signOutAction} />
             </div>
           </div>
         </header>
-        <AdminDeviceNotifications />
+        {showAppChrome && <AdminDeviceNotifications />}
         <main className="admin-main">{children}</main>
       </div>
     </UnsavedChangesProvider>

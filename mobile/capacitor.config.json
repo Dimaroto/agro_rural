@@ -1,0 +1,12 @@
+{
+  "appId": "br.com.agrorural.admin",
+  "appName": "AgroRural Admin",
+  "webDir": "www",
+  "server": {
+    "url": "https://agroruralzortea.com.br/admin/app-boot?client=mobile",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

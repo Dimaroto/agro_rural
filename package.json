@@ -27,7 +27,10 @@
     "env:pull": "npx vercel env pull .env.production.local --yes --environment=production",
     "emissor:upload-setup": "npx tsx scripts/upload-emissor-setup.ts",
     "deploy": "npx vercel --prod --yes",
-    "deploy:preview": "npx vercel --yes"
+    "deploy:preview": "npx vercel --yes",
+    "desktop:start": "npm --prefix desktop start",
+    "desktop:dist": "npm --prefix desktop run dist",
+    "mobile:sync": "npm --prefix mobile run sync"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
