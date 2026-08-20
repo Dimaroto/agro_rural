@@ -18,6 +18,10 @@ export function isAdminWebAllowedPath(pathname: string): boolean {
     return true;
   }
   if (pathname.startsWith("/admin/download")) return true;
+  // Tela legada de download/instruções do emissor (browser)
+  if (pathname === "/admin/emissor" || pathname.startsWith("/admin/emissor/")) {
+    return true;
+  }
   return false;
 }
 

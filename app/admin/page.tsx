@@ -1,12 +1,13 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { config } from "@/lib/config";
-import { formatPrice } from "@/lib/format";
-import { getDashboardStats } from "@/lib/admin-dashboard";
 import { getServerAgroAppClient } from "@/lib/admin-app-client-server";
 import { AdminDownloadPortal } from "@/components/admin/AdminDownloadPortal";
+import { getEmissorSetupDownloadUrl } from "@/lib/nfe/setup-url";
+import { getDashboardStats } from "@/lib/admin-dashboard";
+import { config } from "@/lib/config";
+import { formatPrice } from "@/lib/format";
+import Link from "next/link";
 import { DashboardStatCard } from "@/components/admin/DashboardStatCard";
 import { DashboardAttentionPanel } from "@/components/admin/DashboardAttentionPanel";
 import { RecentOrdersPanel } from "@/components/admin/RecentOrdersPanel";
@@ -38,7 +39,12 @@ export default async function AdminDashboard() {
   const store = await prisma.store.findUnique({ where: { id: storeId } });
 
   if (!appClient) {
-    return <AdminDownloadPortal storeName={store?.name ?? "AgroRural"} />;
+    return (
+      <AdminDownloadPortal
+        storeName={store?.name ?? "AgroRural"}
+        windowsSetupUrl={getEmissorSetupDownloadUrl()}
+      />
+    );
   }
 
   const stats = await getDashboardStats(storeId);

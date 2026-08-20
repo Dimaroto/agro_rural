@@ -1,14 +1,33 @@
-# Placeholders
+# Downloads do AgroRural Admin
 
-Os instaladores reais são gerados por:
+## Windows (pronto)
 
-- `npm run desktop:dist` → `desktop/dist/AgroRural-Admin-Setup.exe`
-- Android Studio (pasta `mobile`) → `AgroRural-Admin.apk`
+O instalador completo (app + emissor NF-e) está no Vercel Blob:
 
-Copie os artefatos para esta pasta ou configure:
+https://tixybegl1h3yln4s.public.blob.vercel-storage.com/emissor/AgroRural-Setup.exe
+
+Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.0.exe`
+
+O portal `/admin` usa `getEmissorSetupDownloadUrl()` (env ou esse fallback).
+
+Opcional na Vercel (Production):
 
 ```
-NEXT_PUBLIC_ADMIN_EXE_URL=https://...
-NEXT_PUBLIC_ADMIN_APK_URL=https://...
-NEXT_PUBLIC_EMISSOR_URL=http://127.0.0.1:8787
+EMISSOR_SETUP_URL=<url acima>
+NEXT_PUBLIC_EMISSOR_SETUP_URL=<url acima>
+NEXT_PUBLIC_ADMIN_EXE_URL=<url acima>
 ```
+
+## Android
+
+Sem Android SDK nesta máquina. Para gerar o APK:
+
+```powershell
+cd mobile
+npm install
+npx cap add android
+npx cap sync android
+npx cap open android
+```
+
+Publique o APK e defina `NEXT_PUBLIC_ADMIN_APK_URL`.
