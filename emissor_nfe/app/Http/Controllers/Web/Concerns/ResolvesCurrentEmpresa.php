@@ -19,7 +19,7 @@ trait ResolvesCurrentEmpresa
     {
         $this->ensureUserHasEmpresas($user);
 
-        $empresas = $user->empresas()->with('certificado')->orderBy('id')->get();
+        $empresas = $user->empresas()->with('certificado')->orderBy('empresas.id')->get();
         abort_unless($empresas->isNotEmpty(), 404, 'Nenhuma empresa vinculada ao usuário neste aplicativo.');
 
         $selectedId = (int) session('empresa_id', 0);
@@ -41,7 +41,9 @@ trait ResolvesCurrentEmpresa
     {
         $this->ensureUserHasEmpresas($user);
 
-        return $user->empresas()->orderBy('id')->get(['empresas.id', 'cnpj', 'razao_social']);
+        return $user->empresas()
+            ->orderBy('empresas.id')
+            ->get(['empresas.id', 'empresas.cnpj', 'empresas.razao_social']);
     }
 
     /**
