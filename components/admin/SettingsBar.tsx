@@ -12,8 +12,6 @@ import {
 } from "@/lib/pdv-notifications";
 import { BannerImageField } from "@/components/admin/BannerImageField";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
-import { checkEmissorUp } from "@/lib/nfe/client";
-import { openEmissorFromUi, startEmissorFromUi } from "@/lib/nfe/launcher";
 
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
@@ -38,8 +36,6 @@ export function SettingsBar({
   const [notifPref, setNotifPref] = useState<PdvNotifPref | null>(null);
   const [notifPermission, setNotifPermission] =
     useState<NotificationPermission | "unsupported">("default");
-  const [emissorOnline, setEmissorOnline] = useState(false);
-  const [startHint, setStartHint] = useState("");
 
   const showStoreSettings = initialWhatsapp !== undefined;
   const showNotifSettings = notificationsSupported();
@@ -66,36 +62,6 @@ export function SettingsBar({
     }
     window.addEventListener("pdv-notif-pref-change", onPref);
     return () => window.removeEventListener("pdv-notif-pref-change", onPref);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function poll() {
-      const ok = await checkEmissorUp();
-      if (!cancelled) setEmissorOnline(ok);
-    }
-
-    void poll();
-    const id = window.setInterval(() => void poll(), 3000);
-
-    const desktop = (
-      window as Window & {
-        agroDesktop?: {
-          onEmissorStatus?: (cb: (online: boolean) => void) => void;
-        };
-      }
-    ).agroDesktop;
-    if (desktop?.onEmissorStatus) {
-      desktop.onEmissorStatus((online) => {
-        if (!cancelled) setEmissorOnline(!!online);
-      });
-    }
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
   }, []);
 
   useEffect(() => {
@@ -135,27 +101,12 @@ export function SettingsBar({
   const notifEnabled =
     notifPref !== "disabled" && notifPermission === "granted";
 
-  function onStartEmissor() {
-    try {
-      const mode = startEmissorFromUi();
-      setStartHint(
-        mode === "desktop"
-          ? "Iniciando emissor local..."
-          : "Se o navegador perguntar, permita abrir o aplicativo. Sem o instalador, baixe em Emissor."
-      );
-    } catch {
-      setStartHint(
-        "Não foi possível iniciar. Abra a aba Emissor e baixe o Setup para Windows."
-      );
-    }
-  }
-
   return (
     <div className="relative" ref={panelRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
         aria-label="Configurações"
         aria-expanded={open}
       >
@@ -172,12 +123,6 @@ export function SettingsBar({
           <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
           <circle cx="12" cy="12" r="3" />
         </svg>
-        <span
-          className={`absolute right-1 top-1 h-2 w-2 rounded-full ${
-            emissorOnline ? "bg-emerald-500" : "bg-red-500"
-          }`}
-          title={emissorOnline ? "Emissor online" : "Emissor offline"}
-        />
       </button>
 
       {open && (
@@ -329,65 +274,6 @@ export function SettingsBar({
               />
             </div>
           )}
-
-          <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-                  Emissor NF-e
-                </p>
-                <p className="mt-1 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  <span
-                    className={`inline-block h-2 w-2 rounded-full ${
-                      emissorOnline ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                  {emissorOnline
-                    ? "Online em 127.0.0.1:8001"
-                    : "Offline — inicie no PC da loja"}
-                </p>
-              </div>
-              {emissorOnline ? (
-                <button
-                  type="button"
-                  onClick={() => openEmissorFromUi()}
-                  className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                >
-                  Configurar emissor
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onStartEmissor}
-                  className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  Iniciar emissor
-                </button>
-              )}
-            </div>
-            {startHint && !emissorOnline && (
-              <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                {startHint}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                if (unsaved?.isDirty) {
-                  unsaved.requestNavigation({
-                    type: "href",
-                    href: "/admin/emissor",
-                  });
-                  return;
-                }
-                router.push("/admin/emissor");
-              }}
-              className="mt-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
-            >
-              Abrir aba Emissor
-            </button>
-          </div>
         </div>
       )}
     </div>

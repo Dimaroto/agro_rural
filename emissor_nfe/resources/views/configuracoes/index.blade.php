@@ -271,10 +271,8 @@
 
         @elseif ($tab === 'integracao')
             <div class="help">
-                <strong>No admin Agro Rural:</strong> Engrenagem → Fiscal / NF-e → cole URL, token e confirme a empresa.
-                URL local típica: <span class="mono">http://127.0.0.1:8001</span>.
-                Use o <span class="mono">empresaId</span> da empresa ativa
-                (<strong>#{{ $empresa->id }}</strong> (não a demo, se houver).
+                <strong>No admin Agro Rural:</strong> use <em>Abrir emissor</em> na barra
+                do app. Empresa, certificado A1, numeração e token ficam neste painel.
             </div>
             <div class="grid">
                 <div class="field">

@@ -37,14 +37,14 @@ export function OrderNfeEmitButton({
     try {
       if (!readNfeEmissorToken()) {
         throw new Error(
-          "Cole o token do emissor em Admin → Emissor."
+          "Cole o token do emissor em Admin → Fiscal (ou use Abrir emissor)."
         );
       }
 
       const up = await checkEmissorUp();
       if (!up) {
         throw new Error(
-          "Emissor local offline. Abra Admin → Emissor e clique em Iniciar emissor."
+          "Emissor local offline. Use Abrir emissor na barra do app Windows."
         );
       }
 
