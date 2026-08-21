@@ -594,6 +594,22 @@ html {
     @apply grid gap-3 sm:grid-cols-2;
   }
 
+  .admin-fab {
+    @apply fixed bottom-6 right-6 z-40 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-emerald-700 bg-emerald-700 text-2xl font-semibold leading-none text-white shadow-lg shadow-emerald-900/25 transition hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:border-emerald-600 dark:bg-emerald-700 dark:hover:bg-emerald-600;
+  }
+
+  .admin-sheet-root {
+    @apply contents;
+  }
+
+  .admin-sheet-backdrop {
+    @apply fixed inset-0 z-50 cursor-pointer border-0 bg-black/50 p-0;
+  }
+
+  .admin-sheet {
+    @apply fixed bottom-0 left-1/2 z-50 max-h-[85vh] w-full max-w-3xl -translate-x-1/2 overflow-y-auto rounded-t-2xl border border-[#C9D4B3]/90 bg-[#F7F4EC] p-4 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/40;
+  }
+
   .btn {
     @apply cursor-pointer rounded-xl border border-[#C9D4B3] bg-white px-3 py-2 text-sm font-medium text-[#2D4C1E] transition hover:bg-[#E4EAD8]/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100;
   }
