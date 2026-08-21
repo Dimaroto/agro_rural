@@ -13,24 +13,23 @@ class NumeracaoService
     /**
      * Reserva atomicamente o próximo número da série.
      *
-     * Evita SELECT … FOR UPDATE (quebra no Neon pooler / PgBouncer e deixa
-     * a conexão em "current transaction is aborted" / SQLSTATE 25P02).
+     * Postgres: UPDATE … RETURNING (sem SELECT FOR UPDATE — pooler Neon).
+     * SQLite: Eloquent (não tem NOW(); RETURNING pode variar).
      */
     public function reservar(Empresa $empresa, int $serie = 1, int $modelo = 55): array
     {
         $this->ensureRow($empresa->id, $modelo, $serie);
 
+        $driver = DB::connection()->getDriverName();
+
         try {
-            $row = DB::selectOne(
-                'UPDATE numeracoes
-                 SET proximo_numero = proximo_numero + 1,
-                     updated_at = NOW()
-                 WHERE empresa_id = ?
-                   AND modelo = ?
-                   AND serie = ?
-                 RETURNING (proximo_numero - 1) AS numero, serie, modelo',
-                [$empresa->id, $modelo, $serie]
-            );
+            if ($driver === 'sqlite') {
+                return $this->reservarSqlite($empresa->id, $modelo, $serie);
+            }
+
+            return $this->reservarPostgres($empresa->id, $modelo, $serie);
+        } catch (RuntimeException $e) {
+            throw $e;
         } catch (Throwable $e) {
             $msg = $e->getMessage();
             if (str_contains($msg, '25P02') || str_contains($msg, 'transaction is aborted')) {
@@ -50,10 +49,51 @@ class NumeracaoService
                 $e
             );
         }
+    }
+
+    private function reservarSqlite(int $empresaId, int $modelo, int $serie): array
+    {
+        return DB::transaction(function () use ($empresaId, $modelo, $serie) {
+            $row = Numeracao::query()
+                ->where('empresa_id', $empresaId)
+                ->where('modelo', $modelo)
+                ->where('serie', $serie)
+                ->first();
+
+            if (! $row) {
+                throw new RuntimeException(
+                    "Numeração não encontrada para empresa {$empresaId}, modelo {$modelo}, série {$serie}."
+                );
+            }
+
+            $numero = (int) $row->proximo_numero;
+            $row->proximo_numero = $numero + 1;
+            $row->save();
+
+            return [
+                'numero' => $numero,
+                'serie' => (int) $row->serie,
+                'modelo' => (int) $row->modelo,
+            ];
+        });
+    }
+
+    private function reservarPostgres(int $empresaId, int $modelo, int $serie): array
+    {
+        $row = DB::selectOne(
+            'UPDATE numeracoes
+             SET proximo_numero = proximo_numero + 1,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE empresa_id = ?
+               AND modelo = ?
+               AND serie = ?
+             RETURNING (proximo_numero - 1) AS numero, serie, modelo',
+            [$empresaId, $modelo, $serie]
+        );
 
         if (! $row) {
             throw new RuntimeException(
-                "Numeração não encontrada para empresa {$empresa->id}, modelo {$modelo}, série {$serie}."
+                "Numeração não encontrada para empresa {$empresaId}, modelo {$modelo}, série {$serie}."
             );
         }
 
