@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('agroDesktop', {
   isEmissorOnline: () => ipcRenderer.invoke('emissor:online'),
   /** Fetch ao emissor via processo principal (sem bloqueio HTTPS→HTTP). */
   requestEmissor: (opts) => ipcRenderer.invoke('emissor:request', opts),
+  /** Abre bytes (PDF) no app padrão do Windows — sem blob:. */
+  openBytes: (opts) => ipcRenderer.invoke('desktop:open-bytes', opts),
+  /** Salvar como… no disco. */
+  saveBytes: (opts) => ipcRenderer.invoke('desktop:save-bytes', opts),
   toggleFullscreen: () => ipcRenderer.invoke('window:fullscreen'),
   onEmissorStatus: (cb) => {
     ipcRenderer.on('emissor:status', (_e, payload) => {

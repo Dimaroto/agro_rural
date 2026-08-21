@@ -8,6 +8,47 @@ import {
   readNfeEmissorToken,
 } from "@/lib/nfe/client";
 
+type DesktopDocs = {
+  isDesktop?: boolean;
+  openBytes?: (opts: {
+    base64: string;
+    filename: string;
+  }) => Promise<{ ok: boolean; path?: string; error?: string }>;
+  saveBytes?: (opts: {
+    base64: string;
+    defaultName: string;
+  }) => Promise<{
+    ok: boolean;
+    path?: string;
+    error?: string;
+    canceled?: boolean;
+  }>;
+};
+
+function getDesktop(): DesktopDocs | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as Window & { agroDesktop?: DesktopDocs }).agroDesktop;
+}
+
+function base64ToBlob(base64: string, type: string): Blob {
+  const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  return new Blob([binary], { type });
+}
+
+function assertPdfBase64(base64: string) {
+  try {
+    const head = atob(base64.slice(0, 32));
+    if (!head.startsWith("%PDF")) {
+      throw new Error(
+        "O DANFE veio vazio ou inválido. Confira se a nota está autorizada no emissor."
+      );
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("DANFE")) throw e;
+    throw new Error("Não foi possível ler o PDF do DANFE.");
+  }
+}
+
 async function resolveEmpresaId(
   empresaId?: number | null
 ): Promise<number> {
@@ -34,11 +75,11 @@ async function resolveEmpresaId(
   return id;
 }
 
-async function fetchNotaFile(
+async function fetchNotaBase64(
   kind: "danfe" | "xml",
   chave: string,
   empresaId?: number | null
-): Promise<Blob> {
+): Promise<{ base64: string; filename: string; mime: string }> {
   const digits = chave.replace(/\D/g, "");
   if (digits.length !== 44) {
     throw new Error("Chave de acesso inválida.");
@@ -49,14 +90,19 @@ async function fetchNotaFile(
     path,
     accept: kind === "danfe" ? "application/pdf" : "application/xml",
   });
-  if (!res.ok) {
+  if (!res.ok || !res.base64) {
     throw new Error(
       kind === "danfe"
         ? `Não foi possível gerar o DANFE (HTTP ${res.status}).`
         : `Não foi possível baixar o XML (HTTP ${res.status}).`
     );
   }
-  return res.blob;
+  if (kind === "danfe") assertPdfBase64(res.base64);
+  return {
+    base64: res.base64,
+    filename: kind === "danfe" ? `${digits}-danfe.pdf` : `${digits}.xml`,
+    mime: kind === "danfe" ? "application/pdf" : "application/xml",
+  };
 }
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -71,18 +117,25 @@ function triggerDownload(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-/** Abre o DANFE (PDF) em nova aba para visualizar/imprimir. */
+/** Abre o DANFE no leitor de PDF do Windows (sem link blob:). */
 export async function openDanfe(
   chave: string,
   empresaId?: number | null
 ): Promise<void> {
-  const blob = await fetchNotaFile("danfe", chave, empresaId);
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank", "noopener,noreferrer");
-  if (!win) {
-    triggerDownload(blob, `${chave.replace(/\D/g, "")}-danfe.pdf`);
+  const file = await fetchNotaBase64("danfe", chave, empresaId);
+  const desktop = getDesktop();
+  if (desktop?.isDesktop && typeof desktop.openBytes === "function") {
+    const result = await desktop.openBytes({
+      base64: file.base64,
+      filename: file.filename,
+    });
+    if (!result.ok) {
+      throw new Error(result.error || "Não foi possível abrir o DANFE.");
+    }
+    return;
   }
-  window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+  // Navegador: só download — evita diálogo “abrir link blob”
+  triggerDownload(base64ToBlob(file.base64, file.mime), file.filename);
 }
 
 /** Salva o PDF do DANFE. */
@@ -90,8 +143,20 @@ export async function downloadDanfe(
   chave: string,
   empresaId?: number | null
 ): Promise<void> {
-  const blob = await fetchNotaFile("danfe", chave, empresaId);
-  triggerDownload(blob, `${chave.replace(/\D/g, "")}-danfe.pdf`);
+  const file = await fetchNotaBase64("danfe", chave, empresaId);
+  const desktop = getDesktop();
+  if (desktop?.isDesktop && typeof desktop.saveBytes === "function") {
+    const result = await desktop.saveBytes({
+      base64: file.base64,
+      defaultName: file.filename,
+    });
+    if (result.canceled) return;
+    if (!result.ok) {
+      throw new Error(result.error || "Não foi possível salvar o DANFE.");
+    }
+    return;
+  }
+  triggerDownload(base64ToBlob(file.base64, file.mime), file.filename);
 }
 
 /** Salva o XML autorizado. */
@@ -99,6 +164,18 @@ export async function downloadXml(
   chave: string,
   empresaId?: number | null
 ): Promise<void> {
-  const blob = await fetchNotaFile("xml", chave, empresaId);
-  triggerDownload(blob, `${chave.replace(/\D/g, "")}.xml`);
+  const file = await fetchNotaBase64("xml", chave, empresaId);
+  const desktop = getDesktop();
+  if (desktop?.isDesktop && typeof desktop.saveBytes === "function") {
+    const result = await desktop.saveBytes({
+      base64: file.base64,
+      defaultName: file.filename,
+    });
+    if (result.canceled) return;
+    if (!result.ok) {
+      throw new Error(result.error || "Não foi possível salvar o XML.");
+    }
+    return;
+  }
+  triggerDownload(base64ToBlob(file.base64, file.mime), file.filename);
 }

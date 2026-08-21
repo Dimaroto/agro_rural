@@ -12,6 +12,7 @@ type DesktopBridge = {
     method?: string;
     headers?: Record<string, string>;
     body?: string;
+    binary?: boolean;
   }) => Promise<{
     ok: boolean;
     status: number;
@@ -19,6 +20,19 @@ type DesktopBridge = {
     error?: string;
     encoding?: string;
     contentType?: string;
+  }>;
+  openBytes?: (opts: {
+    base64: string;
+    filename: string;
+  }) => Promise<{ ok: boolean; path?: string; error?: string }>;
+  saveBytes?: (opts: {
+    base64: string;
+    defaultName: string;
+  }) => Promise<{
+    ok: boolean;
+    path?: string;
+    error?: string;
+    canceled?: boolean;
   }>;
   onEmissorStatus?: (
     cb: (online: boolean, mode?: string) => void
@@ -182,7 +196,13 @@ export async function emissorFetchBlob(input: {
   token?: string;
   baseUrl?: string;
   accept?: string;
-}): Promise<{ ok: boolean; status: number; blob: Blob; contentType: string }> {
+}): Promise<{
+  ok: boolean;
+  status: number;
+  blob: Blob;
+  contentType: string;
+  base64?: string;
+}> {
   const path = input.path.startsWith("/") ? input.path : `/${input.path}`;
   const token = (input.token ?? readNfeEmissorToken()).trim();
   const headers: Record<string, string> = {
@@ -196,6 +216,7 @@ export async function emissorFetchBlob(input: {
       path,
       method: "GET",
       headers,
+      binary: true,
     });
     if (proxied.status === 0) {
       throw new Error(
@@ -206,15 +227,17 @@ export async function emissorFetchBlob(input: {
     const contentType =
       proxied.contentType ||
       (path.includes("/danfe") ? "application/pdf" : "application/xml");
-    const bytes =
+    const base64 =
       proxied.encoding === "base64"
-        ? Uint8Array.from(atob(proxied.body), (c) => c.charCodeAt(0))
-        : new TextEncoder().encode(proxied.body);
+        ? proxied.body
+        : btoa(unescape(encodeURIComponent(proxied.body)));
+    const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     return {
       ok: proxied.ok,
       status: proxied.status,
-      blob: new Blob([bytes], { type: contentType }),
+      blob: new Blob([binary], { type: contentType.split(";")[0] }),
       contentType,
+      base64,
     };
   }
 
@@ -226,12 +249,22 @@ export async function emissorFetchBlob(input: {
       headers,
       cache: "no-store",
     });
-    const blob = await res.blob();
+    const buf = new Uint8Array(await res.arrayBuffer());
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < buf.length; i += chunk) {
+      binary += String.fromCharCode(...buf.subarray(i, i + chunk));
+    }
+    const base64 = btoa(binary);
+    const contentType =
+      res.headers.get("content-type") ||
+      (path.includes("/danfe") ? "application/pdf" : "application/xml");
     return {
       ok: res.ok,
       status: res.status,
-      blob,
-      contentType: res.headers.get("content-type") || blob.type || "",
+      blob: new Blob([buf], { type: contentType.split(";")[0] }),
+      contentType,
+      base64,
     };
   } catch (err) {
     throw new Error(networkErrorMessage(err));

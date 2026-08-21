@@ -323,12 +323,16 @@ app.whenReady().then(() => {
       const res = await fetch(url, init);
       const contentType = res.headers.get('content-type') || '';
       const buf = Buffer.from(await res.arrayBuffer());
-      const isBinary = /pdf|octet-stream|xml|zip|image\//i.test(contentType);
+      // DANFE/XML sempre em base64 (Content-Type às vezes vem incompleto)
+      const forceBinary =
+        opts?.binary === true ||
+        /\/danfe(\?|$)|\/xml(\?|$)/i.test(path) ||
+        /pdf|octet-stream|xml|zip|image\//i.test(contentType);
       return {
         ok: res.ok,
         status: res.status,
-        body: isBinary ? buf.toString('base64') : buf.toString('utf8'),
-        encoding: isBinary ? 'base64' : 'utf8',
+        body: forceBinary ? buf.toString('base64') : buf.toString('utf8'),
+        encoding: forceBinary ? 'base64' : 'utf8',
         contentType,
       };
     } catch (err) {
@@ -337,6 +341,73 @@ app.whenReady().then(() => {
         status: 0,
         body: '',
         error: err instanceof Error ? err.message : 'Falha de rede no emissor',
+      };
+    }
+  });
+
+  /** Grava bytes e abre no app padrão (PDF sem blob:). */
+  ipcMain.handle('desktop:open-bytes', async (_e, opts) => {
+    try {
+      const base64 = String(opts?.base64 || '');
+      const filename = String(opts?.filename || `agro-${Date.now()}.bin`).replace(
+        /[^\w.\-]+/g,
+        '_'
+      );
+      if (!base64) return { ok: false, error: 'Arquivo vazio' };
+      const buf = Buffer.from(base64, 'base64');
+      if (filename.toLowerCase().endsWith('.pdf') && buf.subarray(0, 4).toString() !== '%PDF') {
+        return {
+          ok: false,
+          error: 'O arquivo recebido não é um PDF válido (pode ser erro do emissor).',
+        };
+      }
+      const fs = require('fs');
+      const os = require('os');
+      const tmp = path.join(os.tmpdir(), filename);
+      fs.writeFileSync(tmp, buf);
+      const openErr = await shell.openPath(tmp);
+      if (openErr) {
+        return { ok: false, error: openErr, path: tmp };
+      }
+      return { ok: true, path: tmp };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : 'Falha ao abrir arquivo',
+      };
+    }
+  });
+
+  /** Diálogo Salvar como (sem blob:). */
+  ipcMain.handle('desktop:save-bytes', async (_e, opts) => {
+    try {
+      const base64 = String(opts?.base64 || '');
+      const defaultName = String(opts?.defaultName || `agro-${Date.now()}.bin`);
+      if (!base64) return { ok: false, error: 'Arquivo vazio' };
+      const buf = Buffer.from(base64, 'base64');
+      const { dialog } = require('electron');
+      const win =
+        mainWindow && !mainWindow.isDestroyed()
+          ? mainWindow
+          : BrowserWindow.getFocusedWindow();
+      const result = await dialog.showSaveDialog(win || undefined, {
+        defaultPath: defaultName,
+        filters: defaultName.toLowerCase().endsWith('.pdf')
+          ? [{ name: 'PDF', extensions: ['pdf'] }]
+          : defaultName.toLowerCase().endsWith('.xml')
+            ? [{ name: 'XML', extensions: ['xml'] }]
+            : [{ name: 'Todos', extensions: ['*'] }],
+      });
+      if (result.canceled || !result.filePath) {
+        return { ok: false, canceled: true };
+      }
+      const fs = require('fs');
+      fs.writeFileSync(result.filePath, buf);
+      return { ok: true, path: result.filePath };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : 'Falha ao salvar arquivo',
       };
     }
   });

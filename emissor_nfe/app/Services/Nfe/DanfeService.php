@@ -25,7 +25,9 @@ class DanfeService
         try {
             $danfe = new Danfe($xml);
             $danfe->creditsIntegratorFooter('Agro Rural Zortea');
-            $pdf = $danfe->render($this->logoPath());
+            $logo = $this->logoPath();
+            // Sem logo: render() sem argumento (string vazia pode gerar PDF em branco)
+            $pdf = $logo !== '' ? $danfe->render($logo) : $danfe->render();
         } catch (\Throwable $e) {
             throw new RuntimeException('Falha ao gerar DANFE: '.$e->getMessage(), 0, $e);
         }
