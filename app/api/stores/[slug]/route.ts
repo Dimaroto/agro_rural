@@ -20,6 +20,7 @@ export async function GET(
       whatsapp: store.whatsapp,
       logoUrl: store.logoUrl,
       bannerUrl: store.bannerUrl,
+      bannerUrlMobile: store.bannerUrlMobile,
     },
     ...catalog,
   });

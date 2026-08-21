@@ -12,6 +12,7 @@ export default async function HomePage() {
     <HomeLanding
       storeName={store.name}
       bannerUrl={store.bannerUrl}
+      bannerUrlMobile={store.bannerUrlMobile}
       categories={categories.map((c) => ({
         id: c.id,
         name: c.name,

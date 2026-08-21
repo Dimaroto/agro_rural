@@ -39,6 +39,7 @@ const themeDocumentSchema = z.object({
 const patchSchema = z.object({
   whatsapp: z.string().optional(),
   bannerUrl: z.string().nullable().optional(),
+  bannerUrlMobile: z.string().nullable().optional(),
   theme: themeDocumentSchema.optional(),
 });
 
@@ -48,6 +49,7 @@ function storePayload(store: {
   slug: string;
   whatsapp: string | null;
   bannerUrl: string | null;
+  bannerUrlMobile: string | null;
   themeJson: string | null;
 }) {
   return {
@@ -56,6 +58,7 @@ function storePayload(store: {
     slug: store.slug,
     whatsapp: store.whatsapp,
     bannerUrl: store.bannerUrl,
+    bannerUrlMobile: store.bannerUrlMobile,
     theme: parseBrandThemeDocument(store.themeJson),
   };
 }
@@ -74,6 +77,7 @@ export async function GET() {
       slug: true,
       whatsapp: true,
       bannerUrl: true,
+      bannerUrlMobile: true,
       themeJson: true,
     },
   });
@@ -99,6 +103,7 @@ export async function PATCH(req: Request) {
   const data: {
     whatsapp?: string | null;
     bannerUrl?: string | null;
+    bannerUrlMobile?: string | null;
     themeJson?: string | null;
   } = {};
 
@@ -119,6 +124,11 @@ export async function PATCH(req: Request) {
   if (body.data.bannerUrl !== undefined) {
     const url = body.data.bannerUrl?.trim() || null;
     data.bannerUrl = url;
+  }
+
+  if (body.data.bannerUrlMobile !== undefined) {
+    const url = body.data.bannerUrlMobile?.trim() || null;
+    data.bannerUrlMobile = url;
   }
 
   if (body.data.theme !== undefined) {
@@ -145,6 +155,7 @@ export async function PATCH(req: Request) {
       slug: true,
       whatsapp: true,
       bannerUrl: true,
+      bannerUrlMobile: true,
       themeJson: true,
     },
   });

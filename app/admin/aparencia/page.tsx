@@ -9,7 +9,7 @@ export default async function AparenciaAdminPage() {
 
   const store = await prisma.store.findUnique({
     where: { id: session.user.storeId },
-    select: { themeJson: true, bannerUrl: true },
+    select: { themeJson: true, bannerUrl: true, bannerUrlMobile: true },
   });
 
   return (
@@ -18,12 +18,13 @@ export default async function AparenciaAdminPage() {
         Configurar layout
       </h1>
       <p className="mb-5 text-sm text-zinc-600 dark:text-zinc-400">
-        Ajuste cores, banner da home e predefinições do catálogo. A prévia ao
-        lado mostra como o visitante vê a página.
+        Cores, banners (computador 3:1 e celular 16:9) e predefinições. Use a
+        prévia para alternar entre Computador e Celular.
       </p>
       <ThemeStudio
         initialTheme={store?.themeJson}
         initialBannerUrl={store?.bannerUrl ?? null}
+        initialBannerUrlMobile={store?.bannerUrlMobile ?? null}
       />
     </div>
   );

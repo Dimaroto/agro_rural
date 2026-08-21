@@ -6,19 +6,24 @@ import { CameraIcon } from "@/components/icons/UiIcons";
 import { BannerImageCropModal } from "@/components/admin/BannerImageCropModal";
 import { formatApiError } from "@/lib/apiError";
 import {
-  HOME_BANNER_ASPECT_CLASS,
-  HOME_BANNER_IDEAL_SIZE_LABEL,
+  homeBannerConfig,
+  homeBannerIdealLabel,
+  type HomeBannerVariant,
 } from "@/lib/home-banner";
 
 type BannerImageFieldProps = {
   currentUrl: string | null;
+  variant?: HomeBannerVariant;
   onSaved: (url: string | null) => void;
 };
 
 export function BannerImageField({
   currentUrl,
+  variant = "desktop",
   onSaved,
 }: BannerImageFieldProps) {
+  const cfg = homeBannerConfig(variant);
+  const ideal = homeBannerIdealLabel(variant);
   const inputRef = useRef<HTMLInputElement>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -62,7 +67,7 @@ export function BannerImageField({
     const res = await fetch("/api/admin/store", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bannerUrl: url }),
+      body: JSON.stringify({ [cfg.field]: url }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -70,7 +75,11 @@ export function BannerImageField({
       setError(formatApiError(data.error, "Erro ao salvar o banner"));
       return false;
     }
-    onSaved(data.bannerUrl ?? url);
+    const saved =
+      variant === "mobile"
+        ? (data.bannerUrlMobile ?? url)
+        : (data.bannerUrl ?? url);
+    onSaved(saved);
     return true;
   }
 
@@ -128,12 +137,11 @@ export function BannerImageField({
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-        Banner da home
+        {cfg.title}
       </p>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-        Arraste uma imagem ou clique para selecionar. Substitui o texto de
-        apresentação na página inicial. Tamanho ideal:{" "}
-        {HOME_BANNER_IDEAL_SIZE_LABEL} (proporção 3:1).
+        Arraste uma imagem ou clique para selecionar. Proporção {cfg.label} —{" "}
+        {ideal}.
       </p>
 
       {currentUrl ? (
@@ -146,11 +154,11 @@ export function BannerImageField({
             onDragEnter={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            className={`relative block w-full overflow-hidden rounded-2xl border-2 border-dashed bg-zinc-100 text-left transition disabled:opacity-50 dark:bg-zinc-800 ${HOME_BANNER_ASPECT_CLASS} ${dropClass}`}
+            className={`relative block w-full overflow-hidden rounded-2xl border-2 border-dashed bg-zinc-100 text-left transition disabled:opacity-50 dark:bg-zinc-800 ${cfg.aspectClass} ${dropClass}`}
           >
             <Image
               src={currentUrl}
-              alt="Prévia do banner"
+              alt={`Prévia — ${cfg.title}`}
               fill
               className="object-cover"
               unoptimized
@@ -160,7 +168,7 @@ export function BannerImageField({
                 ? "Solte para trocar"
                 : busy
                   ? "Salvando…"
-                  : "Arraste outra imagem ou clique para trocar"}
+                  : "Arraste ou clique para trocar"}
             </span>
           </button>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -191,7 +199,7 @@ export function BannerImageField({
           onDragEnter={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
-          className={`mt-3 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed bg-zinc-50 text-zinc-500 transition hover:border-emerald-400 hover:bg-emerald-50/50 hover:text-emerald-700 disabled:opacity-50 dark:bg-zinc-950 dark:hover:border-emerald-600 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 ${HOME_BANNER_ASPECT_CLASS} ${dropClass}`}
+          className={`mt-3 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed bg-zinc-50 text-zinc-500 transition hover:border-emerald-400 hover:bg-emerald-50/50 hover:text-emerald-700 disabled:opacity-50 dark:bg-zinc-950 dark:hover:border-emerald-600 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 ${cfg.aspectClass} ${dropClass}`}
         >
           <CameraIcon className="h-6 w-6" />
           <span className="text-xs font-medium">
@@ -222,6 +230,7 @@ export function BannerImageField({
       {cropSrc ? (
         <BannerImageCropModal
           imageSrc={cropSrc}
+          variant={variant}
           onCancel={closeCrop}
           onConfirm={(file) => void applyCroppedFile(file)}
         />

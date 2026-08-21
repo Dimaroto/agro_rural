@@ -15,6 +15,8 @@ model Store {
   whatsapp        String?
   logoUrl         String?
   bannerUrl       String?
+  /** Banner da home em viewports estreitas (proporção 16:9). */
+  bannerUrlMobile String?
   themeJson       String?
   active          Boolean  @default(true)
   nextOrderNumber Int      @default(1)

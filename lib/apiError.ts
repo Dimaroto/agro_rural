@@ -13,7 +13,8 @@ const FIELD_LABELS: Record<string, string> = {
   quantity: "Quantidade",
   active: "Status",
   whatsapp: "WhatsApp",
-  bannerUrl: "Banner",
+  bannerUrl: "Banner (computador)",
+  bannerUrlMobile: "Banner (celular)",
   label: "Rótulo",
   type: "Tipo",
 };

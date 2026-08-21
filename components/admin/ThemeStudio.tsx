@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatApiError } from "@/lib/apiError";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
 import { BannerImageField } from "@/components/admin/BannerImageField";
-import { HOME_BANNER_ASPECT_CLASS } from "@/lib/home-banner";
+import {
+  HOME_BANNER_DESKTOP,
+  HOME_BANNER_MOBILE,
+} from "@/lib/home-banner";
 import {
   LINEAR_DIRECTIONS,
   MAX_BRAND_PRESETS,
@@ -24,14 +27,24 @@ import {
   type BrandThemeShape,
 } from "@/lib/brand-theme";
 
+type PreviewDevice = "desktop" | "mobile";
+type StudioSection =
+  | "preset"
+  | "header"
+  | "buttons"
+  | "background"
+  | "banners";
+
 type ThemeStudioProps = {
   initialTheme?: string | BrandThemeDocument | null;
   initialBannerUrl?: string | null;
+  initialBannerUrlMobile?: string | null;
 };
 
 export function ThemeStudio({
   initialTheme,
   initialBannerUrl = null,
+  initialBannerUrlMobile = null,
 }: ThemeStudioProps) {
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
@@ -41,6 +54,19 @@ export function ThemeStudio({
   const [doc, setDoc] = useState(saved);
   const [bannerUrl, setBannerUrl] = useState<string | null>(
     initialBannerUrl ?? null
+  );
+  const [bannerUrlMobile, setBannerUrlMobile] = useState<string | null>(
+    initialBannerUrlMobile ?? null
+  );
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
+  const [openSections, setOpenSections] = useState<Record<StudioSection, boolean>>(
+    {
+      preset: true,
+      header: false,
+      buttons: false,
+      background: false,
+      banners: true,
+    }
   );
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -56,11 +82,19 @@ export function ThemeStudio({
     setBannerUrl(initialBannerUrl ?? null);
   }, [initialBannerUrl]);
 
+  useEffect(() => {
+    setBannerUrlMobile(initialBannerUrlMobile ?? null);
+  }, [initialBannerUrlMobile]);
+
   const current = activePreset(doc);
   const isDirty = useMemo(
     () => JSON.stringify(doc) !== JSON.stringify(saved),
     [doc, saved]
   );
+
+  function toggleSection(id: StudioSection) {
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   function patchPreset(partial: Partial<BrandPreset>) {
     setDoc((prev) => {
@@ -165,137 +199,252 @@ export function ThemeStudio({
     setError("");
   }
 
-  return (
-    <div className="theme-studio grid gap-6 lg:grid-cols-[minmax(18rem,22rem)_1fr]">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+  const previewBlock = (
+    <div>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Predefinição
+          Prévia do catálogo
         </p>
-        <div className="mt-2 flex gap-2">
-          <select
-            value={current.id}
-            onChange={(e) => selectPreset(e.target.value)}
-            className="admin-input flex-1 py-2 text-sm"
-          >
-            {doc.presets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={createPreset}
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            Nova
-          </button>
-        </div>
-
-        <SurfaceEditor
-          title="Header"
-          hint="Barra do topo e rodapé"
-          surface={current.header}
-          onChange={(partial) => patchSurface("header", partial)}
-        />
-        <SurfaceEditor
-          title="Botões"
-          hint="Comprar, filtros e CTAs"
-          surface={current.buttons}
-          onChange={(partial) => patchSurface("buttons", partial)}
-        />
-        <SurfaceEditor
-          title="Fundo do site"
-          hint="Área atrás dos produtos"
-          surface={current.background}
-          onChange={(partial) => patchSurface("background", partial)}
-        />
-
-        <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-          <BannerImageField
-            currentUrl={bannerUrl}
-            onSaved={(url) => {
-              setBannerUrl(url);
-              router.refresh();
-            }}
-          />
-        </div>
-
-        <label className="mt-5 block text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Nome da predefinição
-          <input
-            type="text"
-            maxLength={40}
-            value={current.name}
-            onChange={(e) => patchPreset({ name: e.target.value })}
-            className="admin-input mt-2 w-full py-2 text-sm font-medium normal-case tracking-normal"
-            placeholder="Ex: Oliva clássico"
-          />
-        </label>
-
-        {error && (
-          <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>
-        )}
-        {msg && (
-          <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-400">
-            {msg}
-          </p>
-        )}
-
-        <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => void save()}
-            className="flex-1 rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
-            style={{
-              background: brandFillCss(current.buttons),
-              color: current.buttons.text,
-            }}
-          >
-            {saving ? "Salvando..." : "Salvar predefinição"}
-          </button>
-          {doc.presets.length > 1 && (
+        <div className="grid grid-cols-2 gap-1 rounded-xl border border-zinc-200 p-0.5 dark:border-zinc-700">
+          {(
+            [
+              ["desktop", "Computador"],
+              ["mobile", "Celular"],
+            ] as [PreviewDevice, string][]
+          ).map(([id, label]) => (
             <button
+              key={id}
               type="button"
-              onClick={deletePreset}
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              onClick={() => setPreviewDevice(id)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                previewDevice === id
+                  ? "bg-emerald-600 text-white"
+                  : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              }`}
             >
-              Excluir
+              {label}
             </button>
-          )}
+          ))}
+        </div>
+      </div>
+      <div
+        className={
+          previewDevice === "mobile"
+            ? "mx-auto w-full max-w-[24rem]"
+            : "w-full"
+        }
+      >
+        <CatalogPagePreview
+          preset={current}
+          bannerUrl={bannerUrl}
+          bannerUrlMobile={bannerUrlMobile}
+          device={previewDevice}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="theme-studio grid gap-6 lg:grid-cols-[minmax(18rem,24rem)_1fr]">
+      <div className="order-1 lg:order-2 lg:sticky lg:top-3 lg:self-start">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-4">
+          {previewBlock}
         </div>
       </div>
 
-      <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Prévia do catálogo
-        </p>
-        <CatalogPagePreview preset={current} bannerUrl={bannerUrl} />
+      <div className="order-2 space-y-3 lg:order-1">
+        <CollapsibleSection
+          title="Predefinição"
+          open={openSections.preset}
+          onToggle={() => toggleSection("preset")}
+        >
+          <div className="flex gap-2">
+            <select
+              value={current.id}
+              onChange={(e) => selectPreset(e.target.value)}
+              className="admin-input flex-1 py-2.5 text-sm"
+            >
+              {doc.presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={createPreset}
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              Nova
+            </button>
+          </div>
+          <label className="mt-3 block text-sm font-medium text-zinc-600 dark:text-zinc-300">
+            Nome
+            <input
+              type="text"
+              maxLength={40}
+              value={current.name}
+              onChange={(e) => patchPreset({ name: e.target.value })}
+              className="admin-input mt-1.5 w-full py-2.5 text-sm"
+              placeholder="Ex: Oliva clássico"
+            />
+          </label>
+          {error ? (
+            <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
+          ) : null}
+          {msg ? (
+            <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">
+              {msg}
+            </p>
+          ) : null}
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void save()}
+              className="flex-1 rounded-lg py-3 text-sm font-medium disabled:opacity-50"
+              style={{
+                background: brandFillCss(current.buttons),
+                color: current.buttons.text,
+              }}
+            >
+              {saving ? "Salvando..." : "Salvar predefinição"}
+            </button>
+            {doc.presets.length > 1 ? (
+              <button
+                type="button"
+                onClick={deletePreset}
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Excluir
+              </button>
+            ) : null}
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Header"
+          hint="Barra do topo e rodapé"
+          open={openSections.header}
+          onToggle={() => toggleSection("header")}
+        >
+          <SurfaceEditor
+            surface={current.header}
+            onChange={(partial) => patchSurface("header", partial)}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Botões"
+          hint="Comprar, filtros e CTAs"
+          open={openSections.buttons}
+          onToggle={() => toggleSection("buttons")}
+        >
+          <SurfaceEditor
+            surface={current.buttons}
+            onChange={(partial) => patchSurface("buttons", partial)}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Fundo do site"
+          hint="Área atrás dos produtos"
+          open={openSections.background}
+          onToggle={() => toggleSection("background")}
+        >
+          <SurfaceEditor
+            surface={current.background}
+            onChange={(partial) => patchSurface("background", partial)}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Banners"
+          hint="Imagens da home — computador e celular"
+          open={openSections.banners}
+          onToggle={() => toggleSection("banners")}
+        >
+          <div className="space-y-6">
+            <BannerImageField
+              variant="desktop"
+              currentUrl={bannerUrl}
+              onSaved={(url) => {
+                setBannerUrl(url);
+                router.refresh();
+              }}
+            />
+            <BannerImageField
+              variant="mobile"
+              currentUrl={bannerUrlMobile}
+              onSaved={(url) => {
+                setBannerUrlMobile(url);
+                router.refresh();
+              }}
+            />
+          </div>
+        </CollapsibleSection>
       </div>
     </div>
   );
 }
 
-function SurfaceEditor({
+function CollapsibleSection({
   title,
   hint,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+        aria-expanded={open}
+      >
+        <span>
+          <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            {title}
+          </span>
+          {hint ? (
+            <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
+              {hint}
+            </span>
+          ) : null}
+        </span>
+        <span
+          className={`text-zinc-400 transition ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        >
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SurfaceEditor({
   surface,
   onChange,
 }: {
-  title: string;
-  hint: string;
   surface: BrandSurface;
   onChange: (partial: Partial<BrandSurface>) => void;
 }) {
   return (
-    <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-        {title}
-      </p>
-      <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{hint}</p>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
+    <div>
+      <div className="grid grid-cols-2 gap-2">
         <ModeBtn
           label="Sólida"
           active={surface.mode === "solid"}
@@ -330,10 +479,10 @@ function SurfaceEditor({
 
       {surface.mode === "gradient" && (
         <>
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Forma
           </p>
-          <div className="mt-1 grid grid-cols-3 gap-1">
+          <div className="mt-1 grid grid-cols-3 gap-1.5">
             {(
               [
                 ["linear", "Linear"],
@@ -345,7 +494,7 @@ function SurfaceEditor({
                 key={shape}
                 type="button"
                 onClick={() => onChange({ shape })}
-                className={`rounded-lg border px-2 py-1.5 text-xs font-medium ${
+                className={`rounded-lg border px-2 py-2 text-xs font-medium ${
                   surface.shape === shape
                     ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300"
                     : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
@@ -358,17 +507,17 @@ function SurfaceEditor({
 
           {surface.shape !== "radial" && (
             <>
-              <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Direção
               </p>
-              <div className="mt-1 grid grid-cols-4 gap-1">
+              <div className="mt-1 grid grid-cols-4 gap-1.5">
                 {LINEAR_DIRECTIONS.map((d) => (
                   <button
                     key={d.angle}
                     type="button"
                     title={d.label}
                     onClick={() => onChange({ angle: d.angle })}
-                    className={`rounded-lg border px-1 py-1.5 text-[10px] font-medium ${
+                    className={`rounded-lg border px-1 py-2 text-xs font-medium ${
                       surface.angle === d.angle
                         ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/40"
                         : "border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
@@ -378,7 +527,7 @@ function SurfaceEditor({
                   </button>
                 ))}
               </div>
-              <label className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
+              <label className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
                 Ângulo
                 <input
                   type="range"
@@ -388,7 +537,7 @@ function SurfaceEditor({
                   onChange={(e) => onChange({ angle: Number(e.target.value) })}
                   className="flex-1"
                 />
-                <span className="w-8 tabular-nums">{surface.angle}°</span>
+                <span className="w-8 tabular-nums text-xs">{surface.angle}°</span>
               </label>
             </>
           )}
@@ -401,9 +550,13 @@ function SurfaceEditor({
 function CatalogPagePreview({
   preset,
   bannerUrl,
+  bannerUrlMobile,
+  device,
 }: {
   preset: BrandPreset;
   bannerUrl?: string | null;
+  bannerUrlMobile?: string | null;
+  device: PreviewDevice;
 }) {
   const headerFill = brandFillCss(preset.header);
   const headerText = preset.header.text;
@@ -420,9 +573,19 @@ function CatalogPagePreview({
       ? "rgba(255,255,255,0.28)"
       : "rgba(26,46,18,0.16)";
 
+  const isMobile = device === "mobile";
+  const shownBanner = isMobile
+    ? bannerUrlMobile || bannerUrl || null
+    : bannerUrl || null;
+  const aspectClass = isMobile
+    ? HOME_BANNER_MOBILE.aspectClass
+    : HOME_BANNER_DESKTOP.aspectClass;
+
   return (
     <div
-      className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm dark:border-zinc-700"
+      className={`overflow-hidden border border-zinc-200 shadow-sm dark:border-zinc-700 ${
+        isMobile ? "rounded-[1.75rem]" : "rounded-2xl"
+      }`}
       aria-hidden
     >
       <div
@@ -444,17 +607,19 @@ function CatalogPagePreview({
             style={{ background: headerText, opacity: 0.92 }}
           />
           <span className="ml-auto h-7 min-w-0 flex-1 rounded-full bg-white/95 shadow-sm" />
-          <span className="hidden text-[10px] font-semibold sm:inline" style={{ color: muted }}>
-            Entrar
-          </span>
+          {!isMobile ? (
+            <span className="text-[10px] font-semibold" style={{ color: muted }}>
+              Entrar
+            </span>
+          ) : null}
           <span
             className="h-7 w-7 shrink-0 rounded-full"
             style={{ background: pillBg }}
           />
         </div>
-        <div className="mt-2 flex items-center gap-1.5">
+        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">
           <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
             style={{ background: pillBg, color: headerText }}
           >
             Home
@@ -462,7 +627,7 @@ function CatalogPagePreview({
           {["Todos", "Rações", "Insumos"].map((label) => (
             <span
               key={label}
-              className="px-1 text-[10px] font-medium leading-none"
+              className="shrink-0 px-1 text-[10px] font-medium leading-none"
               style={{ color: muted }}
             >
               {label}
@@ -472,12 +637,12 @@ function CatalogPagePreview({
       </div>
 
       <div className="space-y-3 px-3 py-3" style={{ background: pageBg, color: pageFg }}>
-        {bannerUrl ? (
+        {shownBanner ? (
           <div
-            className={`relative w-full overflow-hidden rounded-2xl border border-black/10 ${HOME_BANNER_ASPECT_CLASS}`}
+            className={`relative w-full overflow-hidden rounded-2xl border border-black/10 ${aspectClass}`}
           >
             <Image
-              src={bannerUrl}
+              src={shownBanner}
               alt=""
               fill
               className="object-cover"
@@ -487,26 +652,30 @@ function CatalogPagePreview({
         ) : (
           <div className="rounded-2xl border border-dashed border-black/15 px-3 py-5 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
-              Sem banner
+              Sem banner {isMobile ? "celular" : "computador"}
             </p>
-            <p className="mt-1 text-[11px] font-bold opacity-80">Nome da loja</p>
-            <p className="mx-auto mt-1 max-w-[14rem] text-[9px] leading-snug opacity-55">
+            <p className="mt-1 text-xs font-bold opacity-80">Nome da loja</p>
+            <p className="mx-auto mt-1 max-w-[14rem] text-[10px] leading-snug opacity-55">
               Texto de apresentação aparece aqui quando não há imagem.
             </p>
           </div>
         )}
-        <div className="grid grid-cols-3 gap-2">
-          {[0, 1, 2].map((i) => (
+        <div
+          className={
+            isMobile ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-2"
+          }
+        >
+          {(isMobile ? [0, 1] : [0, 1, 2]).map((i) => (
             <div
               key={i}
               className="overflow-hidden rounded-xl border border-amber-200/70 bg-[#F3EFE4]"
             >
-              <div className="h-14 bg-zinc-200/80 sm:h-20" />
+              <div className={isMobile ? "h-20 bg-zinc-200/80" : "h-14 bg-zinc-200/80 sm:h-20"} />
               <div className="space-y-1.5 p-2">
                 <div className="h-2 w-full rounded bg-zinc-300/80" />
                 <div className="h-2 w-2/3 rounded bg-zinc-300/60" />
                 <div
-                  className="mt-1.5 h-6 w-full rounded-full text-center text-[9px] font-semibold leading-6"
+                  className="mt-1.5 h-7 w-full rounded-full text-center text-[10px] font-semibold leading-7"
                   style={{ background: btnFill, color: btnText }}
                 >
                   Comprar
@@ -516,7 +685,7 @@ function CatalogPagePreview({
           ))}
         </div>
         <div
-          className="mx-auto h-8 w-40 rounded-full text-center text-[11px] font-semibold leading-8"
+          className="mx-auto h-9 w-40 rounded-full text-center text-xs font-semibold leading-9"
           style={{ background: btnFill, color: btnText }}
         >
           Ver ofertas
@@ -524,7 +693,7 @@ function CatalogPagePreview({
       </div>
 
       <div
-        className="grid grid-cols-3 gap-2 px-3 py-3 text-[9px] leading-tight"
+        className="grid grid-cols-3 gap-2 px-3 py-3 text-[10px] leading-tight"
         style={{ background: headerFill, color: headerText }}
       >
         <div>

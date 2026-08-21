@@ -2,30 +2,34 @@
 
 import { ImageCropModal } from "@/components/admin/ImageCropModal";
 import {
-  HOME_BANNER_ASPECT,
-  HOME_BANNER_ASPECT_CLASS,
-  HOME_BANNER_IDEAL_SIZE_LABEL,
+  homeBannerConfig,
+  homeBannerIdealLabel,
+  type HomeBannerVariant,
 } from "@/lib/home-banner";
 
 type BannerImageCropModalProps = {
   imageSrc: string;
+  variant?: HomeBannerVariant;
   onCancel: () => void;
   onConfirm: (file: File) => void;
 };
 
 export function BannerImageCropModal({
   imageSrc,
+  variant = "desktop",
   onCancel,
   onConfirm,
 }: BannerImageCropModalProps) {
+  const cfg = homeBannerConfig(variant);
+  const ideal = homeBannerIdealLabel(variant);
   return (
     <ImageCropModal
       imageSrc={imageSrc}
-      aspect={HOME_BANNER_ASPECT}
-      frameClassName={HOME_BANNER_ASPECT_CLASS}
-      title="Ajustar banner da home"
-      description={`Arraste e use o zoom para definir a área visível. Tamanho ideal: ${HOME_BANNER_IDEAL_SIZE_LABEL} (proporção 3:1).`}
-      fileName="banner.jpg"
+      aspect={cfg.aspect}
+      frameClassName={cfg.aspectClass}
+      title={`Ajustar ${cfg.title.toLowerCase()}`}
+      description={`Arraste e use o zoom para definir a área visível. Tamanho ideal: ${ideal} (proporção ${cfg.label}).`}
+      fileName={variant === "mobile" ? "banner-mobile.jpg" : "banner.jpg"}
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

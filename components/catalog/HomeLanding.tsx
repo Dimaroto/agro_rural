@@ -12,7 +12,7 @@ import {
 import type { CatalogProduct } from "@/components/ProductCard";
 import { formatPrice } from "@/lib/format";
 import { hasDisplayImage, isPhotoImageUrl } from "@/lib/image-url";
-import { HOME_BANNER_ASPECT_CLASS } from "@/lib/home-banner";
+import { HOME_BANNER_DESKTOP, HOME_BANNER_MOBILE } from "@/lib/home-banner";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -260,11 +260,13 @@ function CategoryCard({
 export function HomeLanding({
   storeName,
   bannerUrl,
+  bannerUrlMobile,
   categories,
   products,
 }: {
   storeName: string;
   bannerUrl?: string | null;
+  bannerUrlMobile?: string | null;
   categories: Category[];
   products: CatalogProduct[];
 }) {
@@ -289,26 +291,69 @@ export function HomeLanding({
   // Casinha marcada = aparece na home (já filtradas por active no catálogo).
   const visibleCategories = categories.filter((c) => c.showOnHome ?? true);
 
+  const desktopBanner =
+    bannerUrl && hasDisplayImage(bannerUrl) ? bannerUrl : null;
+  const mobileBanner =
+    bannerUrlMobile && hasDisplayImage(bannerUrlMobile)
+      ? bannerUrlMobile
+      : desktopBanner;
+  const hasAnyBanner = Boolean(desktopBanner || mobileBanner);
+
   return (
     <div className="catalog-page catalog-page--simple">
       <div className="mx-auto w-full max-w-[var(--catalog-content-max)] px-[var(--catalog-gutter)] py-8 sm:py-10 lg:py-12">
-        {bannerUrl && hasDisplayImage(bannerUrl) ? (
+        {hasAnyBanner ? (
           <section className="home-hero overflow-hidden rounded-3xl border border-brand/25 p-0">
-            <Link
-              href="/produtos"
-              aria-label="Ver produtos"
-              className={`relative block w-full overflow-hidden ${HOME_BANNER_ASPECT_CLASS}`}
-            >
-              <Image
-                src={bannerUrl}
-                alt={storeName}
-                fill
-                priority
-                className="object-cover"
-                sizes="(max-width: 1280px) 100vw, 80rem"
-                unoptimized
-              />
-            </Link>
+            {mobileBanner ? (
+              <Link
+                href="/produtos"
+                aria-label="Ver produtos"
+                className={`relative block w-full overflow-hidden md:hidden ${HOME_BANNER_MOBILE.aspectClass}`}
+              >
+                <Image
+                  src={mobileBanner}
+                  alt={storeName}
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="100vw"
+                  unoptimized
+                />
+              </Link>
+            ) : null}
+            {desktopBanner ? (
+              <Link
+                href="/produtos"
+                aria-label="Ver produtos"
+                className={`relative hidden w-full overflow-hidden md:block ${HOME_BANNER_DESKTOP.aspectClass}`}
+              >
+                <Image
+                  src={desktopBanner}
+                  alt={storeName}
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="(max-width: 1280px) 100vw, 80rem"
+                  unoptimized
+                />
+              </Link>
+            ) : mobileBanner ? (
+              <Link
+                href="/produtos"
+                aria-label="Ver produtos"
+                className={`relative hidden w-full overflow-hidden md:block ${HOME_BANNER_DESKTOP.aspectClass}`}
+              >
+                <Image
+                  src={mobileBanner}
+                  alt={storeName}
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="(max-width: 1280px) 100vw, 80rem"
+                  unoptimized
+                />
+              </Link>
+            ) : null}
           </section>
         ) : (
           <section className="home-hero rounded-3xl border border-brand/25 px-6 py-10 text-center sm:px-10 sm:py-14">
