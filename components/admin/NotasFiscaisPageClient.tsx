@@ -164,6 +164,7 @@ export function NotasFiscaisPageClient() {
 
   async function refreshLists(s: EmissorSession) {
     setError("");
+    setInfo("");
     try {
       const emp = await emissorFetch<{ data?: EmpresaRow[] } | EmpresaRow[]>(
         "/api/v1/empresas",
@@ -184,17 +185,39 @@ export function NotasFiscaisPageClient() {
         const next = { ...s, empresaId };
         saveEmissorSession(next);
         setSession(next);
+        return; // useEffect reexecuta com empresaId
       }
-      if (!empresaId) return;
-      const nfe = await emissorFetch<{ data?: NotaRow[] } | NotaRow[]>(
-        `/api/v1/empresas/${empresaId}/nfe`,
-        { token: s.token, baseUrl: s.baseUrl }
-      );
-      if (nfe.ok) {
-        const rows = Array.isArray(nfe.data)
-          ? nfe.data
-          : (nfe.data as { data?: NotaRow[] })?.data ?? [];
-        setNotas(rows);
+      if (!empresaId) {
+        setNotas([]);
+        setInfo("Nenhuma empresa no emissor.");
+        return;
+      }
+      const nfe = await emissorFetch<{
+        data?: NotaRow[];
+        message?: string;
+        mensagem?: string;
+      }>(`/api/v1/empresas/${empresaId}/nfe?per_page=50`, {
+        token: s.token,
+        baseUrl: s.baseUrl,
+      });
+      if (!nfe.ok) {
+        setNotas([]);
+        setError(
+          nfe.data.mensagem ||
+            nfe.data.message ||
+            `Falha ao listar notas (HTTP ${nfe.status}).`
+        );
+        return;
+      }
+      const body = nfe.data as { data?: NotaRow[] } | NotaRow[];
+      const rows = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+          ? body.data
+          : [];
+      setNotas(rows);
+      if (rows.length === 0) {
+        setInfo("Nenhuma nota de saída listada no emissor.");
       }
     } catch {
       setInfo("Emissor offline.");

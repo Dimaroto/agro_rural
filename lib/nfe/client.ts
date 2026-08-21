@@ -355,18 +355,59 @@ export async function emitNfeFromBrowser(input: {
     throw new Error(networkErrorMessage(err));
   }
 
-  const data = res.json as AgroNfeEmitResponse & {
+  const raw = res.json;
+  const data = (
+    raw && typeof raw === "object" ? raw : {}
+  ) as AgroNfeEmitResponse & {
     mensagem?: string;
+    message?: string;
     erros?: unknown;
+    chaveAcesso?: string;
+    status?: string;
   };
 
-  if (!res.ok) {
-    throw new Error(
-      data.mensagem ||
-        (typeof data.erros === "string" ? data.erros : null) ||
-        `Falha no emissor (HTTP ${res.status}).`
-    );
+  // Se o proxy devolveu texto bruto por falha de parse, tenta extrair campos
+  if (typeof (raw as { mensagem?: unknown })?.mensagem === "string") {
+    const blob = String((raw as { mensagem: string }).mensagem);
+    if (blob.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(blob) as AgroNfeEmitResponse;
+        Object.assign(data, parsed);
+      } catch {
+        const chave = blob.match(/"chaveAcesso"\s*:\s*"(\d{44})"/)?.[1];
+        const status = blob.match(/"status"\s*:\s*"([^"]+)"/)?.[1];
+        const numero = blob.match(/"numero"\s*:\s*(\d+)/)?.[1];
+        if (chave) data.chaveAcesso = chave;
+        if (status) data.status = status;
+        if (numero) data.numero = Number(numero);
+        data.mensagem = undefined;
+      }
+    }
   }
 
-  return data;
+  if (!res.ok) {
+    const errMsg =
+      (typeof data.mensagem === "string" && !data.mensagem.trim().startsWith("{")
+        ? data.mensagem
+        : null) ||
+      data.message ||
+      (typeof data.erros === "string" ? data.erros : null) ||
+      `Falha no emissor (HTTP ${res.status}).`;
+    throw new Error(errMsg);
+  }
+
+  return {
+    status: data.status || "desconhecido",
+    chaveAcesso: data.chaveAcesso ?? null,
+    protocolo: data.protocolo ?? null,
+    mensagem:
+      typeof data.mensagem === "string" && !data.mensagem.trim().startsWith("{")
+        ? data.mensagem
+        : undefined,
+    numero: data.numero ?? null,
+    serie: data.serie ?? null,
+    xmlUrl: data.xmlUrl ?? null,
+    danfeUrl: data.danfeUrl ?? null,
+    referenciaId: data.referenciaId ?? null,
+  };
 }

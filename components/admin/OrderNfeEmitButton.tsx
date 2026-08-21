@@ -123,33 +123,57 @@ export function OrderNfeEmitButton({
         payload: prepData.payload,
       });
 
-      await fetch(`/api/admin/orders/${orderId}/nfe-status`, {
+      const chave =
+        (result.chaveAcesso ?? "").replace(/\D/g, "") || null;
+      const statusNorm = String(result.status ?? "")
+        .toLowerCase()
+        .trim();
+      const autorizada = statusNorm === "autorizada" && Boolean(chave);
+
+      const patch = await fetch(`/api/admin/orders/${orderId}/nfe-status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nfeChave: result.chaveAcesso ?? null,
-          nfeStatus: result.status ?? null,
+          nfeChave: chave,
+          nfeStatus: autorizada ? "autorizada" : result.status ?? null,
           nfeNumero: result.numero ?? null,
           nfeModelo: 55,
           nfeProtocolo: result.protocolo ?? null,
-          nfeEmitidoAt:
-            result.status === "autorizada" ? new Date().toISOString() : null,
+          nfeEmitidoAt: autorizada ? new Date().toISOString() : null,
         }),
       });
+      if (!patch.ok) {
+        const patchData = await patch.json().catch(() => ({}));
+        throw new Error(
+          typeof patchData.error === "string"
+            ? patchData.error
+            : "Nota emitida, mas falhou ao salvar o status na venda. Atualize a página."
+        );
+      }
 
-      if (result.chaveAcesso) setChaveLocal(result.chaveAcesso);
-      if (result.status) setStatusLocal(result.status);
+      if (chave) setChaveLocal(chave);
+      if (autorizada) setStatusLocal("autorizada");
+      else if (result.status) setStatusLocal(String(result.status));
       if (result.numero != null) setNumeroLocal(result.numero);
 
-      setMessage(
-        result.status === "autorizada"
-          ? `NF-e autorizada${result.numero != null ? ` nº ${result.numero}` : ""}.`
-          : result.mensagem || `Status: ${result.status}`
-      );
+      const shortMsg = (() => {
+        if (autorizada) {
+          return `NF-e autorizada${result.numero != null ? ` nº ${result.numero}` : ""}.`;
+        }
+        const m = result.mensagem?.trim();
+        if (m && !m.startsWith("{") && m.length < 180) return m;
+        return `Status: ${result.status || "processado"}`;
+      })();
+      setMessage(shortMsg);
       setShowTokenHelp(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao emitir.");
+      const raw = err instanceof Error ? err.message : "Falha ao emitir.";
+      setError(
+        raw.trim().startsWith("{")
+          ? "Falha ao emitir. Tente de novo; se persistir, reinicie o emissor."
+          : raw
+      );
     } finally {
       setLoading(false);
     }
@@ -189,7 +213,9 @@ export function OrderNfeEmitButton({
     setMessage("Token salvo neste aparelho. Tente emitir de novo.");
   }
 
-  const alreadyOk = statusLocal === "autorizada" && chaveLocal;
+  const alreadyOk =
+    String(statusLocal).toLowerCase() === "autorizada" &&
+    chaveLocal.replace(/\D/g, "").length === 44;
   const btnClass =
     "admin-btn-secondary min-h-[2.75rem] px-3 py-2 text-xs md:min-h-0";
   const emitClass =
@@ -246,7 +272,7 @@ export function OrderNfeEmitButton({
       {error ? (
         <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       ) : null}
-      {message ? (
+      {message && !message.trim().startsWith("{") ? (
         <p className="text-xs text-emerald-700 dark:text-emerald-400">{message}</p>
       ) : null}
       {showTokenHelp || (!hasToken && !loading && !alreadyOk) ? (

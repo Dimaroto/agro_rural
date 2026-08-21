@@ -48,7 +48,28 @@ class NfeController extends Controller
             $query->whereDate('created_at', '<=', $ate);
         }
 
-        $notas = $query->paginate((int) $request->query('per_page', 20));
+        $notas = $query
+            ->select([
+                'id',
+                'empresa_id',
+                'chave',
+                'numero',
+                'serie',
+                'modelo',
+                'status',
+                'protocolo',
+                'c_stat',
+                'x_motivo',
+                'autorizada_em',
+                'cancelada_em',
+                'created_at',
+                'updated_at',
+            ])
+            ->paginate((int) $request->query('per_page', 50));
+
+        $notas->setCollection(
+            $notas->getCollection()->map(fn (Nota $nota) => $this->serializeNota($nota))
+        );
 
         return response()->json($notas);
     }
@@ -261,7 +282,9 @@ class NfeController extends Controller
             'numero' => $nota->numero,
             'serie' => $nota->serie,
             'modelo' => $nota->modelo,
-            'status' => $nota->status,
+            'status' => $nota->status instanceof NotaStatus
+                ? $nota->status->value
+                : (string) $nota->status,
             'protocolo' => $nota->protocolo,
             'c_stat' => $nota->c_stat,
             'x_motivo' => $nota->x_motivo,
