@@ -25,7 +25,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use InvalidArgumentException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NfeController extends Controller
 {
@@ -148,7 +147,7 @@ class NfeController extends Controller
         ]);
     }
 
-    public function danfe(Request $request, Empresa $empresa, string $chave, DanfeService $danfe): StreamedResponse|JsonResponse
+    public function danfe(Request $request, Empresa $empresa, string $chave, DanfeService $danfe): Response|JsonResponse
     {
         $this->authorize('manageNfe', $empresa);
         $nota = $this->findNota($empresa, $chave);
@@ -161,9 +160,12 @@ class NfeController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
 
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf;
-        }, $chave.'.pdf', ['Content-Type' => 'application/pdf']);
+        // response() binário (streamDownload às vezes marca text/html)
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$chave.'.pdf"',
+            'Content-Length' => (string) strlen($pdf),
+        ]);
     }
 
     public function cancelar(
@@ -270,7 +272,13 @@ class NfeController extends Controller
 
     private function findNota(Empresa $empresa, string $chave): Nota
     {
-        return $empresa->notas()->where('chave', $chave)->firstOrFail();
+        $digits = preg_replace('/\D+/', '', $chave) ?: $chave;
+
+        return $empresa->notas()
+            ->where(function ($q) use ($chave, $digits) {
+                $q->where('chave', $chave)->orWhere('chave', $digits);
+            })
+            ->firstOrFail();
     }
 
     private function serializeNota(Nota $nota): array

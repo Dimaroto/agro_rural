@@ -35,16 +35,48 @@ function base64ToBlob(base64: string, type: string): Blob {
   return new Blob([binary], { type });
 }
 
+/** Remove BOM UTF-8 (às vezes vazado por arquivo PHP com BOM no emissor). */
+function stripBomBase64(base64: string): string {
+  try {
+    const raw = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    if (
+      raw.length >= 3 &&
+      raw[0] === 0xef &&
+      raw[1] === 0xbb &&
+      raw[2] === 0xbf
+    ) {
+      let binary = "";
+      const cleaned = raw.subarray(3);
+      const chunk = 0x8000;
+      for (let i = 0; i < cleaned.length; i += chunk) {
+        binary += String.fromCharCode(...cleaned.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    }
+  } catch {
+    /* mantém original */
+  }
+  return base64;
+}
+
 function assertPdfBase64(base64: string) {
   try {
-    const head = atob(base64.slice(0, 32));
-    if (!head.startsWith("%PDF")) {
+    const head = atob(base64.slice(0, 48));
+    const idx = head.indexOf("%PDF");
+    if (idx < 0 || idx > 4) {
+      // JSON de erro em base64?
+      if (head.trimStart().startsWith("{") || head.trimStart().startsWith("<")) {
+        throw new Error(
+          "O emissor não devolveu o PDF do DANFE. Atualize a lista em Notas Fiscais e tente de novo."
+        );
+      }
       throw new Error(
         "O DANFE veio vazio ou inválido. Confira se a nota está autorizada no emissor."
       );
     }
   } catch (e) {
-    if (e instanceof Error && e.message.includes("DANFE")) throw e;
+    if (e instanceof Error && (e.message.includes("DANFE") || e.message.includes("emissor")))
+      throw e;
     throw new Error("Não foi possível ler o PDF do DANFE.");
   }
 }
@@ -97,9 +129,10 @@ async function fetchNotaBase64(
         : `Não foi possível baixar o XML (HTTP ${res.status}).`
     );
   }
-  if (kind === "danfe") assertPdfBase64(res.base64);
+  let base64 = stripBomBase64(res.base64);
+  if (kind === "danfe") assertPdfBase64(base64);
   return {
-    base64: res.base64,
+    base64,
     filename: kind === "danfe" ? `${digits}-danfe.pdf` : `${digits}.xml`,
     mime: kind === "danfe" ? "application/pdf" : "application/xml",
   };

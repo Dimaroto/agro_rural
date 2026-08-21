@@ -156,15 +156,17 @@ export function OrderNfeEmitButton({
       else if (result.status) setStatusLocal(String(result.status));
       if (result.numero != null) setNumeroLocal(result.numero);
 
-      const shortMsg = (() => {
-        if (autorizada) {
-          return `NF-e autorizada${result.numero != null ? ` nº ${result.numero}` : ""}.`;
-        }
+      // Já exibido pelo bloco alreadyOk — evita “autorizada” duplicada
+      if (autorizada) {
+        setMessage("");
+      } else {
         const m = result.mensagem?.trim();
-        if (m && !m.startsWith("{") && m.length < 180) return m;
-        return `Status: ${result.status || "processado"}`;
-      })();
-      setMessage(shortMsg);
+        setMessage(
+          m && !m.startsWith("{") && m.length < 180
+            ? m
+            : `Status: ${result.status || "processado"}`
+        );
+      }
       setShowTokenHelp(false);
       router.refresh();
     } catch (err) {
@@ -272,7 +274,7 @@ export function OrderNfeEmitButton({
       {error ? (
         <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       ) : null}
-      {message && !message.trim().startsWith("{") ? (
+      {message && !alreadyOk && !message.trim().startsWith("{") ? (
         <p className="text-xs text-emerald-700 dark:text-emerald-400">{message}</p>
       ) : null}
       {showTokenHelp || (!hasToken && !loading && !alreadyOk) ? (

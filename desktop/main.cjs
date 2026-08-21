@@ -321,13 +321,20 @@ app.whenReady().then(() => {
             : undefined,
       };
       const res = await fetch(url, init);
-      const contentType = res.headers.get('content-type') || '';
-      const buf = Buffer.from(await res.arrayBuffer());
+      let contentType = res.headers.get('content-type') || '';
+      let buf = Buffer.from(await res.arrayBuffer());
+      // BOM UTF-8 vazado por routes/api.php com BOM — corrompe PDF/%JSON
+      if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+        buf = buf.subarray(3);
+      }
       // DANFE/XML sempre em base64 (Content-Type às vezes vem incompleto)
       const forceBinary =
         opts?.binary === true ||
         /\/danfe(\?|$)|\/xml(\?|$)/i.test(path) ||
         /pdf|octet-stream|xml|zip|image\//i.test(contentType);
+      if (forceBinary && /\/danfe(\?|$)/i.test(path) && buf.subarray(0, 4).toString() === '%PDF') {
+        contentType = 'application/pdf';
+      }
       return {
         ok: res.ok,
         status: res.status,
@@ -354,7 +361,10 @@ app.whenReady().then(() => {
         '_'
       );
       if (!base64) return { ok: false, error: 'Arquivo vazio' };
-      const buf = Buffer.from(base64, 'base64');
+      let buf = Buffer.from(base64, 'base64');
+      if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+        buf = buf.subarray(3);
+      }
       if (filename.toLowerCase().endsWith('.pdf') && buf.subarray(0, 4).toString() !== '%PDF') {
         return {
           ok: false,
@@ -384,7 +394,10 @@ app.whenReady().then(() => {
       const base64 = String(opts?.base64 || '');
       const defaultName = String(opts?.defaultName || `agro-${Date.now()}.bin`);
       if (!base64) return { ok: false, error: 'Arquivo vazio' };
-      const buf = Buffer.from(base64, 'base64');
+      let buf = Buffer.from(base64, 'base64');
+      if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+        buf = buf.subarray(3);
+      }
       const { dialog } = require('electron');
       const win =
         mainWindow && !mainWindow.isDestroyed()
