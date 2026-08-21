@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { CameraIcon } from "@/components/icons/UiIcons";
 import { BannerImageCropModal } from "@/components/admin/BannerImageCropModal";
 import { formatApiError } from "@/lib/apiError";
-import { HOME_BANNER_ASPECT_CLASS, HOME_BANNER_IDEAL_SIZE_LABEL } from "@/lib/home-banner";
+import {
+  HOME_BANNER_ASPECT_CLASS,
+  HOME_BANNER_IDEAL_SIZE_LABEL,
+} from "@/lib/home-banner";
 
 type BannerImageFieldProps = {
   currentUrl: string | null;
@@ -20,6 +23,7 @@ export function BannerImageField({
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -95,21 +99,54 @@ export function BannerImageField({
     await saveBanner(null);
   }
 
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (busy) return;
+    setDragging(true);
+  }
+
+  function onDragLeave(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    if (busy) return;
+    const file = e.dataTransfer.files?.[0] ?? null;
+    openCrop(file);
+  }
+
+  const dropClass = dragging
+    ? "border-emerald-500 bg-emerald-50/80 dark:border-emerald-500 dark:bg-emerald-950/40"
+    : "border-zinc-300 dark:border-zinc-600";
+
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
         Banner da home
       </p>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-        Substitui o texto de apresentação na página inicial, com cantos
-        arredondados. Tamanho ideal: {HOME_BANNER_IDEAL_SIZE_LABEL} (proporção
-        3:1).
+        Arraste uma imagem ou clique para selecionar. Substitui o texto de
+        apresentação na página inicial. Tamanho ideal:{" "}
+        {HOME_BANNER_IDEAL_SIZE_LABEL} (proporção 3:1).
       </p>
 
       {currentUrl ? (
         <div className="mt-3">
-          <div
-            className={`relative w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 ${HOME_BANNER_ASPECT_CLASS}`}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={onDragOver}
+            onDragEnter={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className={`relative block w-full overflow-hidden rounded-2xl border-2 border-dashed bg-zinc-100 text-left transition disabled:opacity-50 dark:bg-zinc-800 ${HOME_BANNER_ASPECT_CLASS} ${dropClass}`}
           >
             <Image
               src={currentUrl}
@@ -118,7 +155,14 @@ export function BannerImageField({
               className="object-cover"
               unoptimized
             />
-          </div>
+            <span className="absolute inset-x-0 bottom-0 bg-black/45 px-2 py-1.5 text-center text-[11px] font-medium text-white">
+              {dragging
+                ? "Solte para trocar"
+                : busy
+                  ? "Salvando…"
+                  : "Arraste outra imagem ou clique para trocar"}
+            </span>
+          </button>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
@@ -143,20 +187,25 @@ export function BannerImageField({
           type="button"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          className={`mt-3 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50 text-zinc-500 transition hover:border-emerald-400 hover:bg-emerald-50/50 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-950 dark:hover:border-emerald-600 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 ${HOME_BANNER_ASPECT_CLASS}`}
+          onDragOver={onDragOver}
+          onDragEnter={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          className={`mt-3 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed bg-zinc-50 text-zinc-500 transition hover:border-emerald-400 hover:bg-emerald-50/50 hover:text-emerald-700 disabled:opacity-50 dark:bg-zinc-950 dark:hover:border-emerald-600 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 ${HOME_BANNER_ASPECT_CLASS} ${dropClass}`}
         >
           <CameraIcon className="h-6 w-6" />
           <span className="text-xs font-medium">
-            {busy ? "Salvando…" : "Selecionar imagem"}
+            {busy
+              ? "Salvando…"
+              : dragging
+                ? "Solte a imagem aqui"
+                : "Arraste ou selecione uma imagem"}
           </span>
         </button>
       )}
 
       {error ? (
         <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>
-      ) : null}
-      {busy && currentUrl ? (
-        <p className="mt-2 text-xs text-zinc-500">Salvando…</p>
       ) : null}
 
       <input

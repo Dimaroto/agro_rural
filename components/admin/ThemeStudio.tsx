@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { formatApiError } from "@/lib/apiError";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
+import { BannerImageField } from "@/components/admin/BannerImageField";
+import { HOME_BANNER_ASPECT_CLASS } from "@/lib/home-banner";
 import {
   LINEAR_DIRECTIONS,
   MAX_BRAND_PRESETS,
@@ -23,15 +26,22 @@ import {
 
 type ThemeStudioProps = {
   initialTheme?: string | BrandThemeDocument | null;
+  initialBannerUrl?: string | null;
 };
 
-export function ThemeStudio({ initialTheme }: ThemeStudioProps) {
+export function ThemeStudio({
+  initialTheme,
+  initialBannerUrl = null,
+}: ThemeStudioProps) {
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
   const [saved, setSaved] = useState(() =>
     parseBrandThemeDocument(initialTheme ?? null)
   );
   const [doc, setDoc] = useState(saved);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(
+    initialBannerUrl ?? null
+  );
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
@@ -41,6 +51,10 @@ export function ThemeStudio({ initialTheme }: ThemeStudioProps) {
     setSaved(next);
     setDoc(next);
   }, [initialTheme]);
+
+  useEffect(() => {
+    setBannerUrl(initialBannerUrl ?? null);
+  }, [initialBannerUrl]);
 
   const current = activePreset(doc);
   const isDirty = useMemo(
@@ -197,6 +211,16 @@ export function ThemeStudio({ initialTheme }: ThemeStudioProps) {
           onChange={(partial) => patchSurface("background", partial)}
         />
 
+        <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+          <BannerImageField
+            currentUrl={bannerUrl}
+            onSaved={(url) => {
+              setBannerUrl(url);
+              router.refresh();
+            }}
+          />
+        </div>
+
         <label className="mt-5 block text-xs font-medium uppercase tracking-wide text-zinc-400">
           Nome da predefinição
           <input
@@ -247,7 +271,7 @@ export function ThemeStudio({ initialTheme }: ThemeStudioProps) {
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
           Prévia do catálogo
         </p>
-        <CatalogPagePreview preset={current} />
+        <CatalogPagePreview preset={current} bannerUrl={bannerUrl} />
       </div>
     </div>
   );
@@ -374,7 +398,13 @@ function SurfaceEditor({
   );
 }
 
-function CatalogPagePreview({ preset }: { preset: BrandPreset }) {
+function CatalogPagePreview({
+  preset,
+  bannerUrl,
+}: {
+  preset: BrandPreset;
+  bannerUrl?: string | null;
+}) {
   const headerFill = brandFillCss(preset.header);
   const headerText = preset.header.text;
   const pageBg = brandFillCss(preset.background);
@@ -442,6 +472,29 @@ function CatalogPagePreview({ preset }: { preset: BrandPreset }) {
       </div>
 
       <div className="space-y-3 px-3 py-3" style={{ background: pageBg, color: pageFg }}>
+        {bannerUrl ? (
+          <div
+            className={`relative w-full overflow-hidden rounded-2xl border border-black/10 ${HOME_BANNER_ASPECT_CLASS}`}
+          >
+            <Image
+              src={bannerUrl}
+              alt=""
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-black/15 px-3 py-5 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+              Sem banner
+            </p>
+            <p className="mt-1 text-[11px] font-bold opacity-80">Nome da loja</p>
+            <p className="mx-auto mt-1 max-w-[14rem] text-[9px] leading-snug opacity-55">
+              Texto de apresentação aparece aqui quando não há imagem.
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           {[0, 1, 2].map((i) => (
             <div

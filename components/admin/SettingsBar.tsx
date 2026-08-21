@@ -10,18 +10,13 @@ import {
   readPdvNotifPref,
   type PdvNotifPref,
 } from "@/lib/pdv-notifications";
-import { BannerImageField } from "@/components/admin/BannerImageField";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
 
 type SettingsBarProps = {
   initialWhatsapp?: string | null;
-  initialBannerUrl?: string | null;
 };
 
-export function SettingsBar({
-  initialWhatsapp,
-  initialBannerUrl,
-}: SettingsBarProps) {
+export function SettingsBar({ initialWhatsapp }: SettingsBarProps) {
   const { theme, setTheme, mounted } = useTheme();
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
@@ -29,7 +24,6 @@ export function SettingsBar({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp ?? "");
-  const [bannerUrl, setBannerUrl] = useState(initialBannerUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [whatsappMsg, setWhatsappMsg] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
@@ -70,10 +64,6 @@ export function SettingsBar({
   useEffect(() => {
     setWhatsapp(initialWhatsapp ?? "");
   }, [initialWhatsapp]);
-
-  useEffect(() => {
-    setBannerUrl(initialBannerUrl ?? null);
-  }, [initialBannerUrl]);
 
   useEffect(() => {
     if (!notificationsSupported()) {
@@ -339,10 +329,10 @@ export function SettingsBar({
           {showStoreSettings && (
             <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
               <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-                Cores do site
+                Layout do site
               </p>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Header, botões, fundo e predefinições do catálogo.
+                Cores, banner da home e predefinições do catálogo.
               </p>
               <button
                 type="button"
@@ -351,28 +341,16 @@ export function SettingsBar({
                   if (unsaved?.isDirty) {
                     unsaved.requestNavigation({
                       type: "href",
-                      href: "/admin/cores",
+                      href: "/admin/aparencia",
                     });
                     return;
                   }
-                  router.push("/admin/cores");
+                  router.push("/admin/aparencia");
                 }}
                 className="mt-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
               >
-                Configurar cores
+                Configurar layout
               </button>
-            </div>
-          )}
-
-          {showStoreSettings && (
-            <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-              <BannerImageField
-                currentUrl={bannerUrl}
-                onSaved={(url) => {
-                  setBannerUrl(url);
-                  router.refresh();
-                }}
-              />
             </div>
           )}
         </div>
