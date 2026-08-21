@@ -43,17 +43,24 @@ export function StockBadge({
   available,
   compact = false,
   overlay = false,
+  stockUnit = "UN",
 }: {
   status: StockStatus;
   available?: number;
   compact?: boolean;
   overlay?: boolean;
+  stockUnit?: "UN" | "KG" | string | null;
 }) {
   const { Icon, className, qtySuffix } = config[status];
   const label = labels[status];
   const qty =
     qtySuffix && available !== undefined
-      ? ` · ${available} un.`
+      ? stockUnit === "KG"
+        ? ` · ${(available / 1000).toLocaleString("pt-BR", {
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3,
+          })} kg`
+        : ` · ${available} un.`
       : "";
 
   return (

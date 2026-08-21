@@ -19,6 +19,7 @@ export type PdvProductListItem = {
   categorySlug: string;
   priceCents: number;
   available: number;
+  stockUnit: "UN" | "KG";
   imageUrl: string | null;
   customizationFields: ReturnType<typeof projectProductFields>;
 };

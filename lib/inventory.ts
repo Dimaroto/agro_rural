@@ -1,5 +1,9 @@
 import { MovementType, Prisma } from "@prisma/client";
 import { prisma } from "./db";
+import {
+  stockSuffix as formatStockSuffix,
+  type StockUnitCode,
+} from "./stock-unit";
 
 export class InventoryError extends Error {
   constructor(message: string) {
@@ -35,9 +39,11 @@ export function maxOrderQuantity(available: number) {
   return Math.max(0, Math.floor(available));
 }
 
-export function stockSuffix(available: number): string {
-  if (available <= 0) return " — esgotado";
-  return ` (${available} un.)`;
+export function stockSuffix(
+  available: number,
+  stockUnit: StockUnitCode | string | null | undefined = "UN"
+): string {
+  return formatStockSuffix(available, stockUnit);
 }
 
 type Tx = Prisma.TransactionClient;

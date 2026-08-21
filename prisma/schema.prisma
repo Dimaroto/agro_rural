@@ -133,6 +133,11 @@ model Product {
   extraImageUrls String[] @default([])
   quantity         Int @default(0)
   reservedQuantity Int @default(0)
+  /**
+   * Unidade do estoque operacional.
+   * UN = unidades; KG = gramas no banco (ex.: 1250 = 1,250 kg).
+   */
+  stockUnit    StockUnit @default(UN)
   active       Boolean  @default(true)
   /** NCM (8 dígitos) para NF-e. */
   ncm          String?
@@ -161,6 +166,11 @@ model Product {
   @@index([storeId, code])
   @@index([storeId, barcode])
   @@map("products")
+}
+
+enum StockUnit {
+  UN
+  KG
 }
 
 enum ProductMeasureUnit {

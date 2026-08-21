@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { ensureProductStockUnitColumn } from "@/lib/ensure-product-stock-unit";
 import { productFieldsSchema } from "@/lib/party-favor-fields";
 import { publicErrorJson } from "@/lib/public-api-error";
 import {
@@ -35,6 +36,7 @@ const updateSchema = z.object({
     .positive("O preço deve ser maior que zero")
     .optional(),
   quantity: z.number().int().min(0).optional(),
+  stockUnit: z.enum(["UN", "KG"]).optional(),
   categoryIds: z
     .array(z.string().min(1))
     .min(1, "Selecione ao menos uma categoria")
@@ -61,6 +63,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
+  await ensureProductStockUnitColumn();
   const body = updateSchema.safeParse(await req.json());
   if (!body.success) {
     return NextResponse.json({ error: body.error.flatten() }, { status: 400 });
@@ -79,6 +82,15 @@ export async function PATCH(
     categoryIds,
     ...productData
   } = body.data;
+
+  if (
+    productData.stockUnit === "KG" &&
+    (productData.unidadeComercial === undefined
+      ? existing.unidadeComercial === "UN" || !existing.unidadeComercial
+      : productData.unidadeComercial === "UN" || !productData.unidadeComercial)
+  ) {
+    productData.unidadeComercial = "KG";
+  }
 
   try {
     const product = await prisma.$transaction(async (tx) => {

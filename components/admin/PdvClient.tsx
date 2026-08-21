@@ -15,8 +15,17 @@ import { PdvInstallButton } from "@/components/admin/PdvInstallButton";
 import { PdvNotifications } from "@/components/admin/PdvNotifications";
 import { CurrencyInput } from "@/components/admin/CurrencyInput";
 import { PixQrCode } from "@/components/cart/PixQrCode";
+import { PdvWeightQtySheet } from "@/components/admin/PdvWeightQtySheet";
 import { publicConfig } from "@/lib/public-config";
 import { formatBrBirthDate, formatBrPhone } from "@/lib/br-contact";
+import {
+  formatStockQty,
+  formatWeightDigitsMask,
+  gramsToKgLabel,
+  gramsToWeightDigits,
+  lineTotalCents,
+  parseWeightDigitsToGrams,
+} from "@/lib/stock-unit";
 
 type CartLine = {
   product: PdvProductListItem;
@@ -72,6 +81,10 @@ export function PdvClient() {
   const [stockProduct, setStockProduct] = useState<PdvProductListItem | null>(
     null
   );
+  const [weightProduct, setWeightProduct] = useState<{
+    product: PdvProductListItem;
+    initialGrams: number;
+  } | null>(null);
 
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerResults, setCustomerResults] = useState<PdvCustomerListItem[]>(
@@ -160,7 +173,13 @@ export function PdvClient() {
   }, [cart]);
 
   const subtotalCents = cart.reduce(
-    (sum, line) => sum + line.product.priceCents * line.quantity,
+    (sum, line) =>
+      sum +
+      lineTotalCents(
+        line.product.priceCents,
+        line.quantity,
+        line.product.stockUnit
+      ),
     0
   );
   const discountCents = Math.min(
@@ -204,11 +223,22 @@ export function PdvClient() {
       setError(`"${product.name}" está esgotado.`);
       return;
     }
-    if (inCart >= max) {
-      setError(`Estoque insuficiente de "${product.name}" (máx. ${max}).`);
+    setError("");
+
+    if (product.stockUnit === "KG") {
+      setWeightProduct({
+        product,
+        initialGrams: inCart > 0 ? inCart : 0,
+      });
       return;
     }
-    setError("");
+
+    if (inCart >= max) {
+      setError(
+        `Estoque insuficiente de "${product.name}" (máx. ${formatStockQty(max, "UN")}).`
+      );
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((l) => l.product.id === product.id);
       if (existing) {
@@ -222,16 +252,43 @@ export function PdvClient() {
     });
   }
 
+  function confirmWeightQty(grams: number) {
+    if (!weightProduct) return;
+    const { product } = weightProduct;
+    const max = maxOrderQuantity(product.available);
+    if (grams <= 0 || grams > max) {
+      setError(
+        `Quantidade inválida para "${product.name}" (máx. ${gramsToKgLabel(max)}).`
+      );
+      return;
+    }
+    setError("");
+    setCart((prev) => {
+      const without = prev.filter((l) => l.product.id !== product.id);
+      return [...without, { product, quantity: grams }];
+    });
+    setWeightProduct(null);
+  }
+
   function setLineQty(productId: string, quantity: number) {
     setCart((prev) =>
       prev.flatMap((line) => {
         if (line.product.id !== productId) return [line];
+        if (quantity <= 0) return [];
+        if (line.product.stockUnit === "KG") return [line];
         const max = maxOrderQuantity(line.product.available);
         const next = Math.min(max, Math.max(0, quantity));
         if (next <= 0) return [];
         return [{ ...line, quantity: next }];
       })
     );
+  }
+
+  function editWeightLine(line: CartLine) {
+    setWeightProduct({
+      product: line.product,
+      initialGrams: line.quantity,
+    });
   }
 
   function addFromSearch() {
@@ -560,11 +617,15 @@ export function PdvClient() {
                         {product.name}
                       </p>
                       <p className="mt-0.5 text-xs text-zinc-500">
-                        {product.categoryName} · Estoque {product.available}
-                        {inCart > 0 ? ` · no carrinho ${inCart}` : ""}
+                        {product.categoryName} · Estoque{" "}
+                        {formatStockQty(product.available, product.stockUnit)}
+                        {inCart > 0
+                          ? ` · no carrinho ${formatStockQty(inCart, product.stockUnit)}`
+                          : ""}
                       </p>
                       <p className="mt-1 text-sm font-bold text-zinc-800 dark:text-zinc-200">
                         {formatPrice(product.priceCents)}
+                        {product.stockUnit === "KG" ? " / kg" : ""}
                       </p>
                     </button>
                     <button
@@ -601,31 +662,51 @@ export function PdvClient() {
                     </p>
                     <p className="text-xs text-zinc-500">
                       {formatPrice(line.product.priceCents)}
+                      {line.product.stockUnit === "KG" ? " / kg" : ""}
+                      {" · "}
+                      {formatPrice(
+                        lineTotalCents(
+                          line.product.priceCents,
+                          line.quantity,
+                          line.product.stockUnit
+                        )
+                      )}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  {line.product.stockUnit === "KG" ? (
                     <button
                       type="button"
-                      className="h-8 w-8 rounded-lg border text-lg leading-none"
-                      onClick={() =>
-                        setLineQty(line.product.id, line.quantity - 1)
-                      }
+                      className="min-h-8 rounded-lg border px-2 text-sm font-semibold tabular-nums"
+                      onClick={() => editWeightLine(line)}
+                      title="Alterar quantidade"
                     >
-                      −
+                      {gramsToKgLabel(line.quantity)}
                     </button>
-                    <span className="w-7 text-center text-sm font-semibold">
-                      {line.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      className="h-8 w-8 rounded-lg border text-lg leading-none"
-                      onClick={() =>
-                        setLineQty(line.product.id, line.quantity + 1)
-                      }
-                    >
-                      +
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="h-8 w-8 rounded-lg border text-lg leading-none"
+                        onClick={() =>
+                          setLineQty(line.product.id, line.quantity - 1)
+                        }
+                      >
+                        −
+                      </button>
+                      <span className="w-7 text-center text-sm font-semibold">
+                        {line.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        className="h-8 w-8 rounded-lg border text-lg leading-none"
+                        onClick={() =>
+                          setLineQty(line.product.id, line.quantity + 1)
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="text-xs text-red-600 hover:underline"
@@ -973,6 +1054,15 @@ export function PdvClient() {
         </div>
       )}
 
+      {weightProduct ? (
+        <PdvWeightQtySheet
+          product={weightProduct.product}
+          initialGrams={weightProduct.initialGrams}
+          onConfirm={confirmWeightQty}
+          onClose={() => setWeightProduct(null)}
+        />
+      ) : null}
+
       {stockProduct && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
           <button
@@ -989,7 +1079,11 @@ export function PdvClient() {
                 </p>
                 <h2 className="text-lg font-bold">{stockProduct.name}</h2>
                 <p className="text-sm text-zinc-500">
-                  Estoque {stockProduct.available}
+                  Estoque{" "}
+                  {formatStockQty(
+                    stockProduct.available,
+                    stockProduct.stockUnit
+                  )}
                 </p>
               </div>
               <button
@@ -1024,9 +1118,15 @@ function StockForm({
   onAdjusted: (message: string) => void;
   onError: (message: string) => void;
 }) {
+  const isKg = product.stockUnit === "KG";
   const [action, setAction] = useState<"in" | "out" | "adjust">("in");
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(isKg ? 0 : 1);
+  const [weightDigits, setWeightDigits] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const resolvedQty = isKg
+    ? parseWeightDigitsToGrams(weightDigits)
+    : quantity;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1039,7 +1139,7 @@ function StockForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: action,
-          quantity,
+          quantity: resolvedQty,
           note: "Ajuste via PDV",
         }),
       });
@@ -1048,7 +1148,12 @@ function StockForm({
         onError(formatApiError(data.error, "Erro ao ajustar estoque"));
         return;
       }
-      onAdjusted(`Estoque de ${product.name} atualizado: ${data.balance} un.`);
+      onAdjusted(
+        `Estoque de ${product.name} atualizado: ${formatStockQty(
+          data.balance,
+          product.stockUnit
+        )}`
+      );
     } catch {
       onError("Não foi possível ajustar o estoque.");
     } finally {
@@ -1067,7 +1172,8 @@ function StockForm({
       </button>
 
       <p className="text-sm text-zinc-500">
-        Estoque atual{stockSuffix(product.available)}
+        Estoque atual
+        {stockSuffix(product.available, product.stockUnit)}
       </p>
 
       <div className="grid grid-cols-3 gap-2">
@@ -1083,7 +1189,15 @@ function StockForm({
             type="button"
             onClick={() => {
               setAction(value);
-              setQuantity(value === "adjust" ? product.available : 1);
+              if (isKg) {
+                setWeightDigits(
+                  value === "adjust"
+                    ? gramsToWeightDigits(product.available)
+                    : ""
+                );
+              } else {
+                setQuantity(value === "adjust" ? product.available : 1);
+              }
             }}
             className={`min-h-11 cursor-pointer rounded-xl border text-sm font-semibold ${
               action === value
@@ -1098,24 +1212,44 @@ function StockForm({
 
       <div>
         <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          {action === "adjust" ? "Quantidade disponível" : "Quantidade"}
+          {action === "adjust"
+            ? isKg
+              ? "Quantidade disponível (kg)"
+              : "Quantidade disponível"
+            : isKg
+              ? "Quantidade (kg)"
+              : "Quantidade"}
         </label>
-        <input
-          type="number"
-          min={action === "adjust" ? 0 : 1}
-          value={quantity}
-          onChange={(e) => setQuantity(Number(e.target.value) || 0)}
-          className="admin-input mt-1.5 w-full px-3 py-2.5 text-base"
-          required
-        />
+        {isKg ? (
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            value={formatWeightDigitsMask(weightDigits)}
+            onChange={(e) =>
+              setWeightDigits(e.target.value.replace(/\D/g, ""))
+            }
+            className="admin-input mt-1.5 w-full px-3 py-2.5 text-base"
+            required
+          />
+        ) : (
+          <input
+            type="number"
+            min={action === "adjust" ? 0 : 1}
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value) || 0)}
+            className="admin-input mt-1.5 w-full px-3 py-2.5 text-base"
+            required
+          />
+        )}
       </div>
 
       <button
         type="submit"
-        disabled={submitting}
-        className="admin-btn-primary min-h-12 w-full cursor-pointer text-base disabled:opacity-50"
+        disabled={submitting || (action !== "adjust" && resolvedQty <= 0)}
+        className="admin-btn-primary w-full disabled:opacity-50"
       >
-        {submitting ? "Salvando…" : "Salvar estoque"}
+        {submitting ? "Salvando…" : "Confirmar"}
       </button>
     </form>
   );

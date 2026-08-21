@@ -29,11 +29,21 @@ export type { PdvPaymentMethod, PdvProductListItem } from "./pdv-shared";
 export { PDV_PAYMENT_LABELS } from "./pdv-shared";
 
 import type { PdvCartLine, PdvPaymentMethod, PdvProductListItem } from "./pdv-shared";
+import {
+  gramsToKgLabel,
+  lineTotalCents,
+  parseStockUnit,
+} from "./stock-unit";
 
 export async function listPdvProducts(
   storeId: string,
   query?: string
 ): Promise<PdvProductListItem[]> {
+  const { ensureProductStockUnitColumn } = await import(
+    "./ensure-product-stock-unit"
+  );
+  await ensureProductStockUnitColumn();
+
   const q = query?.trim() ?? "";
   const code = q ? parseProductCodeQuery(q) : null;
   const barcode = normalizeBarcode(q);
@@ -53,6 +63,7 @@ export async function listPdvProducts(
 
   const mapped = products.map((p) => {
     const available = availableStock(p);
+    const stockUnit = parseStockUnit(p.stockUnit);
     return {
       id: p.id,
       code: p.code,
@@ -63,6 +74,7 @@ export async function listPdvProducts(
       categorySlug: p.category.slug,
       priceCents: p.priceCents,
       available,
+      stockUnit,
       imageUrl: p.imageUrl,
       customizationFields: projectProductFields(p.customizationFields),
     };
@@ -159,16 +171,27 @@ export async function createWalkInSale(params: {
       throw new InventoryError(
         availableForSale <= 0
           ? `"${product.name}" está esgotado.`
-          : `Estoque insuficiente de "${product.name}" (disponível: ${availableForSale}).`
+          : `Estoque insuficiente de "${product.name}" (disponível: ${
+              parseStockUnit(product.stockUnit) === "KG"
+                ? gramsToKgLabel(availableForSale)
+                : `${availableForSale} un.`
+            }).`
       );
     }
   }
 
   const orderItems = buildOrderItems(orderInputs, products);
-  const subtotalCents = orderItems.reduce(
-    (sum, i) => sum + i.unitPriceCents * i.quantity,
-    0
-  );
+  const subtotalCents = orderItems.reduce((sum, i) => {
+    const product = products.find((p) => p.id === i.productId);
+    return (
+      sum +
+      lineTotalCents(
+        i.unitPriceCents,
+        i.quantity,
+        product ? parseStockUnit(product.stockUnit) : "UN"
+      )
+    );
+  }, 0);
   const discountCents = params.discountCents ?? 0;
   if (!Number.isInteger(discountCents) || discountCents < 0) {
     throw new InventoryError("Desconto inválido.");

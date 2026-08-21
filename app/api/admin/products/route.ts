@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { ensureProductStockUnitColumn } from "@/lib/ensure-product-stock-unit";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { allocateProductCode, formatProductCode } from "@/lib/product-code";
@@ -17,7 +19,6 @@ import {
   productMeasuresSchema,
   replaceProductMeasures,
 } from "@/lib/product-measures";
-import { z } from "zod";
 import { searchIncludes } from "@/lib/search-text";
 
 const barcodeSchema = z
@@ -38,6 +39,7 @@ const createSchema = z.object({
     .int()
     .positive("O preço deve ser maior que zero"),
   quantity: z.number().int().min(0).optional().default(0),
+  stockUnit: z.enum(["UN", "KG"]).optional().default("UN"),
   categoryIds: z
     .array(z.string().min(1))
     .min(1, "Selecione ao menos uma categoria"),
@@ -152,6 +154,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
+  await ensureProductStockUnitColumn();
+
   const body = createSchema.safeParse(await req.json());
   if (!body.success) {
     return NextResponse.json({ error: body.error.flatten() }, { status: 400 });
@@ -170,13 +174,18 @@ export async function POST(req: Request) {
           description: body.data.description,
           priceCents: body.data.priceCents,
           quantity: body.data.quantity,
+          stockUnit: body.data.stockUnit,
           imageUrl: body.data.imageUrl ?? undefined,
           extraImageUrls: body.data.extraImageUrls ?? [],
           ncm: body.data.ncm ?? null,
           cfopDefault: body.data.cfopDefault ?? "5102",
           csosn: body.data.csosn ?? "102",
           origemMercadoria: body.data.origemMercadoria ?? "0",
-          unidadeComercial: body.data.unidadeComercial ?? "UN",
+          unidadeComercial:
+            body.data.stockUnit === "KG" &&
+            (body.data.unidadeComercial ?? "UN") === "UN"
+              ? "KG"
+              : (body.data.unidadeComercial ?? "UN"),
         },
       });
 

@@ -29,6 +29,13 @@ import {
   PRODUCT_MEASURE_UNITS,
   productMeasureUnitLabels,
 } from "@/lib/product-measures";
+import {
+  formatWeightDigitsMask,
+  gramsToWeightDigits,
+  parseStockUnit,
+  parseWeightDigitsToGrams,
+  type StockUnitCode,
+} from "@/lib/stock-unit";
 
 type Category = { id: string; name: string };
 
@@ -144,6 +151,7 @@ export function ProductForm({
     priceCents: number;
     quantity?: number;
     reservedQuantity?: number;
+    stockUnit?: StockUnitCode | string | null;
     categoryId: string;
     categoryIds?: string[];
     imageUrl: string | null;
@@ -206,6 +214,12 @@ export function ProductForm({
     toDraftFields(product?.customizationFields)
   );
   const [quantity, setQuantity] = useState(product?.quantity ?? 0);
+  const [stockUnit, setStockUnit] = useState<StockUnitCode>(() =>
+    parseStockUnit(product?.stockUnit)
+  );
+  const [weightDigits, setWeightDigits] = useState(() =>
+    product?.stockUnit === "KG" ? gramsToWeightDigits(product?.quantity ?? 0) : ""
+  );
   const [measures, setMeasures] = useState<DraftMeasure[]>(() =>
     toDraftMeasures(product?.measures)
   );
@@ -424,12 +438,22 @@ export function ProductForm({
       return;
     }
 
+    const resolvedStockUnit = stockUnit;
+    const resolvedQuantity =
+      resolvedStockUnit === "KG"
+        ? parseWeightDigitsToGrams(weightDigits)
+        : Math.max(0, Math.floor(Number(quantity) || 0));
+    const resolvedUnidade =
+      ((fd.get("unidadeComercial") as string) || "").trim().toUpperCase() ||
+      "UN";
+
     const payload = {
       name,
       description: (fd.get("description") as string) || undefined,
       barcode: ((fd.get("barcode") as string) || "").trim() || null,
       priceCents,
-      quantity: Math.max(0, Math.floor(Number(quantity) || 0)),
+      quantity: resolvedQuantity,
+      stockUnit: resolvedStockUnit,
       categoryIds: selectedCategoryIds,
       imageUrl: imageUrl === null ? null : (imageUrl ?? undefined),
       extraImageUrls,
@@ -442,8 +466,9 @@ export function ProductForm({
         ((fd.get("origemMercadoria") as string) || "").replace(/\D/g, "") ||
         "0",
       unidadeComercial:
-        ((fd.get("unidadeComercial") as string) || "").trim().toUpperCase() ||
-        "UN",
+        resolvedStockUnit === "KG" && resolvedUnidade === "UN"
+          ? "KG"
+          : resolvedUnidade,
       customizationFields: payloadFields,
       measures: measurePayload,
     };
@@ -723,30 +748,98 @@ export function ProductForm({
               aria-label="Preço em reais"
             />
             <p className="mt-1 text-xs text-zinc-400">
-              Digite só os números; a vírgula entra sozinha
+              {stockUnit === "KG"
+                ? "Preço por quilo — digite só os números; a vírgula entra sozinha"
+                : "Digite só os números; a vírgula entra sozinha"}
             </p>
           </Field>
-          <Field label="Estoque">
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={quantity}
-              onChange={(e) =>
-                setQuantity(Math.max(0, Math.floor(Number(e.target.value) || 0)))
-              }
-              className={inputClass}
-              aria-label="Estoque"
-            />
+          <Field label="Estoque por">
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["UN", "Unidade"],
+                  ["KG", "Quilo (kg)"],
+                ] as [StockUnitCode, string][]
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setStockUnit(id);
+                    if (id === "KG") {
+                      setWeightDigits(gramsToWeightDigits(quantity));
+                    } else {
+                      setQuantity(
+                        Math.max(0, Math.floor(parseWeightDigitsToGrams(weightDigits) || quantity))
+                      );
+                    }
+                  }}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+                    stockUnit === id
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label={stockUnit === "KG" ? "Estoque (kg)" : "Estoque (un.)"}>
+            {stockUnit === "KG" ? (
+              <>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={formatWeightDigitsMask(weightDigits)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setWeightDigits(digits);
+                      setQuantity(parseWeightDigitsToGrams(digits));
+                    }}
+                    className={inputClass}
+                    aria-label="Estoque em quilos"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">
+                    kg
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Digite só os números; a vírgula entra sozinha (ex.: 1500 → 1,500 kg)
+                </p>
+              </>
+            ) : (
+              <>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(
+                      Math.max(0, Math.floor(Number(e.target.value) || 0))
+                    )
+                  }
+                  className={inputClass}
+                  aria-label="Estoque"
+                />
+                <p className="mt-1 text-xs text-zinc-400">
+                  Unidades disponíveis para venda
+                </p>
+              </>
+            )}
             {product?.reservedQuantity ? (
               <p className="mt-1 text-xs text-zinc-400">
-                Reservado em pedidos: {product.reservedQuantity} un.
+                Reservado em pedidos:{" "}
+                {stockUnit === "KG"
+                  ? formatWeightDigitsMask(
+                      gramsToWeightDigits(product.reservedQuantity)
+                    ) + " kg"
+                  : `${product.reservedQuantity} un.`}
               </p>
-            ) : (
-              <p className="mt-1 text-xs text-zinc-400">
-                Unidades disponíveis para venda
-              </p>
-            )}
+            ) : null}
           </Field>
           <Field label="Categorias">
             <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-950">

@@ -28,6 +28,11 @@ import {
   dispatchAdminNotification,
   notifyStockLevel,
 } from "./admin-push-dispatch";
+import {
+  gramsToKgLabel,
+  lineTotalCents,
+  parseStockUnit,
+} from "./stock-unit";
 
 export type OrderItemInput = {
   productId: string;
@@ -43,6 +48,27 @@ export type CreatedOrderItem = {
   unitPriceCents: number;
   optionsJson: string | null;
 };
+
+/** Total da linha respeitando UN vs KG (gramas). */
+export function orderItemLineTotalCents(
+  item: {
+    quantity: number;
+    unitPriceCents: number;
+    optionsJson?: string | null;
+  },
+  stockUnit?: string | null
+): number {
+  let unit = stockUnit;
+  if (!unit && item.optionsJson) {
+    try {
+      const parsed = JSON.parse(item.optionsJson) as { stockUnit?: string };
+      unit = parsed.stockUnit;
+    } catch {
+      unit = undefined;
+    }
+  }
+  return lineTotalCents(item.unitPriceCents, item.quantity, unit);
+}
 
 type OnlineOrderForNotification = {
   id: string;
@@ -120,17 +146,33 @@ export function buildOrderItems(
       }];
     });
 
-    const options =
-      fieldAnswers.length || item.notes
+    const stockUnit = parseStockUnit(
+      "stockUnit" in product ? product.stockUnit : "UN"
+    );
+
+    const options: {
+      fieldAnswers?: typeof fieldAnswers;
+      notes?: string;
+      stockUnit?: "UN" | "KG";
+      weightLabel?: string;
+    } | null =
+      fieldAnswers.length || item.notes || stockUnit === "KG"
         ? {
             fieldAnswers: fieldAnswers.length ? fieldAnswers : undefined,
             notes: item.notes,
+            ...(stockUnit === "KG"
+              ? {
+                  stockUnit: "KG" as const,
+                  weightLabel: gramsToKgLabel(item.quantity),
+                }
+              : {}),
           }
         : null;
 
     const optionParts = [
       formatFieldAnswersLabel(options?.fieldAnswers) || null,
       options?.notes ? `Obs: ${options.notes}` : null,
+      options?.weightLabel ? options.weightLabel : null,
     ].filter(Boolean);
 
     const optionSuffix = optionParts.join(" · ");
@@ -160,6 +202,14 @@ export async function loadOrderProducts(storeId: string, items: OrderItemInput[]
 
   if (products.length !== productIds.length) {
     throw new PublicApiError("Um ou mais produtos inválidos");
+  }
+
+  for (const product of products) {
+    if (parseStockUnit(product.stockUnit) === "KG") {
+      throw new PublicApiError(
+        `${product.name}: venda por kg disponível apenas no PDV.`
+      );
+    }
   }
 
   for (const item of items) {
