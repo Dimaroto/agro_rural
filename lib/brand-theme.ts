@@ -143,7 +143,22 @@ export function brandFillCss(theme: BrandTheme): string {
     return `radial-gradient(circle at 50% 40%, ${t.from} 0%, ${t.to} 100%)`;
   }
   if (t.shape === "conic") {
-    return `conic-gradient(from ${t.angle}deg, ${t.from}, ${t.to}, ${t.from})`;
+    // Conic com 2 cores puras vira “fatia” dura no header/botões.
+    // Suaviza o acento e usa paradas intermediárias para um varredura contínua.
+    const soft = mixTwo(t.from, t.to, 0.28);
+    const mid = mixTwo(t.from, t.to, 0.48);
+    const accent = mixTwo(t.from, t.to, 0.62);
+    return [
+      `conic-gradient(from ${t.angle}deg at 58% 42%`,
+      `${t.from} 0deg`,
+      `${soft} 55deg`,
+      `${mid} 110deg`,
+      `${accent} 155deg`,
+      `${mid} 205deg`,
+      `${soft} 265deg`,
+      `${t.from} 320deg`,
+      `${t.from} 360deg)`,
+    ].join(", ");
   }
   return `linear-gradient(${t.angle}deg, ${t.from} 0%, ${t.to} 100%)`;
 }
