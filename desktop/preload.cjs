@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('agroDesktop', {
   /** Salvar como… no disco. */
   saveBytes: (opts) => ipcRenderer.invoke('desktop:save-bytes', opts),
   toggleFullscreen: () => ipcRenderer.invoke('window:fullscreen'),
+  /** Preferência: iniciar Agro Rural (+ emissor) com o Windows. */
+  getAutostart: () => ipcRenderer.invoke('autostart:get'),
+  setAutostart: (enabled) => ipcRenderer.invoke('autostart:set', !!enabled),
   onEmissorStatus: (cb) => {
     ipcRenderer.on('emissor:status', (_e, payload) => {
       if (typeof payload === 'boolean') {

@@ -36,9 +36,36 @@ export function SettingsBar({
   const [notifPref, setNotifPref] = useState<PdvNotifPref | null>(null);
   const [notifPermission, setNotifPermission] =
     useState<NotificationPermission | "unsupported">("default");
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [autostartBusy, setAutostartBusy] = useState(false);
+  const [autostartMsg, setAutostartMsg] = useState("");
 
   const showStoreSettings = initialWhatsapp !== undefined;
   const showNotifSettings = notificationsSupported();
+
+  useEffect(() => {
+    const desktop = (
+      window as Window & {
+        agroDesktop?: {
+          isDesktop?: boolean;
+          getAutostart?: () => Promise<{ enabled?: boolean }>;
+          setAutostart?: (
+            enabled: boolean
+          ) => Promise<{ enabled?: boolean }>;
+        };
+      }
+    ).agroDesktop;
+    const canAutostart = Boolean(
+      desktop?.isDesktop && desktop.getAutostart && desktop.setAutostart
+    );
+    setIsDesktop(canAutostart);
+    if (!canAutostart || !desktop?.getAutostart) return;
+    void desktop
+      .getAutostart()
+      .then((r) => setAutostart(Boolean(r?.enabled)))
+      .catch(() => setAutostart(false));
+  }, []);
 
   useEffect(() => {
     setWhatsapp(initialWhatsapp ?? "");
@@ -100,6 +127,38 @@ export function SettingsBar({
 
   const notifEnabled =
     notifPref !== "disabled" && notifPermission === "granted";
+
+  async function toggleAutostart(enabled: boolean) {
+    const desktop = (
+      window as Window & {
+        agroDesktop?: {
+          setAutostart?: (
+            enabled: boolean
+          ) => Promise<{ enabled?: boolean }>;
+        };
+      }
+    ).agroDesktop;
+    if (!desktop?.setAutostart) return;
+    setAutostartBusy(true);
+    setAutostartMsg("");
+    try {
+      const r = await desktop.setAutostart(enabled);
+      setAutostart(Boolean(r?.enabled));
+      setAutostartMsg(
+        r?.enabled
+          ? "Ativado: o Agro Rural e o emissor iniciam com o Windows."
+          : "Desativado: não inicia mais com o Windows."
+      );
+    } catch (err) {
+      setAutostartMsg(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível alterar a inicialização."
+      );
+    } finally {
+      setAutostartBusy(false);
+    }
+  }
 
   return (
     <div className="relative" ref={panelRef}>
@@ -234,6 +293,48 @@ export function SettingsBar({
             </div>
           </div>
           </div>
+
+          {isDesktop ? (
+            <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+              <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                Windows
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Iniciar o Agro Rural e o emissor NF-e junto com o Windows.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={autostartBusy || autostart === true}
+                  onClick={() => void toggleAutostart(true)}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-60 ${
+                    autostart
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300"
+                      : "border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  Ativar
+                </button>
+                <button
+                  type="button"
+                  disabled={autostartBusy || autostart === false}
+                  onClick={() => void toggleAutostart(false)}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-60 ${
+                    autostart === false
+                      ? "border-zinc-400 bg-zinc-100 text-zinc-800 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-100"
+                      : "border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  Desativar
+                </button>
+              </div>
+              {autostartMsg ? (
+                <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">
+                  {autostartMsg}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {showStoreSettings && (
             <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">

@@ -288,10 +288,59 @@ function createMainWindow() {
   });
 }
 
+function getAutostartEnabled() {
+  try {
+    return !!app.getLoginItemSettings().openAtLogin;
+  } catch {
+    return false;
+  }
+}
+
+function setAutostartEnabled(enabled) {
+  const on = !!enabled;
+  const settings = {
+    openAtLogin: on,
+    openAsHidden: false,
+  };
+  // Em modo dev o Electron precisa do path + args do entrypoint.
+  if (!app.isPackaged) {
+    settings.path = process.execPath;
+    const entry = process.argv[1]
+      ? path.resolve(process.argv[1])
+      : path.join(__dirname, 'main.cjs');
+    settings.args = [entry];
+  }
+  app.setLoginItemSettings(settings);
+  return getAutostartEnabled();
+}
+
+/** Sobe o emissor em segundo plano se a opção de iniciar com o Windows estiver ligada. */
+function maybeStartEmissorWithApp() {
+  if (!getAutostartEnabled()) return;
+  try {
+    startEmissorHidden();
+  } catch (err) {
+    console.error('[autostart] falha ao iniciar emissor:', err);
+  }
+}
+
 app.whenReady().then(() => {
   createMainWindow();
+  maybeStartEmissorWithApp();
   void pollOnce();
   pollTimer = setInterval(() => void pollOnce(), 3000);
+
+  ipcMain.handle('autostart:get', async () => ({
+    enabled: getAutostartEnabled(),
+    supported: process.platform === 'win32',
+  }));
+  ipcMain.handle('autostart:set', async (_e, enabled) => {
+    const next = setAutostartEnabled(enabled);
+    if (next) {
+      maybeStartEmissorWithApp();
+    }
+    return { enabled: next, supported: process.platform === 'win32' };
+  });
 
   ipcMain.handle('emissor:start', async (_e, url) => {
     await startThenShow(url);
