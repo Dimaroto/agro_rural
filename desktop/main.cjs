@@ -321,8 +321,16 @@ app.whenReady().then(() => {
             : undefined,
       };
       const res = await fetch(url, init);
-      const body = await res.text();
-      return { ok: res.ok, status: res.status, body };
+      const contentType = res.headers.get('content-type') || '';
+      const buf = Buffer.from(await res.arrayBuffer());
+      const isBinary = /pdf|octet-stream|xml|zip|image\//i.test(contentType);
+      return {
+        ok: res.ok,
+        status: res.status,
+        body: isBinary ? buf.toString('base64') : buf.toString('utf8'),
+        encoding: isBinary ? 'base64' : 'utf8',
+        contentType,
+      };
     } catch (err) {
       return {
         ok: false,

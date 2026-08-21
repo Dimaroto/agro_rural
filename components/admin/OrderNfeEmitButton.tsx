@@ -9,6 +9,11 @@ import {
   readNfeEmissorToken,
   writeNfeEmissorToken,
 } from "@/lib/nfe/client";
+import {
+  downloadDanfe,
+  downloadXml,
+  openDanfe,
+} from "@/lib/nfe/documents";
 import { fetchLocalToken } from "@/lib/nfe/fiscal-api";
 import Link from "next/link";
 
@@ -18,6 +23,8 @@ type Props = {
   nfeStatus?: string | null;
   nfeNumero?: number | null;
   disabled?: boolean;
+  /** Botão Emitir/DANFE na mesma linha das outras ações do card. */
+  toolbar?: boolean;
 };
 
 export function OrderNfeEmitButton({
@@ -26,11 +33,18 @@ export function OrderNfeEmitButton({
   nfeStatus,
   nfeNumero,
   disabled,
+  toolbar = false,
 }: Props) {
   const router = useRouter();
-  const [loading, setLoading] = useState<"55" | "65" | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [docBusy, setDocBusy] = useState<"print" | "danfe" | "xml" | null>(
+    null
+  );
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [chaveLocal, setChaveLocal] = useState(nfeChave ?? "");
+  const [statusLocal, setStatusLocal] = useState(nfeStatus ?? "");
+  const [numeroLocal, setNumeroLocal] = useState(nfeNumero ?? null);
 
   const [tokenDraft, setTokenDraft] = useState("");
   const [showTokenHelp, setShowTokenHelp] = useState(false);
@@ -39,6 +53,12 @@ export function OrderNfeEmitButton({
   useEffect(() => {
     setHasToken(Boolean(readNfeEmissorToken()));
   }, []);
+
+  useEffect(() => {
+    setChaveLocal(nfeChave ?? "");
+    setStatusLocal(nfeStatus ?? "");
+    setNumeroLocal(nfeNumero ?? null);
+  }, [nfeChave, nfeStatus, nfeNumero]);
 
   async function ensureToken(): Promise<string> {
     let token = readNfeEmissorToken();
@@ -61,8 +81,8 @@ export function OrderNfeEmitButton({
     );
   }
 
-  async function emit(modelo: 55 | 65) {
-    setLoading(String(modelo) as "55" | "65");
+  async function emit() {
+    setLoading(true);
     setError("");
     setMessage("");
 
@@ -71,7 +91,6 @@ export function OrderNfeEmitButton({
 
       const up = await checkEmissorUp();
       if (!up) {
-        // Ainda tenta emitir: o LED pode estar verde e o check falhar em apps antigos
         const desktop = (
           window as Window & {
             agroDesktop?: { isDesktop?: boolean; requestEmissor?: unknown };
@@ -85,7 +104,7 @@ export function OrderNfeEmitButton({
       }
 
       const prep = await fetch(
-        `/api/admin/orders/${orderId}/nfe-payload?modelo=${modelo}`
+        `/api/admin/orders/${orderId}/nfe-payload?modelo=55`
       );
       const prepData = await prep.json().catch(() => ({}));
       if (!prep.ok) {
@@ -100,7 +119,7 @@ export function OrderNfeEmitButton({
       }
 
       const result = await emitNfeFromBrowser({
-        modelo,
+        modelo: 55,
         payload: prepData.payload,
       });
 
@@ -111,16 +130,20 @@ export function OrderNfeEmitButton({
           nfeChave: result.chaveAcesso ?? null,
           nfeStatus: result.status ?? null,
           nfeNumero: result.numero ?? null,
-          nfeModelo: modelo,
+          nfeModelo: 55,
           nfeProtocolo: result.protocolo ?? null,
           nfeEmitidoAt:
             result.status === "autorizada" ? new Date().toISOString() : null,
         }),
       });
 
+      if (result.chaveAcesso) setChaveLocal(result.chaveAcesso);
+      if (result.status) setStatusLocal(result.status);
+      if (result.numero != null) setNumeroLocal(result.numero);
+
       setMessage(
         result.status === "autorizada"
-          ? `NF-${modelo === 65 ? "C" : ""}e autorizada${result.numero != null ? ` nº ${result.numero}` : ""}.`
+          ? `NF-e autorizada${result.numero != null ? ` nº ${result.numero}` : ""}.`
           : result.mensagem || `Status: ${result.status}`
       );
       setShowTokenHelp(false);
@@ -128,7 +151,27 @@ export function OrderNfeEmitButton({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao emitir.");
     } finally {
-      setLoading(null);
+      setLoading(false);
+    }
+  }
+
+  async function runDoc(action: "print" | "danfe" | "xml") {
+    const chave = chaveLocal.replace(/\D/g, "");
+    if (chave.length !== 44) {
+      setError("Nota sem chave de acesso para gerar o DANFE.");
+      return;
+    }
+    setDocBusy(action);
+    setError("");
+    try {
+      await ensureToken();
+      if (action === "print") await openDanfe(chave);
+      else if (action === "danfe") await downloadDanfe(chave);
+      else await downloadXml(chave);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao abrir documento.");
+    } finally {
+      setDocBusy(null);
     }
   }
 
@@ -146,43 +189,68 @@ export function OrderNfeEmitButton({
     setMessage("Token salvo neste aparelho. Tente emitir de novo.");
   }
 
-  const alreadyOk = nfeStatus === "autorizada" && nfeChave;
+  const alreadyOk = statusLocal === "autorizada" && chaveLocal;
+  const btnClass =
+    "admin-btn-secondary min-h-[2.75rem] px-3 py-2 text-xs md:min-h-0";
+  const emitClass =
+    "inline-flex min-h-[2.75rem] cursor-pointer items-center justify-center rounded-xl border border-emerald-700/40 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-100 disabled:opacity-50 md:min-h-0 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70";
 
-  return (
-    <div className="mt-2 space-y-1.5">
+  const actions = alreadyOk ? (
+    <>
+      <button
+        type="button"
+        disabled={disabled || docBusy !== null}
+        onClick={() => void runDoc("print")}
+        className={btnClass}
+      >
+        {docBusy === "print" ? "Abrindo…" : "Imprimir DANFE"}
+      </button>
+      <button
+        type="button"
+        disabled={disabled || docBusy !== null}
+        onClick={() => void runDoc("danfe")}
+        className={btnClass}
+      >
+        {docBusy === "danfe" ? "Salvando…" : "Salvar DANFE"}
+      </button>
+      <button
+        type="button"
+        disabled={disabled || docBusy !== null}
+        onClick={() => void runDoc("xml")}
+        className={btnClass}
+      >
+        {docBusy === "xml" ? "Salvando…" : "Salvar XML"}
+      </button>
+    </>
+  ) : (
+    <button
+      type="button"
+      disabled={disabled || loading}
+      onClick={() => void emit()}
+      className={emitClass}
+    >
+      {loading ? "Emitindo…" : "Emitir NF-e"}
+    </button>
+  );
+
+  const feedback = (
+    <>
       {alreadyOk ? (
         <p className="text-xs text-emerald-700 dark:text-emerald-400">
           NF-e autorizada
-          {nfeNumero != null ? ` nº ${nfeNumero}` : ""} · chave{" "}
-          <span className="font-mono">{nfeChave.slice(0, 10)}…</span>
+          {numeroLocal != null ? ` nº ${numeroLocal}` : ""} · chave{" "}
+          <span className="font-mono">{chaveLocal.replace(/\D/g, "").slice(0, 10)}
+          …</span>
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={disabled || loading !== null}
-          onClick={() => emit(55)}
-          className="rounded-lg border border-emerald-700/40 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 disabled:opacity-50 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200"
-        >
-          {loading === "55" ? "Emitindo…" : "Emitir NF-e"}
-        </button>
-        <button
-          type="button"
-          disabled={disabled || loading !== null}
-          onClick={() => emit(65)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
-        >
-          {loading === "65" ? "Emitindo…" : "Emitir NFC-e"}
-        </button>
-      </div>
       {error ? (
         <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       ) : null}
       {message ? (
         <p className="text-xs text-emerald-700 dark:text-emerald-400">{message}</p>
       ) : null}
-      {showTokenHelp || (!hasToken && !loading) ? (
-        <div className="mt-2 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-900 dark:bg-amber-950/30">
+      {showTokenHelp || (!hasToken && !loading && !alreadyOk) ? (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-900 dark:bg-amber-950/30">
           <p className="text-xs text-amber-900 dark:text-amber-200">
             Token Sanctum: no emissor, vá até a etapa{" "}
             <strong>Revisão</strong> → <strong>Gerar token de integração</strong>
@@ -209,6 +277,24 @@ export function OrderNfeEmitButton({
           </div>
         </div>
       ) : null}
+    </>
+  );
+
+  if (toolbar) {
+    return (
+      <>
+        {actions}
+        {(error || message || showTokenHelp || (!hasToken && !alreadyOk) || alreadyOk) && (
+          <div className="basis-full space-y-1.5 pt-1">{feedback}</div>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      <div className="flex flex-wrap gap-2">{actions}</div>
+      {feedback}
     </div>
   );
 }

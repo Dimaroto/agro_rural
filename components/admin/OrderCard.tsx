@@ -283,18 +283,6 @@ export function OrderCard({ order, storeWhatsapp }: OrderCardProps) {
         </p>
       )}
 
-      {!isClosed &&
-        (order.status === OrderStatus.PAID ||
-          order.status === OrderStatus.DELIVERED) && (
-          <OrderNfeEmitButton
-            orderId={order.id}
-            nfeChave={order.nfeChave}
-            nfeStatus={order.nfeStatus}
-            nfeNumero={order.nfeNumero}
-            disabled={loadingAction !== null}
-          />
-        )}
-
       {editing && canEdit && (
         <SaleEditForm
           order={order}
@@ -363,6 +351,19 @@ export function OrderCard({ order, storeWhatsapp }: OrderCardProps) {
         >
           Reenviar resumo
         </button>
+        {(order.nfeStatus === "autorizada" && order.nfeChave) ||
+        (!isClosed &&
+          (order.status === OrderStatus.PAID ||
+            order.status === OrderStatus.DELIVERED)) ? (
+          <OrderNfeEmitButton
+            toolbar
+            orderId={order.id}
+            nfeChave={order.nfeChave}
+            nfeStatus={order.nfeStatus}
+            nfeNumero={order.nfeNumero}
+            disabled={loadingAction !== null}
+          />
+        ) : null}
       </div>
 
       {message && (

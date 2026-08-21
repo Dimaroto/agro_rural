@@ -11,6 +11,7 @@ import {
   saveEmissorSession,
   type EmissorSession,
 } from "@/lib/emissor-client";
+import { downloadDanfe, downloadXml, openDanfe } from "@/lib/nfe/documents";
 
 type Tab = "saida" | "entrada";
 
@@ -130,6 +131,7 @@ export function NotasFiscaisPageClient() {
   const [password, setPassword] = useState("");
   const [tokenPaste, setTokenPaste] = useState("");
   const [notas, setNotas] = useState<NotaRow[]>([]);
+  const [docBusyKey, setDocBusyKey] = useState<string | null>(null);
   const [empresas, setEmpresas] = useState<EmpresaRow[]>([]);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -901,20 +903,108 @@ export function NotasFiscaisPageClient() {
                 </button>
               </div>
               <ul className="space-y-2">
-                {notas.map((n) => (
-                  <li key={n.id ?? n.chave ?? Math.random()} className="admin-card p-3 text-sm">
-                    <p className="font-medium">
-                      {n.modelo === 65 ? "NFC-e" : "NF-e"}{" "}
-                      {n.numero != null ? `${n.numero}/${n.serie ?? 1}` : "—"} ·{" "}
-                      {n.status ?? "—"}
-                    </p>
-                    {n.chave ? (
-                      <p className="mt-1 break-all text-xs text-zinc-500">{n.chave}</p>
-                    ) : null}
-                  </li>
-                ))}
+                {notas.map((n) => {
+                  const chave = (n.chave ?? "").replace(/\D/g, "");
+                  const autorizada =
+                    chave.length === 44 &&
+                    String(n.status ?? "")
+                      .toLowerCase()
+                      .includes("autoriz");
+                  const rowKey = String(n.id ?? chave);
+                  return (
+                    <li
+                      key={rowKey}
+                      className="admin-card space-y-2 p-3 text-sm"
+                    >
+                      <p className="font-medium">
+                        {n.modelo === 65 ? "NFC-e" : "NF-e"}{" "}
+                        {n.numero != null
+                          ? `${n.numero}/${n.serie ?? 1}`
+                          : "—"}{" "}
+                        · {n.status ?? "—"}
+                      </p>
+                      {chave ? (
+                        <p className="break-all font-mono text-xs text-zinc-500">
+                          {chave}
+                        </p>
+                      ) : null}
+                      {autorizada ? (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={docBusyKey !== null}
+                            onClick={() => {
+                              setDocBusyKey(`${rowKey}-print`);
+                              setError("");
+                              void openDanfe(chave, session.empresaId)
+                                .catch((err) =>
+                                  setError(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao abrir DANFE."
+                                  )
+                                )
+                                .finally(() => setDocBusyKey(null));
+                            }}
+                          >
+                            {docBusyKey === `${rowKey}-print`
+                              ? "Abrindo…"
+                              : "Imprimir DANFE"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={docBusyKey !== null}
+                            onClick={() => {
+                              setDocBusyKey(`${rowKey}-danfe`);
+                              setError("");
+                              void downloadDanfe(chave, session.empresaId)
+                                .catch((err) =>
+                                  setError(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao salvar DANFE."
+                                  )
+                                )
+                                .finally(() => setDocBusyKey(null));
+                            }}
+                          >
+                            {docBusyKey === `${rowKey}-danfe`
+                              ? "Salvando…"
+                              : "Salvar DANFE"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={docBusyKey !== null}
+                            onClick={() => {
+                              setDocBusyKey(`${rowKey}-xml`);
+                              setError("");
+                              void downloadXml(chave, session.empresaId)
+                                .catch((err) =>
+                                  setError(
+                                    err instanceof Error
+                                      ? err.message
+                                      : "Falha ao salvar XML."
+                                  )
+                                )
+                                .finally(() => setDocBusyKey(null));
+                            }}
+                          >
+                            {docBusyKey === `${rowKey}-xml`
+                              ? "Salvando…"
+                              : "Salvar XML"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
                 {notas.length === 0 ? (
-                  <p className="text-sm text-zinc-500">Nenhuma nota de saída listada.</p>
+                  <p className="text-sm text-zinc-500">
+                    Nenhuma nota de saída listada.
+                  </p>
                 ) : null}
               </ul>
             </>

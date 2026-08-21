@@ -17,6 +17,8 @@ type DesktopBridge = {
     status: number;
     body: string;
     error?: string;
+    encoding?: string;
+    contentType?: string;
   }>;
   onEmissorStatus?: (
     cb: (online: boolean, mode?: string) => void
@@ -169,6 +171,68 @@ export async function emissorHttp(input: {
     });
     const json = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, json };
+  } catch (err) {
+    throw new Error(networkErrorMessage(err));
+  }
+}
+
+/** Baixa binário (PDF/XML) do emissor local. */
+export async function emissorFetchBlob(input: {
+  path: string;
+  token?: string;
+  baseUrl?: string;
+  accept?: string;
+}): Promise<{ ok: boolean; status: number; blob: Blob; contentType: string }> {
+  const path = input.path.startsWith("/") ? input.path : `/${input.path}`;
+  const token = (input.token ?? readNfeEmissorToken()).trim();
+  const headers: Record<string, string> = {
+    Accept: input.accept ?? "*/*",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const desktop = getDesktop();
+  if (desktop?.isDesktop && typeof desktop.requestEmissor === "function") {
+    const proxied = await desktop.requestEmissor({
+      path,
+      method: "GET",
+      headers,
+    });
+    if (proxied.status === 0) {
+      throw new Error(
+        proxied.error ||
+          "Emissor local offline. Use «Iniciar emissor» na barra do app."
+      );
+    }
+    const contentType =
+      proxied.contentType ||
+      (path.includes("/danfe") ? "application/pdf" : "application/xml");
+    const bytes =
+      proxied.encoding === "base64"
+        ? Uint8Array.from(atob(proxied.body), (c) => c.charCodeAt(0))
+        : new TextEncoder().encode(proxied.body);
+    return {
+      ok: proxied.ok,
+      status: proxied.status,
+      blob: new Blob([bytes], { type: contentType }),
+      contentType,
+    };
+  }
+
+  const base = (input.baseUrl ?? NFE_EMISSOR_BASE_URL).replace(/\/$/, "");
+  try {
+    const res = await fetch(`${base}${path}`, {
+      method: "GET",
+      mode: "cors",
+      headers,
+      cache: "no-store",
+    });
+    const blob = await res.blob();
+    return {
+      ok: res.ok,
+      status: res.status,
+      blob,
+      contentType: res.headers.get("content-type") || blob.type || "",
+    };
   } catch (err) {
     throw new Error(networkErrorMessage(err));
   }
