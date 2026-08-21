@@ -196,19 +196,37 @@ export async function closeCashDay(
 ) {
   const summary = await listDayLedger(storeId, day);
   if (summary.closed) throw new PublicApiError("Caixa já fechado");
-  return prisma.cashClose.create({
-    data: {
-      storeId,
-      date: dayNoonUtc(day),
-      incomeCents: summary.incomeCents,
-      expenseCents: summary.expenseCents,
-      balanceCents: summary.balanceCents,
-      incomeCount: summary.entries.filter((e) => e.type === "INCOME").length,
-      expenseCount: summary.entries.filter((e) => e.type === "EXPENSE").length,
-      notes: notes ?? null,
-      closedByUserId: userId ?? null,
-    },
-  });
+  try {
+    return await prisma.cashClose.create({
+      data: {
+        storeId,
+        date: dayNoonUtc(day),
+        incomeCents: summary.incomeCents,
+        expenseCents: summary.expenseCents,
+        balanceCents: summary.balanceCents,
+        incomeCount: summary.entries.filter((e) => e.type === "INCOME").length,
+        expenseCount: summary.entries.filter((e) => e.type === "EXPENSE").length,
+        notes: notes ?? null,
+        closedByUserId: userId ?? null,
+      },
+    });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      throw new PublicApiError("Caixa já fechado");
+    }
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2021"
+    ) {
+      throw new PublicApiError(
+        "Tabela de fechamento de caixa ausente. Rode o setup do banco (db:setup:prod)."
+      );
+    }
+    throw e;
+  }
 }
 
 export async function reopenCashDay(storeId: string, day: string) {

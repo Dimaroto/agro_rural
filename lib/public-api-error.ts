@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { InventoryError } from "@/lib/inventory";
 
 /** Erro de regra de negócio seguro para exibir na API. */
@@ -18,6 +19,21 @@ export function resolvePublicErrorMessage(
   fallback: string
 ): string {
   if (isPublicApiError(error)) return error.message;
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2021") {
+      return "Tabela do banco ausente. Atualize o schema (db:setup:prod).";
+    }
+    if (error.code === "P2002") {
+      return "Registro já existe.";
+    }
+    if (error.code === "P2003") {
+      return "Referência inválida no banco.";
+    }
+  }
+  if (error instanceof Error && error.message && !/prisma|invocation/i.test(error.message)) {
+    // Mensagens curtas e legíveis (sem stack Prisma)
+    if (error.message.length < 160) return error.message;
+  }
   return fallback;
 }
 

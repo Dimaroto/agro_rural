@@ -59,17 +59,31 @@ export function FinanceiroBedendoClient() {
   const [pendingQuery, setPendingQuery] = useState("");
 
   const loadDay = useCallback(async () => {
-    const res = await fetch(`/api/admin/finance/ledger?view=day&day=${day}`);
-    const data = await res.json();
-    if (res.ok) setSummary(data);
+    try {
+      const res = await fetch(`/api/admin/finance/ledger?view=day&day=${day}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(formatApiError(data.error) || "Falha ao carregar o caixa do dia.");
+        return;
+      }
+      setSummary(data);
+    } catch {
+      setError("Falha ao carregar o caixa do dia.");
+    }
   }, [day]);
 
   const loadPending = useCallback(async () => {
-    const res = await fetch(`/api/admin/finance/ledger?view=pending`);
-    const data = await res.json();
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/admin/finance/ledger?view=pending`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(formatApiError(data.error) || "Falha ao carregar contas futuras.");
+        return;
+      }
       setPayables(data.payables ?? []);
       setReceivables(data.receivables ?? []);
+    } catch {
+      setError("Falha ao carregar contas futuras.");
     }
   }, []);
 
@@ -150,10 +164,18 @@ export function FinanceiroBedendoClient() {
         body: JSON.stringify({ day, action }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(formatApiError(data.error) || "Erro");
+      if (!res.ok) {
+        const msg = formatApiError(data.error) || "Erro";
+        // Já fechado / estado dessincronizado → só recarrega o dia
+        if (/já fechado|não está fechado/i.test(msg)) {
+          await loadDay();
+        }
+        throw new Error(msg);
+      }
       await loadDay();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro");
+      await loadDay();
     } finally {
       setBusy(false);
     }

@@ -25,6 +25,15 @@ export function formatApiError(
   if (typeof error === "string" && error.trim()) return error;
   if (!error || typeof error !== "object") return fallback;
 
+  // Alguns endpoints devolvem { message } / { mensagem }
+  const anyErr = error as { message?: unknown; mensagem?: unknown };
+  if (typeof anyErr.message === "string" && anyErr.message.trim()) {
+    return anyErr.message.trim();
+  }
+  if (typeof anyErr.mensagem === "string" && anyErr.mensagem.trim()) {
+    return anyErr.mensagem.trim();
+  }
+
   const parsed = error as ZodFlattenError;
   if (!("formErrors" in parsed) && !("fieldErrors" in parsed)) return fallback;
 
