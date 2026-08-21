@@ -1,11 +1,14 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { ensureStoreBannerMobileColumn } from "@/lib/ensure-store-banner-mobile";
 import { ThemeStudio } from "@/components/admin/ThemeStudio";
 
 export default async function AparenciaAdminPage() {
   const session = await auth();
   if (!session?.user?.storeId) redirect("/admin/login");
+
+  await ensureStoreBannerMobileColumn();
 
   const store = await prisma.store.findUnique({
     where: { id: session.user.storeId },

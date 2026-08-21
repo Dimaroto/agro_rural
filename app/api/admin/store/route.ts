@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { ensureStoreBannerMobileColumn } from "@/lib/ensure-store-banner-mobile";
 import {
   MAX_BRAND_PRESETS,
   MAX_PRESET_NAME,
@@ -68,6 +69,8 @@ export async function GET() {
   if (!session?.user?.storeId) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
+
+  await ensureStoreBannerMobileColumn();
 
   const store = await prisma.store.findUnique({
     where: { id: session.user.storeId },
@@ -145,6 +148,8 @@ export async function PATCH(req: Request) {
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Nada para atualizar" }, { status: 400 });
   }
+
+  await ensureStoreBannerMobileColumn();
 
   const store = await prisma.store.update({
     where: { id: session.user.storeId },

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "./db";
+import { ensureStoreBannerMobileColumn } from "./ensure-store-banner-mobile";
 import { getStockStatus } from "./format";
 import { availableStock } from "./inventory";
 import type { ProductFieldView } from "./party-favor-fields";
@@ -167,6 +168,7 @@ export const getDefaultStore = cache(async () => {
 });
 
 export async function getStoreBySlug(slug: string) {
+  await ensureStoreBannerMobileColumn();
   return prisma.store.findFirst({
     where: { slug, active: true },
   });
