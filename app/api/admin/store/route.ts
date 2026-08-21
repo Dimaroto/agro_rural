@@ -29,6 +29,8 @@ const presetSchema = z.object({
   header: surfaceSchema,
   buttons: surfaceSchema,
   background: surfaceSchema,
+  cards: surfaceSchema.optional(),
+  categories: surfaceSchema.optional(),
 });
 
 const themeDocumentSchema = z.object({

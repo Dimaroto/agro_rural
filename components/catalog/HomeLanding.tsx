@@ -184,7 +184,7 @@ function LatestProductCard({ product }: { product: CatalogProduct }) {
     <button
       type="button"
       onClick={() => openProduct(product)}
-      className="catalog-card-grow group flex flex-col overflow-hidden rounded-2xl border border-brand/20 bg-brand-cream text-left shadow-[0_8px_24px_rgba(15,35,28,0.1)] hover:border-brand/35 hover:shadow-[0_14px_32px_rgba(15,35,28,0.14)]"
+      className="catalog-product-card catalog-card-grow group flex flex-col overflow-hidden rounded-2xl border border-brand/20 text-left shadow-[0_8px_24px_rgba(15,35,28,0.1)] hover:border-brand/35 hover:shadow-[0_14px_32px_rgba(15,35,28,0.14)]"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-brand-light">
         {isPhoto && product.imageUrl ? (
@@ -203,10 +203,10 @@ function LatestProductCard({ product }: { product: CatalogProduct }) {
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-brand-dark">
+        <h3 className="catalog-card-title line-clamp-2 text-sm font-bold leading-snug">
           {product.name}
         </h3>
-        <p className="mt-auto text-base font-extrabold tabular-nums text-brand-dark">
+        <p className="mt-auto text-base font-extrabold tabular-nums">
           {formatPrice(product.priceCents)}
         </p>
       </div>
@@ -226,7 +226,7 @@ function CategoryCard({
   return (
     <Link
       href={`/produtos/${category.slug}`}
-      className="catalog-card-grow group flex h-full flex-col overflow-hidden rounded-3xl border border-brand/20 bg-brand-cream shadow-[0_10px_28px_rgba(15,35,28,0.12)] hover:border-brand/35 hover:shadow-[0_16px_36px_rgba(15,35,28,0.16)]"
+      className="catalog-category-card catalog-card-grow group flex h-full flex-col overflow-hidden rounded-3xl border border-brand/20 shadow-[0_10px_28px_rgba(15,35,28,0.12)] hover:border-brand/35 hover:shadow-[0_16px_36px_rgba(15,35,28,0.16)]"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-brand-light">
         {hasImage && category.imageUrl ? (
@@ -246,10 +246,10 @@ function CategoryCard({
         <div className="absolute inset-0 bg-brand-dark/10 transition-colors group-hover:bg-brand-dark/5" />
       </div>
       <div className="flex flex-col gap-1 p-5 sm:p-6">
-        <h3 className="text-lg font-extrabold text-brand-dark sm:text-xl">
+        <h3 className="text-lg font-extrabold sm:text-xl">
           {category.name}
         </h3>
-        <p className="text-sm font-medium text-brand-dark/65">
+        <p className="text-sm font-medium opacity-65">
           {productCount} {productCount === 1 ? "produto" : "produtos"}
         </p>
       </div>

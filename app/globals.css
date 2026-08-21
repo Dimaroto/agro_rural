@@ -18,7 +18,11 @@
   --color-text-muted: #5C6B4A;
   --color-charcoal: #1A2E12;
   --catalog-card-bg: #F3EFE4;
+  --catalog-card-fg: #1A2E12;
   --catalog-card-border: #C5A059;
+  --catalog-category-bg: #F3EFE4;
+  --catalog-category-fg: #1A2E12;
+  --catalog-category-border: rgba(26, 46, 18, 0.22);
   --catalog-surface: #E8E2D4;
   --background: var(--color-sage-light);
   --foreground: var(--color-primary-dark);
@@ -3075,6 +3079,29 @@ a,
 
 .catalog-page--simple {
   background: transparent;
+}
+
+.catalog-product-card {
+  background: var(--catalog-card-bg, var(--color-brand-cream, #f3efe4)) !important;
+  color: var(--catalog-card-fg, var(--color-primary-dark, #1a2e12));
+  border-color: var(--catalog-card-border, color-mix(in srgb, var(--color-primary) 20%, transparent)) !important;
+}
+
+.catalog-product-card h3,
+.catalog-product-card p,
+.catalog-product-card .catalog-card-title {
+  color: inherit;
+}
+
+.catalog-category-card {
+  background: var(--catalog-category-bg, var(--color-brand-cream, #f3efe4)) !important;
+  color: var(--catalog-category-fg, var(--color-primary-dark, #1a2e12));
+  border-color: var(--catalog-category-border, color-mix(in srgb, var(--color-primary) 20%, transparent)) !important;
+}
+
+.catalog-category-card h3,
+.catalog-category-card p {
+  color: inherit;
 }
 
 .catalog-main--simple {

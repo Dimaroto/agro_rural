@@ -35,6 +35,8 @@ type StudioSection =
   | "header"
   | "buttons"
   | "background"
+  | "cards"
+  | "categories"
   | "banners";
 
 type ThemeStudioProps = {
@@ -67,6 +69,8 @@ export function ThemeStudio({
       header: false,
       buttons: false,
       background: false,
+      cards: false,
+      categories: false,
       banners: true,
     }
   );
@@ -108,14 +112,23 @@ export function ThemeStudio({
   }
 
   function patchSurface(
-    key: "header" | "buttons" | "background",
+    key: "header" | "buttons" | "background" | "cards" | "categories",
     partial: Partial<BrandSurface>
   ) {
     setDoc((prev) => {
       const active = activePreset(prev);
       const fallback =
-        key === "background" ? active.background : active[key];
-      const nextSurface = parseBrandSurface({ ...active[key], ...partial }, fallback);
+        key === "background"
+          ? active.background
+          : key === "cards"
+            ? active.cards
+            : key === "categories"
+              ? active.categories
+              : active[key];
+      const nextSurface = parseBrandSurface(
+        { ...active[key], ...partial },
+        fallback
+      );
       return replacePreset(prev, { ...active, [key]: nextSurface });
     });
     setMsg("");
@@ -357,6 +370,30 @@ export function ThemeStudio({
           <SurfaceEditor
             surface={current.background}
             onChange={(partial) => patchSurface("background", partial)}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Boxes de produtos"
+          hint="Cards de itens na home e no catálogo"
+          open={openSections.cards}
+          onToggle={() => toggleSection("cards")}
+        >
+          <SurfaceEditor
+            surface={current.cards}
+            onChange={(partial) => patchSurface("cards", partial)}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Boxes de categorias"
+          hint="Cards de categorias na home"
+          open={openSections.categories}
+          onToggle={() => toggleSection("categories")}
+        >
+          <SurfaceEditor
+            surface={current.categories}
+            onChange={(partial) => patchSurface("categories", partial)}
           />
         </CollapsibleSection>
 
@@ -818,13 +855,13 @@ function CatalogPagePreview({
                 {(isMobile ? [0, 1] : [0, 1, 2, 3]).map((i) => (
                   <div
                     key={i}
-                    className="overflow-hidden rounded-2xl border border-brand/20 bg-[color-mix(in_srgb,white_72%,var(--color-cream-soft,white))] shadow-sm"
+                    className="catalog-product-card overflow-hidden rounded-2xl border border-brand/20 shadow-sm"
                   >
                     <div
                       className={
                         isMobile
-                          ? "aspect-square bg-[color-mix(in_srgb,var(--color-primary)_12%,#e8eee6)]"
-                          : "aspect-[4/3] bg-[color-mix(in_srgb,var(--color-primary)_12%,#e8eee6)]"
+                          ? "aspect-square bg-[color-mix(in_srgb,var(--catalog-card-fg)_8%,transparent)]"
+                          : "aspect-[4/3] bg-[color-mix(in_srgb,var(--catalog-card-fg)_8%,transparent)]"
                       }
                     />
                     <div className="space-y-2 p-3">
@@ -832,14 +869,14 @@ function CatalogPagePreview({
                         className="h-2.5 w-[90%] rounded"
                         style={{
                           background:
-                            "color-mix(in srgb, var(--color-primary-dark) 28%, transparent)",
+                            "color-mix(in srgb, var(--catalog-card-fg) 28%, transparent)",
                         }}
                       />
                       <div
                         className="h-2.5 w-1/2 rounded"
                         style={{
                           background:
-                            "color-mix(in srgb, var(--color-primary-dark) 18%, transparent)",
+                            "color-mix(in srgb, var(--catalog-card-fg) 18%, transparent)",
                         }}
                       />
                       <div
@@ -868,13 +905,10 @@ function CatalogPagePreview({
                 {["Rações", "Insumos", "Ferramentas"].map((label) => (
                   <div
                     key={label}
-                    className="w-28 shrink-0 overflow-hidden rounded-2xl border border-brand/20 bg-white/70 sm:w-32"
+                    className="catalog-category-card w-28 shrink-0 overflow-hidden rounded-2xl border border-brand/20 sm:w-32"
                   >
-                    <div className="aspect-square bg-[color-mix(in_srgb,var(--color-primary)_14%,#e8eee6)]" />
-                    <p
-                      className="truncate px-2 py-2 text-center text-sm font-bold"
-                      style={{ color: "var(--page-fg)" }}
-                    >
+                    <div className="aspect-square bg-[color-mix(in_srgb,var(--catalog-category-fg)_10%,transparent)]" />
+                    <p className="truncate px-2 py-2 text-center text-sm font-bold">
                       {label}
                     </p>
                   </div>

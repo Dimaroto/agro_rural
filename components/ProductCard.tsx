@@ -83,7 +83,7 @@ export function ProductCard({
   }
 
   return (
-    <article className="catalog-product-card catalog-card-grow group relative flex flex-col overflow-hidden rounded-2xl border border-brand/20 bg-brand-cream shadow-[0_8px_24px_rgba(26, 46, 18,0.1)] hover:border-brand/35 hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.14)] sm:rounded-3xl sm:shadow-[0_8px_24px_rgba(26, 46, 18,0.12)] sm:hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.16)]">
+    <article className="catalog-product-card catalog-card-grow group relative flex flex-col overflow-hidden rounded-2xl border border-brand/20 shadow-[0_8px_24px_rgba(26, 46, 18,0.1)] hover:border-brand/35 hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.14)] sm:rounded-3xl sm:shadow-[0_8px_24px_rgba(26, 46, 18,0.12)] sm:hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.16)]">
       <div
         className="pointer-events-none absolute inset-0 z-10 hidden rounded-3xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:block bg-brand-light/30"
         aria-hidden
@@ -154,37 +154,37 @@ export function ProductCard({
 
         {/* Mobile: só nome + preço (igual Últimos lançamentos) */}
         <div className="flex flex-1 flex-col gap-1 p-3 sm:hidden">
-          <h3 className="line-clamp-2 text-sm font-bold leading-snug text-brand-dark">
+          <h3 className="catalog-card-title line-clamp-2 text-sm font-bold leading-snug">
             {product.name}
           </h3>
-          <p className="mt-auto text-base font-extrabold tabular-nums text-brand-dark">
+          <p className="mt-auto text-base font-extrabold tabular-nums">
             {formatPrice(product.priceCents)}
           </p>
         </div>
 
         {/* Desktop/tablet: detalhes completos */}
         <div className="relative hidden flex-col gap-1.5 p-3.5 pt-3 sm:flex sm:p-4 sm:pt-3.5">
-          <h3 className="line-clamp-3 text-base font-bold leading-snug tracking-[-0.01em] text-brand-dark transition-colors duration-200 group-hover:text-brand lg:line-clamp-2 lg:text-lg">
+          <h3 className="catalog-card-title line-clamp-3 text-base font-bold leading-snug tracking-[-0.01em] transition-opacity duration-200 group-hover:opacity-90 lg:line-clamp-2 lg:text-lg">
             {product.name}
           </h3>
 
           {subtitle && (
-            <p className="line-clamp-2 text-sm leading-relaxed text-[#3d7a62] lg:text-base">
+            <p className="line-clamp-2 text-sm leading-relaxed opacity-70 lg:text-base">
               {subtitle}
             </p>
           )}
 
           {sizeLabel && (
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#3d7a62]/80 lg:text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-65 lg:text-sm">
               {sizeLabel}
             </p>
           )}
 
-          <div className="mt-auto flex items-end justify-between gap-2 border-t border-brand-light/80 pt-3">
-            <span className="hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80 lg:inline">
+          <div className="mt-auto flex items-end justify-between gap-2 border-t border-black/10 pt-3">
+            <span className="hidden text-[10px] font-semibold uppercase tracking-[0.14em] opacity-55 lg:inline">
               Valor
             </span>
-            <p className="text-lg font-extrabold tabular-nums tracking-tight text-brand-dark sm:text-xl">
+            <p className="text-lg font-extrabold tabular-nums tracking-tight sm:text-xl">
               {formatPrice(product.priceCents)}
             </p>
           </div>

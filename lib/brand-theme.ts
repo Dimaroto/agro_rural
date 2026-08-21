@@ -26,6 +26,10 @@ export type BrandPreset = {
   header: BrandSurface;
   buttons: BrandSurface;
   background: BrandSurface;
+  /** Boxes de produtos no catálogo / home */
+  cards: BrandSurface;
+  /** Boxes de categorias na home */
+  categories: BrandSurface;
 };
 
 export type BrandThemeDocument = {
@@ -224,6 +228,24 @@ export const DEFAULT_BACKGROUND_SURFACE: BrandSurface = {
   text: DEFAULT_PAGE_FG,
 };
 
+export const DEFAULT_CARDS_SURFACE: BrandSurface = {
+  mode: "solid",
+  from: "#F3EFE4",
+  to: "#F7F4EC",
+  shape: "linear",
+  angle: 180,
+  text: DEFAULT_PAGE_FG,
+};
+
+export const DEFAULT_CATEGORIES_SURFACE: BrandSurface = {
+  mode: "solid",
+  from: "#F3EFE4",
+  to: "#F7F4EC",
+  shape: "linear",
+  angle: 180,
+  text: DEFAULT_PAGE_FG,
+};
+
 export function createDefaultPreset(name = "Padrão"): BrandPreset {
   return {
     id: newBrandPresetId(),
@@ -231,6 +253,8 @@ export function createDefaultPreset(name = "Padrão"): BrandPreset {
     header: { ...DEFAULT_HEADER_SURFACE },
     buttons: { ...DEFAULT_BUTTONS_SURFACE },
     background: { ...DEFAULT_BACKGROUND_SURFACE },
+    cards: { ...DEFAULT_CARDS_SURFACE },
+    categories: { ...DEFAULT_CATEGORIES_SURFACE },
   };
 }
 
@@ -243,6 +267,8 @@ function presetFromLegacyFill(fill: BrandTheme, name = "Padrão"): BrandPreset {
     header: { ...surface },
     buttons: { ...surface },
     background: { ...DEFAULT_BACKGROUND_SURFACE },
+    cards: { ...DEFAULT_CARDS_SURFACE },
+    categories: { ...DEFAULT_CATEGORIES_SURFACE },
   };
 }
 
@@ -259,6 +285,8 @@ export function parseBrandPreset(raw: unknown): BrandPreset {
     header: parseBrandSurface(obj.header),
     buttons: parseBrandSurface(obj.buttons),
     background: parseBrandSurface(obj.background, DEFAULT_BACKGROUND_SURFACE),
+    cards: parseBrandSurface(obj.cards, DEFAULT_CARDS_SURFACE),
+    categories: parseBrandSurface(obj.categories, DEFAULT_CATEGORIES_SURFACE),
   };
 }
 
@@ -344,6 +372,8 @@ export function cloneBrandPreset(
     header: { ...parsed.header },
     buttons: { ...parsed.buttons },
     background: { ...parsed.background },
+    cards: { ...parsed.cards },
+    categories: { ...parsed.categories },
   };
 }
 
@@ -368,6 +398,11 @@ export function presetToCssVars(preset: BrandPreset): Record<string, string> {
     preset.background,
     DEFAULT_BACKGROUND_SURFACE
   );
+  const cards = parseBrandSurface(preset.cards, DEFAULT_CARDS_SURFACE);
+  const categories = parseBrandSurface(
+    preset.categories,
+    DEFAULT_CATEGORIES_SURFACE
+  );
   const primary = buttons.from;
   const dark =
     buttons.mode === "gradient"
@@ -390,6 +425,12 @@ export function presetToCssVars(preset: BrandPreset): Record<string, string> {
     "--header-text": header.text,
     "--page-bg": brandFillCss(background),
     "--page-fg": background.text,
+    "--catalog-card-bg": brandFillCss(cards),
+    "--catalog-card-fg": cards.text,
+    "--catalog-card-border": hexToRgba(cards.text, 0.22),
+    "--catalog-category-bg": brandFillCss(categories),
+    "--catalog-category-fg": categories.text,
+    "--catalog-category-border": hexToRgba(categories.text, 0.22),
   };
 }
 
