@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { BrandLogo } from "@/components/BrandLogo";
 import { formatApiError } from "@/lib/apiError";
 import { useUnsavedChangesOptional } from "@/components/admin/UnsavedChangesContext";
 import { BannerImageField } from "@/components/admin/BannerImageField";
@@ -547,6 +548,51 @@ function SurfaceEditor({
   );
 }
 
+function PreviewMenuIcon({ color }: { color: string }) {
+  return (
+    <span className="flex h-4 w-4 flex-col justify-center gap-[3px]" aria-hidden>
+      <span className="h-px w-full rounded" style={{ background: color }} />
+      <span className="h-px w-full rounded" style={{ background: color }} />
+      <span className="h-px w-full rounded" style={{ background: color }} />
+    </span>
+  );
+}
+
+function PreviewSearchIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PreviewCartIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={className}
+      aria-hidden
+    >
+      <path
+        d="M6.5 8h11l-1 10.5a1.5 1.5 0 0 1-1.5 1.5h-6a1.5 1.5 0 0 1-1.5-1.5L6.5 8Z"
+        strokeLinejoin="round"
+      />
+      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function CatalogPagePreview({
   preset,
   bannerUrl,
@@ -564,14 +610,20 @@ function CatalogPagePreview({
   const pageFg = preset.background.text;
   const btnFill = brandFillCss(preset.buttons);
   const btnText = preset.buttons.text;
-  const muted =
-    headerText === "#FFFFFF" || headerText === "#ffffff"
-      ? "rgba(255,255,255,0.78)"
-      : "rgba(26,46,18,0.7)";
-  const pillBg =
-    headerText === "#FFFFFF" || headerText === "#ffffff"
-      ? "rgba(255,255,255,0.28)"
-      : "rgba(26,46,18,0.16)";
+  const isLightHeaderText =
+    headerText === "#FFFFFF" || headerText === "#ffffff";
+  const muted = isLightHeaderText
+    ? "rgba(255,255,255,0.78)"
+    : "rgba(26,46,18,0.7)";
+  const pillBg = isLightHeaderText
+    ? "rgba(255,255,255,0.22)"
+    : "rgba(26,46,18,0.14)";
+  const divider = isLightHeaderText
+    ? "rgba(255,255,255,0.28)"
+    : "rgba(26,46,18,0.18)";
+  const navBorder = isLightHeaderText
+    ? "rgba(255,255,255,0.16)"
+    : "rgba(26,46,18,0.12)";
 
   const isMobile = device === "mobile";
   const shownBanner = isMobile
@@ -580,6 +632,7 @@ function CatalogPagePreview({
   const aspectClass = isMobile
     ? HOME_BANNER_MOBILE.aspectClass
     : HOME_BANNER_DESKTOP.aspectClass;
+  const navLabels = ["Home", "Todos", "Rações", "Insumos", "Ferramentas"];
 
   return (
     <div
@@ -588,58 +641,111 @@ function CatalogPagePreview({
       }`}
       aria-hidden
     >
-      <div
-        className="px-3 pb-2 pt-2"
-        style={{ background: headerFill, color: headerText }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="flex h-4 w-4 flex-col justify-center gap-[3px]">
-            <span className="h-px w-full rounded" style={{ background: headerText }} />
-            <span className="h-px w-full rounded" style={{ background: headerText }} />
-            <span className="h-px w-full rounded" style={{ background: headerText }} />
-          </span>
-          <span
-            className="h-7 w-7 shrink-0 rounded-md"
-            style={{ background: pillBg }}
-          />
-          <span
-            className="h-2.5 w-20 rounded-sm"
-            style={{ background: headerText, opacity: 0.92 }}
-          />
-          <span className="ml-auto h-7 min-w-0 flex-1 rounded-full bg-white/95 shadow-sm" />
-          {!isMobile ? (
-            <span className="text-[10px] font-semibold" style={{ color: muted }}>
-              Entrar
-            </span>
-          ) : null}
-          <span
-            className="h-7 w-7 shrink-0 rounded-full"
-            style={{ background: pillBg }}
-          />
-        </div>
-        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">
-          <span
-            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-            style={{ background: pillBg, color: headerText }}
-          >
-            Home
-          </span>
-          {["Todos", "Rações", "Insumos"].map((label) => (
+      {/* Header — espelha CatalogHeader (logo real + busca + ações + nav) */}
+      <div style={{ background: headerFill, color: headerText }}>
+        {isMobile ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5">
             <span
-              key={label}
-              className="shrink-0 px-1 text-[10px] font-medium leading-none"
-              style={{ color: muted }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: pillBg }}
             >
-              {label}
+              <PreviewMenuIcon color={headerText} />
             </span>
-          ))}
-        </div>
+            <div className="flex min-h-[2.75rem] min-w-0 flex-1 items-center justify-center px-1">
+              <BrandLogo
+                size="header"
+                className="!h-10 !max-w-[min(100%,11rem)]"
+              />
+            </div>
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              style={{ background: pillBg }}
+            >
+              <PreviewSearchIcon className="h-3.5 w-3.5 opacity-90" />
+            </span>
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              style={{ background: pillBg }}
+            >
+              <PreviewCartIcon className="h-3.5 w-3.5 opacity-90" />
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)_auto] items-stretch gap-0">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <div className="flex min-h-[3.25rem] min-w-0 flex-1 items-center">
+                  <BrandLogo
+                    size="headerWide"
+                    className="!h-[3.1rem] !max-h-full !max-w-full sm:!h-[3.4rem]"
+                  />
+                </div>
+                <span
+                  className="hidden h-10 w-px shrink-0 sm:block"
+                  style={{ background: divider }}
+                />
+              </div>
+              <div className="flex min-w-0 items-center px-1 py-2 sm:px-2">
+                <div className="flex h-9 w-full items-center gap-2 rounded-full bg-white px-3 text-zinc-400 shadow-sm">
+                  <PreviewSearchIcon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate text-[10px] sm:text-[11px]">
+                    Buscar produtos…
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-2 py-2 sm:gap-3 sm:px-3">
+                <span
+                  className="hidden text-[10px] font-semibold sm:inline"
+                  style={{ color: muted }}
+                >
+                  Entrar
+                </span>
+                <span
+                  className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: pillBg }}
+                >
+                  <PreviewCartIcon className="h-3.5 w-3.5" />
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[8px] font-bold leading-none"
+                    style={{ background: headerText, color: headerFill }}
+                  >
+                    2
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
+              style={{ borderTop: `1px solid ${navBorder}` }}
+            >
+              {navLabels.map((label, i) => (
+                <span
+                  key={label}
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none ${
+                    i === 0 ? "" : "font-medium"
+                  }`}
+                  style={
+                    i === 0
+                      ? { background: pillBg, color: headerText }
+                      : { color: muted }
+                  }
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="space-y-3 px-3 py-3" style={{ background: pageBg, color: pageFg }}>
+      {/* Corpo — home: banner + lançamentos + categorias + CTA */}
+      <div
+        className="space-y-4 px-3 py-4 sm:px-4"
+        style={{ background: pageBg, color: pageFg }}
+      >
         {shownBanner ? (
           <div
-            className={`relative w-full overflow-hidden rounded-2xl border border-black/10 ${aspectClass}`}
+            className={`relative w-full overflow-hidden rounded-3xl border border-black/10 ${aspectClass}`}
           >
             <Image
               src={shownBanner}
@@ -650,65 +756,128 @@ function CatalogPagePreview({
             />
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-black/15 px-3 py-5 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+          <div className="rounded-3xl border border-dashed border-black/15 px-4 py-8 text-center sm:px-6">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-55">
               Sem banner {isMobile ? "celular" : "computador"}
             </p>
-            <p className="mt-1 text-xs font-bold opacity-80">Nome da loja</p>
-            <p className="mx-auto mt-1 max-w-[14rem] text-[10px] leading-snug opacity-55">
-              Texto de apresentação aparece aqui quando não há imagem.
+            <p className="mt-2 text-sm font-extrabold tracking-tight opacity-90 sm:text-base">
+              Agrorural Agropecuária
             </p>
+            <p className="mx-auto mt-2 max-w-[16rem] text-[10px] leading-relaxed opacity-55 sm:text-[11px]">
+              Texto de apresentação aparece aqui quando não há imagem de capa.
+            </p>
+            <div
+              className="mx-auto mt-4 h-8 w-28 rounded-full text-center text-[10px] font-bold leading-8"
+              style={{ background: btnFill, color: btnText }}
+            >
+              Ver produtos
+            </div>
           </div>
         )}
-        <div
-          className={
-            isMobile ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-2"
-          }
-        >
-          {(isMobile ? [0, 1] : [0, 1, 2]).map((i) => (
-            <div
-              key={i}
-              className="overflow-hidden rounded-xl border border-amber-200/70 bg-[#F3EFE4]"
-            >
-              <div className={isMobile ? "h-20 bg-zinc-200/80" : "h-14 bg-zinc-200/80 sm:h-20"} />
-              <div className="space-y-1.5 p-2">
-                <div className="h-2 w-full rounded bg-zinc-300/80" />
-                <div className="h-2 w-2/3 rounded bg-zinc-300/60" />
+
+        <div>
+          <div className="mb-2.5 flex items-end justify-between gap-2">
+            <p className="text-xs font-extrabold tracking-tight sm:text-sm">
+              Últimos lançamentos
+            </p>
+            <span className="text-[10px] font-semibold opacity-55">Ver todos</span>
+          </div>
+          <div
+            className={
+              isMobile ? "grid grid-cols-2 gap-2.5" : "grid grid-cols-3 gap-2.5 sm:grid-cols-4"
+            }
+          >
+            {(isMobile ? [0, 1] : [0, 1, 2, 3]).map((i) => (
+              <div
+                key={i}
+                className="overflow-hidden rounded-xl border border-black/8 bg-white/70 shadow-sm"
+              >
                 <div
-                  className="mt-1.5 h-7 w-full rounded-full text-center text-[10px] font-semibold leading-7"
-                  style={{ background: btnFill, color: btnText }}
-                >
-                  Comprar
+                  className={
+                    isMobile ? "aspect-square bg-zinc-200/70" : "aspect-[4/3] bg-zinc-200/70"
+                  }
+                />
+                <div className="space-y-1.5 p-2">
+                  <div className="h-2 w-[88%] rounded bg-zinc-300/80" />
+                  <div className="h-2 w-1/2 rounded bg-zinc-300/55" />
+                  <div
+                    className="mt-1 h-7 w-full rounded-full text-center text-[10px] font-semibold leading-7"
+                    style={{ background: btnFill, color: btnText }}
+                  >
+                    Comprar
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <div
-          className="mx-auto h-9 w-40 rounded-full text-center text-xs font-semibold leading-9"
-          style={{ background: btnFill, color: btnText }}
-        >
-          Ver ofertas
+
+        <div>
+          <p className="mb-2.5 text-xs font-extrabold tracking-tight sm:text-sm">
+            Categorias
+          </p>
+          <div className="flex gap-2 overflow-hidden">
+            {["Rações", "Insumos", "Ferramentas"].map((label) => (
+              <div
+                key={label}
+                className="w-[4.75rem] shrink-0 overflow-hidden rounded-xl border border-black/8 bg-white/70 sm:w-24"
+              >
+                <div className="aspect-square bg-zinc-200/65" />
+                <p className="truncate px-1.5 py-1.5 text-center text-[9px] font-semibold">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-center pt-1">
+          <div
+            className="h-9 min-w-[10.5rem] rounded-full px-5 text-center text-[11px] font-bold leading-9"
+            style={{ background: btnFill, color: btnText }}
+          >
+            Ver todos os produtos
+          </div>
         </div>
       </div>
 
+      {/* Rodapé — logo real como no CatalogFooter */}
       <div
-        className="grid grid-cols-3 gap-2 px-3 py-3 text-[10px] leading-tight"
+        className={`gap-3 px-3 py-3 text-[10px] leading-tight ${
+          isMobile ? "grid grid-cols-1" : "grid grid-cols-3"
+        }`}
         style={{ background: headerFill, color: headerText }}
       >
-        <div>
-          <div className="h-4 w-12 rounded" style={{ background: pillBg }} />
-          <p className="mt-1.5 opacity-70">Agropecuária e insumos.</p>
+        <div className={isMobile ? "flex items-start gap-3" : ""}>
+          <BrandLogo
+            size="header"
+            className={
+              isMobile
+                ? "!h-11 !max-w-[8.5rem]"
+                : "!h-12 !max-w-[9.5rem] sm:!h-[3.25rem]"
+            }
+          />
+          <p className={`mt-1.5 max-w-[12rem] opacity-70 ${isMobile ? "mt-0" : ""}`}>
+            Agropecuária e insumos para o campo.
+          </p>
         </div>
-        <div>
-          <p className="font-bold uppercase tracking-wide opacity-85">Navegação</p>
-          <p className="mt-1 opacity-80">Home</p>
-          <p className="opacity-80">Todos</p>
-        </div>
-        <div>
-          <p className="font-bold uppercase tracking-wide opacity-85">Contato</p>
-          <p className="mt-1 font-semibold">WhatsApp</p>
-        </div>
+        {!isMobile ? (
+          <>
+            <div>
+              <p className="font-bold uppercase tracking-wide opacity-85">
+                Navegação
+              </p>
+              <p className="mt-1 opacity-80">Home</p>
+              <p className="opacity-80">Todos</p>
+            </div>
+            <div>
+              <p className="font-bold uppercase tracking-wide opacity-85">
+                Contato
+              </p>
+              <p className="mt-1 font-semibold">WhatsApp</p>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
