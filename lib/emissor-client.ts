@@ -60,12 +60,36 @@ export async function emissorFetch<T>(
     headers.set("Authorization", `Bearer ${init.token}`);
   }
   const { token: _t, baseUrl: _b, ...rest } = init;
-  const res = await fetch(`${base}${path}`, { ...rest, headers });
-  let data = {} as T;
+  const method = String(rest.method || "GET").toUpperCase();
+  const apiPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Preferir proxy do app Windows (evita mixed content HTTPS → HTTP local)
+  const { emissorHttp } = await import("@/lib/nfe/client");
+  const headerObj: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    headerObj[key] = value;
+  });
   try {
-    data = (await res.json()) as T;
-  } catch {
-    /* empty */
+    const res = await emissorHttp({
+      path: apiPath,
+      method,
+      headers: headerObj,
+      body:
+        rest.body != null && method !== "GET" && method !== "HEAD"
+          ? typeof rest.body === "string"
+            ? rest.body
+            : String(rest.body)
+          : undefined,
+      baseUrl: base,
+    });
+    return { ok: res.ok, status: res.status, data: res.json as T };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      data: {
+        mensagem: err instanceof Error ? err.message : "Emissor inacessível",
+      } as T,
+    };
   }
-  return { ok: res.ok, status: res.status, data };
 }

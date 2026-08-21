@@ -10,6 +10,12 @@ import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
 import type { ImageSlotChange } from "@/components/admin/ProductImageUpload";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { FiscalCodeCombobox } from "@/components/admin/FiscalCodeCombobox";
+import { FiscalOptionSelect } from "@/components/admin/FiscalOptionSelect";
+import {
+  CSOSN_OPTIONS,
+  ORIGEM_MERCADORIA_OPTIONS,
+  UNIDADE_COMERCIAL_OPTIONS,
+} from "@/lib/fiscal/product-fiscal-options";
 import type {
   ProductFieldInput,
   ProductFieldType,
@@ -536,26 +542,24 @@ export function ProductForm({
               />
             </Field>
             <Field label="CSOSN">
-              <input
+              <FiscalOptionSelect
                 name="csosn"
-                inputMode="numeric"
+                options={CSOSN_OPTIONS}
                 defaultValue={product?.csosn ?? "102"}
-                className={inputClass}
               />
             </Field>
-            <Field label="Origem">
-              <input
+            <Field label="Origem da mercadoria">
+              <FiscalOptionSelect
                 name="origemMercadoria"
-                inputMode="numeric"
+                options={ORIGEM_MERCADORIA_OPTIONS}
                 defaultValue={product?.origemMercadoria ?? "0"}
-                className={inputClass}
               />
             </Field>
             <Field label="Unidade">
-              <input
+              <FiscalOptionSelect
                 name="unidadeComercial"
+                options={UNIDADE_COMERCIAL_OPTIONS}
                 defaultValue={product?.unidadeComercial ?? "UN"}
-                className={inputClass}
               />
             </Field>
           </div>

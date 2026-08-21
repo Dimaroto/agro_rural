@@ -321,7 +321,7 @@ export function PdvClient() {
   async function checkout() {
     if (submitting || cart.length === 0) return;
 
-    if (paymentMethod === "cash" && receivedCents < chargedCents) {
+    if (paymentMethod === "cash" && receivedCents > 0 && receivedCents < chargedCents) {
       setError("O valor recebido deve ser igual ou maior que o total.");
       return;
     }
@@ -358,7 +358,11 @@ export function PdvClient() {
           paymentMethod,
           customerId: customer?.id,
           receivedCents:
-            paymentMethod === "cash" ? receivedCents : undefined,
+            paymentMethod === "cash"
+              ? receivedCents > 0
+                ? receivedCents
+                : chargedCents
+              : undefined,
           dueInDays: paymentMethod === "receivable" ? dueInDays : undefined,
           discountCents: discountCents > 0 ? discountCents : undefined,
         }),
@@ -791,7 +795,10 @@ export function PdvClient() {
 
           {paymentMethod === "cash" && (
             <div className="sm:col-span-2">
-              <label className="text-sm font-medium">Valor recebido</label>
+              <label className="text-sm font-medium">
+                Valor recebido{" "}
+                <span className="font-normal text-zinc-500">(opcional)</span>
+              </label>
               <CurrencyInput
                 valueCents={receivedCents}
                 onChange={setReceivedCents}
@@ -800,14 +807,16 @@ export function PdvClient() {
               />
               <p
                 className={`mt-1 text-sm font-semibold ${
-                  receivedCents < chargedCents
+                  receivedCents > 0 && receivedCents < chargedCents
                     ? "text-red-600"
-                    : "text-emerald-700"
+                    : "text-emerald-700 dark:text-emerald-400"
                 }`}
               >
-                {receivedCents < chargedCents
-                  ? "Valor insuficiente"
-                  : `Troco ${formatPrice(Math.max(0, changeCents))}`}
+                {receivedCents <= 0
+                  ? "Sem valor informado — a venda fecha pelo total, sem troco."
+                  : receivedCents < chargedCents
+                    ? "Valor insuficiente"
+                    : `Troco ${formatPrice(Math.max(0, changeCents))}`}
               </p>
             </div>
           )}

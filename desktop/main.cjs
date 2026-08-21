@@ -302,6 +302,36 @@ app.whenReady().then(() => {
     return true;
   });
   ipcMain.handle('emissor:online', async () => lastOnline);
+  /** Proxy HTTP → emissor local (evita mixed content no admin HTTPS). */
+  ipcMain.handle('emissor:request', async (_e, opts) => {
+    const path = String(opts?.path || '');
+    if (!path.startsWith('/')) {
+      return { ok: false, status: 0, body: 'Caminho inválido', error: 'path' };
+    }
+    const method = String(opts?.method || 'GET').toUpperCase();
+    const headers = opts?.headers && typeof opts.headers === 'object' ? opts.headers : {};
+    const url = `http://127.0.0.1:8001${path}`;
+    try {
+      const init = {
+        method,
+        headers,
+        body:
+          opts?.body != null && method !== 'GET' && method !== 'HEAD'
+            ? String(opts.body)
+            : undefined,
+      };
+      const res = await fetch(url, init);
+      const body = await res.text();
+      return { ok: res.ok, status: res.status, body };
+    } catch (err) {
+      return {
+        ok: false,
+        status: 0,
+        body: '',
+        error: err instanceof Error ? err.message : 'Falha de rede no emissor',
+      };
+    }
+  });
   ipcMain.handle('app:show-admin', async () => {
     showAdmin();
     return true;

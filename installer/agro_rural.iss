@@ -6,7 +6,7 @@
 #define MyAppName "Agro Rural"
 #define MyAppNameUI "Agro Rural"
 #define MyAppPublisher "Edem Software"
-#define MyAppVersion "1.1.2"
+#define MyAppVersion "1.1.5"
 #define MyAppExeName "AgroRural.exe"
 #define MyAppURL "https://agroruralzortea.com.br"
 
@@ -106,6 +106,8 @@ begin
         mbError, MB_OK);
   end;
 end;
+
+
 
 
 

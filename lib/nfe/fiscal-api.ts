@@ -2,6 +2,7 @@
 
 import {
   NFE_EMISSOR_BASE_URL,
+  emissorHttp,
   readNfeEmissorToken,
   writeNfeEmissorToken,
 } from "@/lib/nfe/client";
@@ -72,12 +73,24 @@ async function parseJson<T>(res: Response): Promise<T> {
 export async function fetchLocalToken(
   baseUrl = NFE_EMISSOR_BASE_URL
 ): Promise<string> {
-  const res = await fetch(`${baseUrl}/api/v1/integracoes/agro/token-local`, {
+  const res = await emissorHttp({
+    path: "/api/v1/integracoes/agro/token-local",
     method: "GET",
-    mode: "cors",
+    baseUrl,
     headers: { Accept: "application/json" },
   });
-  const data = await parseJson<{ token: string }>(res);
+  const data = res.json as {
+    token?: string;
+    mensagem?: string;
+    message?: string;
+  };
+  if (!res.ok || !data.token?.trim()) {
+    throw new Error(
+      data.mensagem ||
+        data.message ||
+        `Falha no emissor (HTTP ${res.status}).`
+    );
+  }
   writeNfeEmissorToken(data.token);
   return data.token;
 }

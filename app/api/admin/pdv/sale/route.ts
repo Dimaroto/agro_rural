@@ -37,13 +37,6 @@ const saleSchema = z
         });
       }
     }
-    if (data.paymentMethod === "cash" && data.receivedCents == null) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["receivedCents"],
-        message: "Informe o valor recebido",
-      });
-    }
   });
 
 export async function POST(req: Request) {

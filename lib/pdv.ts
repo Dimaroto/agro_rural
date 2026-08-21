@@ -180,7 +180,10 @@ export async function createWalkInSale(params: {
 
   let changeCents = 0;
   if (params.paymentMethod === "cash") {
-    const received = params.receivedCents ?? 0;
+    const received =
+      params.receivedCents != null && params.receivedCents > 0
+        ? params.receivedCents
+        : totalCents;
     if (!Number.isInteger(received) || received < totalCents) {
       throw new InventoryError(
         "O valor recebido deve ser igual ou maior que o total."
