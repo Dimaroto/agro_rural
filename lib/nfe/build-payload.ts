@@ -1,5 +1,6 @@
 import { decryptCustomerPii } from "@/lib/customer-field-crypto";
 import { PublicApiError } from "@/lib/public-api-error";
+import { lookupCep } from "@/lib/cep";
 
 type NfeCustomer = {
   name: string | null;
@@ -50,10 +51,10 @@ function digits(value: string | null | undefined): string {
 /**
  * Monta o payload simplificado esperado por POST /integracoes/agro/nfe|nfce/emitir.
  */
-export function buildAgroNfePayload(
+export async function buildAgroNfePayload(
   order: NfeOrderSource,
   modelo: 55 | 65 = 55
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const customer = order.customer
     ? decryptCustomerPii(order.customer)
     : null;
@@ -77,11 +78,26 @@ export function buildAgroNfePayload(
     "CONSUMIDOR";
 
   const cep = digits(customer.zipCode);
-  const uf = (customer.state ?? "").trim().toUpperCase();
-  const cidade = (customer.city ?? "").trim();
-  if (cep.length !== 8 || uf.length !== 2 || !cidade) {
+  let uf = (customer.state ?? "").trim().toUpperCase();
+  let cidade = (customer.city ?? "").trim();
+  if (cep.length !== 8) {
     throw new PublicApiError(
-      "Endereço fiscal incompleto (cidade, UF e CEP). Atualize o cliente em Clientes."
+      "CEP do cliente inválido. Atualize o cliente em Clientes."
+    );
+  }
+
+  const cepInfo = await lookupCep(cep);
+  const codigoMunicipio = cepInfo?.ibge ?? "";
+  if (!codigoMunicipio) {
+    throw new PublicApiError(
+      `Não foi possível obter o código IBGE do CEP ${cep}. Confira o CEP em Clientes.`
+    );
+  }
+  if (!uf) uf = cepInfo?.state ?? "";
+  if (!cidade) cidade = cepInfo?.city ?? "";
+  if (uf.length !== 2 || !cidade) {
+    throw new PublicApiError(
+      "Endereço fiscal incompleto (cidade e UF). Atualize o cliente em Clientes."
     );
   }
 
@@ -133,13 +149,19 @@ export function buildAgroNfePayload(
       email: customer.email ?? undefined,
       ie: customer.ie?.trim() || undefined,
       endereco: {
-        logradouro: customer.street?.trim() || "NAO INFORMADO",
+        logradouro:
+          customer.street?.trim() ||
+          cepInfo?.street ||
+          "NAO INFORMADO",
         numero: customer.number?.trim() || "S/N",
         complemento: customer.complement?.trim() || undefined,
-        bairro: customer.district?.trim() || "CENTRO",
+        bairro:
+          customer.district?.trim() || cepInfo?.district || "CENTRO",
         cidade,
         uf,
         cep,
+        codigoMunicipio,
+        codigo_municipio: codigoMunicipio,
       },
     },
     itens,

@@ -290,8 +290,28 @@ class AgroNfePayloadMapper
 
     private function resolverCodigoMunicipioPorCep(string $cep): ?string
     {
+        $cep = preg_replace('/\D/', '', $cep) ?? '';
+        if (strlen($cep) !== 8) {
+            return null;
+        }
+
         try {
-            $response = Http::timeout(8)->get('https://brasilapi.com.br/api/cep/v2/'.$cep);
+            $response = Http::timeout(8)->get('https://viacep.com.br/ws/'.$cep.'/json/');
+            if ($response->successful()) {
+                $data = $response->json();
+                if (! ($data['erro'] ?? false)) {
+                    $digits = preg_replace('/\D/', '', (string) ($data['ibge'] ?? ''));
+                    if (strlen($digits) === 7) {
+                        return $digits;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            /* fallback abaixo */
+        }
+
+        try {
+            $response = Http::timeout(8)->get('https://brasilapi.com.br/api/cep/v1/'.$cep);
             if (! $response->successful()) {
                 return null;
             }
@@ -299,6 +319,10 @@ class AgroNfePayloadMapper
             $ibge = $data['city_ibge']
                 ?? $data['ibge']
                 ?? ($data['location']['ibge'] ?? null);
+
+            if (is_array($ibge)) {
+                $ibge = $ibge['city'] ?? $ibge['codigo_ibge'] ?? $ibge['code'] ?? null;
+            }
 
             $digits = preg_replace('/\D/', '', (string) $ibge);
 

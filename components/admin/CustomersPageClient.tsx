@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { formatApiError } from "@/lib/apiError";
 import {
@@ -8,6 +8,7 @@ import {
   formatBrPhone,
   isoToBrBirthDate,
 } from "@/lib/br-contact";
+import { formatBrCep, formatBrCpfCnpj, lookupCep } from "@/lib/cep";
 import { searchIncludes } from "@/lib/search-text";
 
 type CustomerRow = {
@@ -57,7 +58,9 @@ export function CustomersPageClient({
   const [fiscal, setFiscal] = useState(emptyFiscal);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [cepHint, setCepHint] = useState("");
   const [saving, setSaving] = useState(false);
+  const cepLookupSeq = useRef(0);
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -71,6 +74,36 @@ export function CustomersPageClient({
     );
   }, [customers, query]);
 
+  useEffect(() => {
+    const digits = fiscal.zipCode.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepHint("");
+      return;
+    }
+    const seq = ++cepLookupSeq.current;
+    setCepHint("Consultando CEP…");
+    const t = window.setTimeout(() => {
+      void (async () => {
+        const info = await lookupCep(digits);
+        if (seq !== cepLookupSeq.current) return;
+        if (!info) {
+          setCepHint("CEP não encontrado. Confira os dígitos.");
+          return;
+        }
+        setFiscal((f) => ({
+          ...f,
+          zipCode: formatBrCep(info.cep),
+          state: info.state,
+          city: info.city,
+          street: f.street.trim() ? f.street : info.street,
+          district: f.district.trim() ? f.district : info.district,
+        }));
+        setCepHint(`IBGE ${info.ibge} · ${info.city}/${info.state}`);
+      })();
+    }, 280);
+    return () => window.clearTimeout(t);
+  }, [fiscal.zipCode]);
+
   function resetForm() {
     setEditingId(null);
     setName("");
@@ -78,6 +111,7 @@ export function CustomersPageClient({
     setEmail("");
     setBirthDate("");
     setFiscal(emptyFiscal);
+    setCepHint("");
   }
 
   function startEdit(c: CustomerRow) {
@@ -87,16 +121,17 @@ export function CustomersPageClient({
     setEmail(c.email ?? "");
     setBirthDate(isoToBrBirthDate(c.birthDate));
     setFiscal({
-      document: c.document ?? "",
+      document: c.document ? formatBrCpfCnpj(c.document) : "",
       street: c.street ?? "",
       number: c.number ?? "",
       district: c.district ?? "",
       city: c.city ?? "",
-      zipCode: c.zipCode ?? "",
+      zipCode: c.zipCode ? formatBrCep(c.zipCode) : "",
       state: c.state ?? "",
       complement: c.complement ?? "",
       ie: c.ie ?? "",
     });
+    setCepHint("");
     setError("");
   }
 
@@ -118,6 +153,8 @@ export function CustomersPageClient({
           email,
           birthDate,
           ...fiscal,
+          document: fiscal.document.replace(/\D/g, ""),
+          zipCode: fiscal.zipCode.replace(/\D/g, ""),
         }),
       });
       const data = await res.json();
@@ -182,7 +219,7 @@ export function CustomersPageClient({
           {editingId ? "Editar cliente" : "Novo cliente"}
         </h2>
         {error && (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
             {error}
           </p>
         )}
@@ -236,14 +273,63 @@ export function CustomersPageClient({
         </p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm">
-            CPF/CNPJ
+            CEP
             <input
-              value={fiscal.document}
+              inputMode="numeric"
+              value={fiscal.zipCode}
               onChange={(e) =>
-                setFiscal((f) => ({ ...f, document: e.target.value }))
+                setFiscal((f) => ({
+                  ...f,
+                  zipCode: formatBrCep(e.target.value),
+                }))
               }
               className={inputClass}
-              placeholder="Somente números"
+              placeholder="00000-000"
+            />
+            {cepHint ? (
+              <span className="mt-1 block text-[11px] text-zinc-500 dark:text-zinc-400">
+                {cepHint}
+              </span>
+            ) : null}
+          </label>
+          <label className="text-sm">
+            UF
+            <input
+              value={fiscal.state}
+              onChange={(e) =>
+                setFiscal((f) => ({
+                  ...f,
+                  state: e.target.value.toUpperCase().slice(0, 2),
+                }))
+              }
+              className={inputClass}
+              maxLength={2}
+              placeholder="SC"
+            />
+          </label>
+          <label className="text-sm sm:col-span-2">
+            Cidade / Município
+            <input
+              value={fiscal.city}
+              onChange={(e) =>
+                setFiscal((f) => ({ ...f, city: e.target.value }))
+              }
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            CPF/CNPJ
+            <input
+              inputMode="numeric"
+              value={fiscal.document}
+              onChange={(e) =>
+                setFiscal((f) => ({
+                  ...f,
+                  document: formatBrCpfCnpj(e.target.value),
+                }))
+              }
+              className={inputClass}
+              placeholder="000.000.000-00"
             />
           </label>
           <label className="text-sm">
@@ -284,7 +370,7 @@ export function CustomersPageClient({
               className={inputClass}
             />
           </label>
-          <label className="text-sm">
+          <label className="text-sm sm:col-span-2">
             Bairro
             <input
               value={fiscal.district}
@@ -292,42 +378,6 @@ export function CustomersPageClient({
                 setFiscal((f) => ({ ...f, district: e.target.value }))
               }
               className={inputClass}
-            />
-          </label>
-          <label className="text-sm">
-            Cidade
-            <input
-              value={fiscal.city}
-              onChange={(e) =>
-                setFiscal((f) => ({ ...f, city: e.target.value }))
-              }
-              className={inputClass}
-            />
-          </label>
-          <label className="text-sm">
-            UF
-            <input
-              value={fiscal.state}
-              onChange={(e) =>
-                setFiscal((f) => ({
-                  ...f,
-                  state: e.target.value.toUpperCase().slice(0, 2),
-                }))
-              }
-              className={inputClass}
-              maxLength={2}
-              placeholder="SC"
-            />
-          </label>
-          <label className="text-sm">
-            CEP
-            <input
-              value={fiscal.zipCode}
-              onChange={(e) =>
-                setFiscal((f) => ({ ...f, zipCode: e.target.value }))
-              }
-              className={inputClass}
-              placeholder="00000000"
             />
           </label>
         </div>
@@ -378,7 +428,7 @@ export function CustomersPageClient({
                     <p className="text-xs text-zinc-500">
                       {[
                         c.phone,
-                        c.document,
+                        c.document ? formatBrCpfCnpj(c.document) : null,
                         c.birthDate ? isoToBrBirthDate(c.birthDate) : null,
                         c.email,
                       ]

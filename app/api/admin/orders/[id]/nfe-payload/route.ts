@@ -43,7 +43,7 @@ export async function GET(
       return NextResponse.json({ error: "Venda não encontrada" }, { status: 404 });
     }
 
-    const payload = buildAgroNfePayload(order, modelo);
+    const payload = await buildAgroNfePayload(order, modelo);
     return NextResponse.json({
       payload,
       order: {
