@@ -2,20 +2,20 @@
 
 ## Windows (pronto)
 
-O instalador completo (app + emissor NF-e) está no Vercel Blob:
+Instalador completo (app + emissor NF-e) no GitHub Releases:
 
-https://tixybegl1h3yln4s.public.blob.vercel-storage.com/emissor/AgroRural-Setup.exe
+https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
 
-Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.2.exe`
+Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.6.exe`
 
 O portal `/admin` usa `getEmissorSetupDownloadUrl()` (env ou esse fallback).
 
 Opcional na Vercel (Production):
 
 ```
-EMISSOR_SETUP_URL=<url acima>
-NEXT_PUBLIC_EMISSOR_SETUP_URL=<url acima>
-NEXT_PUBLIC_ADMIN_EXE_URL=<url acima>
+EMISSOR_SETUP_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
+NEXT_PUBLIC_EMISSOR_SETUP_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
+NEXT_PUBLIC_ADMIN_EXE_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
 ```
 
 ## Android (pronto)

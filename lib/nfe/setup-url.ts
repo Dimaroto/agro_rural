@@ -1,6 +1,6 @@
-/** URL pública do Setup Windows (Vercel Blob). Só use no servidor. */
+/** URL pública do Setup Windows. Preferir env; fallback = release GitHub. */
 const FALLBACK_SETUP_BLOB =
-  "https://tixybegl1h3yln4s.public.blob.vercel-storage.com/emissor/AgroRural-Setup.exe";
+  "https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe";
 
 export function getEmissorSetupDownloadUrl(): string {
   return (
