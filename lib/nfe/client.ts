@@ -18,11 +18,32 @@ type DesktopBridge = {
     body: string;
     error?: string;
   }>;
+  onEmissorStatus?: (
+    cb: (online: boolean, mode?: string) => void
+  ) => void;
 };
 
 function getDesktop(): DesktopBridge | undefined {
   if (typeof window === "undefined") return undefined;
   return (window as Window & { agroDesktop?: DesktopBridge }).agroDesktop;
+}
+
+/** Espelho do LED da barra (onEmissorStatus) — apps desktop antigos sem isEmissorOnline. */
+let cachedDesktopOnline: boolean | null = null;
+let statusListenerBound = false;
+
+function bindDesktopStatusListener() {
+  if (statusListenerBound || typeof window === "undefined") return;
+  const desktop = getDesktop();
+  if (!desktop?.onEmissorStatus) return;
+  statusListenerBound = true;
+  desktop.onEmissorStatus((online) => {
+    cachedDesktopOnline = !!online;
+  });
+}
+
+if (typeof window !== "undefined") {
+  bindDesktopStatusListener();
 }
 
 export function readNfeEmissorToken(): string {
@@ -156,23 +177,50 @@ export async function emissorHttp(input: {
 export async function checkEmissorUp(
   baseUrl = NFE_EMISSOR_BASE_URL
 ): Promise<boolean> {
-  // No app Windows o admin roda em HTTPS; fetch para http://127.0.0.1 é
-  // bloqueado (mixed content). O status vem do processo Electron.
+  bindDesktopStatusListener();
   const desktop = getDesktop();
+
+  // 1) API nova do desktop
   if (desktop?.isDesktop && typeof desktop.isEmissorOnline === "function") {
     try {
-      return !!(await desktop.isEmissorOnline());
+      if (await desktop.isEmissorOnline()) return true;
     } catch {
-      /* cai no fetch */
+      /* tenta outros meios */
     }
   }
 
+  // 2) Espelho do LED (apps sem isEmissorOnline)
+  if (desktop?.isDesktop && cachedDesktopOnline === true) {
+    return true;
+  }
+
+  // 3) Probe real via proxy Electron ou fetch
   try {
     const res = await emissorHttp({ path: "/up", baseUrl });
-    return res.ok;
+    if (res.ok) return true;
   } catch {
+    /* continue */
+  }
+
+  // 4) /up às vezes devolve HTML; API token-local prova que o Laravel responde
+  if (desktop?.isDesktop && typeof desktop.requestEmissor === "function") {
+    try {
+      const probe = await desktop.requestEmissor({
+        path: "/api/v1/integracoes/agro/token-local",
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      if (probe.status > 0 && probe.status < 500) return true;
+    } catch {
+      /* offline */
+    }
+  }
+
+  if (desktop?.isDesktop && cachedDesktopOnline === false) {
     return false;
   }
+
+  return false;
 }
 
 export async function emitNfeFromBrowser(input: {

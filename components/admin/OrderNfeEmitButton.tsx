@@ -71,9 +71,17 @@ export function OrderNfeEmitButton({
 
       const up = await checkEmissorUp();
       if (!up) {
-        throw new Error(
-          "Emissor local offline. Use Abrir emissor na barra do app Windows."
-        );
+        // Ainda tenta emitir: o LED pode estar verde e o check falhar em apps antigos
+        const desktop = (
+          window as Window & {
+            agroDesktop?: { isDesktop?: boolean; requestEmissor?: unknown };
+          }
+        ).agroDesktop;
+        if (!desktop?.isDesktop) {
+          throw new Error(
+            "Emissor local offline. Abra o app Agro Rural no Windows (não o navegador) e use «Iniciar emissor»."
+          );
+        }
       }
 
       const prep = await fetch(
