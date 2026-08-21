@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -21,6 +21,7 @@ import {
   parseBrandPreset,
   parseBrandSurface,
   parseBrandThemeDocument,
+  presetToCssVars,
   replacePreset,
   type BrandPreset,
   type BrandSurface,
@@ -231,8 +232,8 @@ export function ThemeStudio({
       <div
         className={
           previewDevice === "mobile"
-            ? "mx-auto w-full max-w-[24rem]"
-            : "w-full"
+            ? "mx-auto w-full max-w-[22rem]"
+            : "w-full min-w-0"
         }
       >
         <CatalogPagePreview
@@ -246,14 +247,14 @@ export function ThemeStudio({
   );
 
   return (
-    <div className="theme-studio grid gap-6 lg:grid-cols-[minmax(18rem,24rem)_1fr]">
-      <div className="order-1 lg:order-2 lg:sticky lg:top-3 lg:self-start">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-4">
+    <div className="theme-studio grid gap-6 xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
+      <div className="order-1 xl:order-2 xl:sticky xl:top-3 xl:self-start">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-3">
           {previewBlock}
         </div>
       </div>
 
-      <div className="order-2 space-y-3 lg:order-1">
+      <div className="order-2 space-y-3 xl:order-1">
         <CollapsibleSection
           title="Predefinição"
           open={openSections.preset}
@@ -548,16 +549,6 @@ function SurfaceEditor({
   );
 }
 
-function PreviewMenuIcon({ color }: { color: string }) {
-  return (
-    <span className="flex h-4 w-4 flex-col justify-center gap-[3px]" aria-hidden>
-      <span className="h-px w-full rounded" style={{ background: color }} />
-      <span className="h-px w-full rounded" style={{ background: color }} />
-      <span className="h-px w-full rounded" style={{ background: color }} />
-    </span>
-  );
-}
-
 function PreviewSearchIcon({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -593,6 +584,7 @@ function PreviewCartIcon({ className = "" }: { className?: string }) {
   );
 }
 
+/** Prévia em escala do layout real (mesmas CSS vars + proporções do catálogo). */
 function CatalogPagePreview({
   preset,
   bannerUrl,
@@ -604,280 +596,346 @@ function CatalogPagePreview({
   bannerUrlMobile?: string | null;
   device: PreviewDevice;
 }) {
-  const headerFill = brandFillCss(preset.header);
-  const headerText = preset.header.text;
-  const pageBg = brandFillCss(preset.background);
-  const pageFg = preset.background.text;
-  const btnFill = brandFillCss(preset.buttons);
-  const btnText = preset.buttons.text;
-  const isLightHeaderText =
-    headerText === "#FFFFFF" || headerText === "#ffffff";
-  const muted = isLightHeaderText
-    ? "rgba(255,255,255,0.78)"
-    : "rgba(26,46,18,0.7)";
-  const pillBg = isLightHeaderText
-    ? "rgba(255,255,255,0.22)"
-    : "rgba(26,46,18,0.14)";
-  const divider = isLightHeaderText
-    ? "rgba(255,255,255,0.28)"
-    : "rgba(26,46,18,0.18)";
-  const navBorder = isLightHeaderText
-    ? "rgba(255,255,255,0.16)"
-    : "rgba(26,46,18,0.12)";
-
   const isMobile = device === "mobile";
+  const stageWidth = isMobile ? 390 : 1180;
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [stageHeight, setStageHeight] = useState(isMobile ? 720 : 860);
+
+  const cssVars = useMemo(
+    () => presetToCssVars(preset) as CSSProperties,
+    [preset]
+  );
+
   const shownBanner = isMobile
     ? bannerUrlMobile || bannerUrl || null
     : bannerUrl || null;
   const aspectClass = isMobile
     ? HOME_BANNER_MOBILE.aspectClass
     : HOME_BANNER_DESKTOP.aspectClass;
-  const navLabels = ["Home", "Todos", "Rações", "Insumos", "Ferramentas"];
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const sync = () => {
+      const next = Math.min(1, viewport.clientWidth / stageWidth);
+      setScale(next > 0 ? next : 1);
+      if (stageRef.current) {
+        setStageHeight(stageRef.current.offsetHeight);
+      }
+    };
+
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(viewport);
+    if (stageRef.current) ro.observe(stageRef.current);
+    return () => ro.disconnect();
+  }, [stageWidth, shownBanner, isMobile, preset]);
 
   return (
     <div
-      className={`overflow-hidden border border-zinc-200 shadow-sm dark:border-zinc-700 ${
+      ref={viewportRef}
+      className={`relative w-full overflow-hidden border border-zinc-200 bg-zinc-100 shadow-sm dark:border-zinc-700 dark:bg-zinc-950 ${
         isMobile ? "rounded-[1.75rem]" : "rounded-2xl"
       }`}
+      style={{ height: Math.max(240, stageHeight * scale) }}
       aria-hidden
     >
-      {/* Header — espelha CatalogHeader (logo real + busca + ações + nav) */}
-      <div style={{ background: headerFill, color: headerText }}>
+      <div
+        ref={stageRef}
+        className="origin-top-left"
+        style={{
+          ...cssVars,
+          width: stageWidth,
+          transform: `scale(${scale})`,
+        }}
+      >
+        {/* Header — mesmas alturas/estrutura do CatalogHeader */}
         {isMobile ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-              style={{ background: pillBg }}
-            >
-              <PreviewMenuIcon color={headerText} />
-            </span>
-            <div className="flex min-h-[2.75rem] min-w-0 flex-1 items-center justify-center px-1">
-              <BrandLogo
-                size="header"
-                className="!h-10 !max-w-[min(100%,11rem)]"
-              />
+          <header
+            className="catalog-header"
+            style={{
+              background: "var(--header-fill)",
+              color: "var(--header-text)",
+            }}
+          >
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="catalog-header__menu-btn" style={{ position: "static" }}>
+                <span className="catalog-header__menu-icon" />
+              </span>
+              <div className="flex min-h-[4.75rem] min-w-0 flex-1 items-center justify-center">
+                <BrandLogo size="headerWide" className="!h-[4.5rem] !max-w-[14rem]" />
+              </div>
+              <span className="catalog-header__icon-btn">
+                <PreviewSearchIcon className="catalog-header__icon" />
+              </span>
+              <span className="catalog-header__cart">
+                <PreviewCartIcon className="catalog-header__cart-icon" />
+              </span>
             </div>
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-              style={{ background: pillBg }}
-            >
-              <PreviewSearchIcon className="h-3.5 w-3.5 opacity-90" />
-            </span>
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-              style={{ background: pillBg }}
-            >
-              <PreviewCartIcon className="h-3.5 w-3.5 opacity-90" />
-            </span>
-          </div>
+          </header>
         ) : (
-          <>
-            <div className="grid grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)_auto] items-stretch gap-0">
-              <div className="flex items-center gap-2 px-3 py-2">
-                <div className="flex min-h-[3.25rem] min-w-0 flex-1 items-center">
-                  <BrandLogo
-                    size="headerWide"
-                    className="!h-[3.1rem] !max-h-full !max-w-full sm:!h-[3.4rem]"
-                  />
-                </div>
-                <span
-                  className="hidden h-10 w-px shrink-0 sm:block"
-                  style={{ background: divider }}
+          <header
+            className="catalog-header"
+            style={{
+              background: "var(--header-fill)",
+              color: "var(--header-text)",
+            }}
+          >
+            <div
+              className="grid items-stretch"
+              style={{
+                gridTemplateColumns:
+                  "minmax(13rem, 17rem) minmax(0, 1fr) minmax(11rem, 15rem)",
+                gridTemplateRows: "auto auto",
+              }}
+            >
+              <div
+                className="relative flex items-center px-4 py-3"
+                style={{ gridRow: "1 / -1" }}
+              >
+                <BrandLogo
+                  size="headerWide"
+                  className="!h-full !max-h-[6.5rem] !max-w-full"
                 />
               </div>
-              <div className="flex min-w-0 items-center px-1 py-2 sm:px-2">
-                <div className="flex h-9 w-full items-center gap-2 rounded-full bg-white px-3 text-zinc-400 shadow-sm">
-                  <PreviewSearchIcon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate text-[10px] sm:text-[11px]">
+              <div className="flex min-h-[4.75rem] items-center px-3 py-3">
+                <div className="catalog-header__search w-full">
+                  <PreviewSearchIcon className="catalog-header__search-icon" />
+                  <span className="catalog-header__search-input text-zinc-500">
                     Buscar produtos…
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 px-2 py-2 sm:gap-3 sm:px-3">
-                <span
-                  className="hidden text-[10px] font-semibold sm:inline"
-                  style={{ color: muted }}
-                >
+              <div className="flex min-h-[4.75rem] items-center justify-end gap-3 px-4 py-3">
+                <span className="catalog-header__action text-sm font-semibold">
                   Entrar
                 </span>
-                <span
-                  className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: pillBg }}
-                >
-                  <PreviewCartIcon className="h-3.5 w-3.5" />
-                  <span
-                    className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[8px] font-bold leading-none"
-                    style={{ background: headerText, color: headerFill }}
-                  >
-                    2
-                  </span>
+                <span className="catalog-header__cart relative">
+                  <PreviewCartIcon className="catalog-header__cart-icon" />
+                  <span className="catalog-header__cart-badge">2</span>
                 </span>
               </div>
-            </div>
-            <div
-              className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
-              style={{ borderTop: `1px solid ${navBorder}` }}
-            >
-              {navLabels.map((label, i) => (
-                <span
-                  key={label}
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none ${
-                    i === 0 ? "" : "font-medium"
-                  }`}
-                  style={
-                    i === 0
-                      ? { background: pillBg, color: headerText }
-                      : { color: muted }
-                  }
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Corpo — home: banner + lançamentos + categorias + CTA */}
-      <div
-        className="space-y-4 px-3 py-4 sm:px-4"
-        style={{ background: pageBg, color: pageFg }}
-      >
-        {shownBanner ? (
-          <div
-            className={`relative w-full overflow-hidden rounded-3xl border border-black/10 ${aspectClass}`}
-          >
-            <Image
-              src={shownBanner}
-              alt=""
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-dashed border-black/15 px-4 py-8 text-center sm:px-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-55">
-              Sem banner {isMobile ? "celular" : "computador"}
-            </p>
-            <p className="mt-2 text-sm font-extrabold tracking-tight opacity-90 sm:text-base">
-              Agrorural Agropecuária
-            </p>
-            <p className="mx-auto mt-2 max-w-[16rem] text-[10px] leading-relaxed opacity-55 sm:text-[11px]">
-              Texto de apresentação aparece aqui quando não há imagem de capa.
-            </p>
-            <div
-              className="mx-auto mt-4 h-8 w-28 rounded-full text-center text-[10px] font-bold leading-8"
-              style={{ background: btnFill, color: btnText }}
-            >
-              Ver produtos
-            </div>
-          </div>
-        )}
-
-        <div>
-          <div className="mb-2.5 flex items-end justify-between gap-2">
-            <p className="text-xs font-extrabold tracking-tight sm:text-sm">
-              Últimos lançamentos
-            </p>
-            <span className="text-[10px] font-semibold opacity-55">Ver todos</span>
-          </div>
-          <div
-            className={
-              isMobile ? "grid grid-cols-2 gap-2.5" : "grid grid-cols-3 gap-2.5 sm:grid-cols-4"
-            }
-          >
-            {(isMobile ? [0, 1] : [0, 1, 2, 3]).map((i) => (
               <div
-                key={i}
-                className="overflow-hidden rounded-xl border border-black/8 bg-white/70 shadow-sm"
+                className="flex items-center gap-1 px-3 pb-3 pt-1"
+                style={{ gridColumn: "2 / 3" }}
               >
-                <div
-                  className={
-                    isMobile ? "aspect-square bg-zinc-200/70" : "aspect-[4/3] bg-zinc-200/70"
-                  }
-                />
-                <div className="space-y-1.5 p-2">
-                  <div className="h-2 w-[88%] rounded bg-zinc-300/80" />
-                  <div className="h-2 w-1/2 rounded bg-zinc-300/55" />
-                  <div
-                    className="mt-1 h-7 w-full rounded-full text-center text-[10px] font-semibold leading-7"
-                    style={{ background: btnFill, color: btnText }}
-                  >
-                    Comprar
-                  </div>
-                </div>
+                {["Home", "Todos", "Rações", "Insumos", "Ferramentas"].map(
+                  (label, i) => (
+                    <span
+                      key={label}
+                      className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold"
+                      style={
+                        i === 0
+                          ? {
+                              background:
+                                "color-mix(in srgb, var(--header-text) 22%, transparent)",
+                              color: "var(--header-text)",
+                            }
+                          : {
+                              color:
+                                "color-mix(in srgb, var(--header-text) 78%, transparent)",
+                            }
+                      }
+                    >
+                      {label}
+                    </span>
+                  )
+                )}
               </div>
-            ))}
+            </div>
+          </header>
+        )}
+
+        {/* Corpo — mesmas classes/cores da home real */}
+        <div className="catalog-page catalog-page--simple">
+          <div className="mx-auto w-full max-w-[var(--catalog-content-max,72rem)] px-[var(--catalog-gutter,1rem)] py-8 sm:py-10">
+            {shownBanner ? (
+              <section className="home-hero overflow-hidden rounded-3xl border border-brand/25 p-0">
+                <div className={`relative w-full overflow-hidden ${aspectClass}`}>
+                  <Image
+                    src={shownBanner}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              </section>
+            ) : (
+              <section className="home-hero rounded-3xl border border-brand/25 px-6 py-10 text-center sm:px-10 sm:py-14">
+                <p
+                  className="text-xs font-semibold uppercase tracking-[0.2em]"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  Catálogo
+                </p>
+                <h1
+                  className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
+                  style={{ color: "var(--page-fg)" }}
+                >
+                  Agrorural Agropecuária
+                </h1>
+                <p
+                  className="mx-auto mt-4 max-w-xl text-sm leading-relaxed sm:text-base"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--page-fg) 75%, transparent)",
+                  }}
+                >
+                  Texto de apresentação quando não há banner.
+                </p>
+                <div className="mt-7 flex justify-center">
+                  <span className="home-cta">Ver produtos</span>
+                </div>
+              </section>
+            )}
+
+            <section className="mt-10 sm:mt-12">
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <h2
+                  className="text-xl font-extrabold sm:text-2xl"
+                  style={{ color: "var(--page-fg)" }}
+                >
+                  Últimos lançamentos
+                </h2>
+                <span
+                  className="home-cta text-sm"
+                  style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem" }}
+                >
+                  Ver todos
+                </span>
+              </div>
+              <div
+                className={
+                  isMobile
+                    ? "grid grid-cols-2 gap-4"
+                    : "grid grid-cols-4 gap-5"
+                }
+              >
+                {(isMobile ? [0, 1] : [0, 1, 2, 3]).map((i) => (
+                  <div
+                    key={i}
+                    className="overflow-hidden rounded-2xl border border-brand/20 bg-[color-mix(in_srgb,white_72%,var(--color-cream-soft,white))] shadow-sm"
+                  >
+                    <div
+                      className={
+                        isMobile
+                          ? "aspect-square bg-[color-mix(in_srgb,var(--color-primary)_12%,#e8eee6)]"
+                          : "aspect-[4/3] bg-[color-mix(in_srgb,var(--color-primary)_12%,#e8eee6)]"
+                      }
+                    />
+                    <div className="space-y-2 p-3">
+                      <div
+                        className="h-2.5 w-[90%] rounded"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--color-primary-dark) 28%, transparent)",
+                        }}
+                      />
+                      <div
+                        className="h-2.5 w-1/2 rounded"
+                        style={{
+                          background:
+                            "color-mix(in srgb, var(--color-primary-dark) 18%, transparent)",
+                        }}
+                      />
+                      <div
+                        className="mt-2 flex h-9 items-center justify-center rounded-full text-xs font-bold"
+                        style={{
+                          background: "var(--brand-fill)",
+                          color: "var(--brand-on-fill)",
+                        }}
+                      >
+                        Comprar
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="mt-10 sm:mt-12">
+              <h2
+                className="mb-5 text-xl font-extrabold sm:text-2xl"
+                style={{ color: "var(--page-fg)" }}
+              >
+                Categorias
+              </h2>
+              <div className="flex gap-3 overflow-hidden">
+                {["Rações", "Insumos", "Ferramentas"].map((label) => (
+                  <div
+                    key={label}
+                    className="w-28 shrink-0 overflow-hidden rounded-2xl border border-brand/20 bg-white/70 sm:w-32"
+                  >
+                    <div className="aspect-square bg-[color-mix(in_srgb,var(--color-primary)_14%,#e8eee6)]" />
+                    <p
+                      className="truncate px-2 py-2 text-center text-sm font-bold"
+                      style={{ color: "var(--page-fg)" }}
+                    >
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <div className="mt-10 flex justify-center sm:mt-12">
+              <span className="home-cta home-cta--large">
+                Ver todos os produtos
+              </span>
+            </div>
           </div>
         </div>
 
-        <div>
-          <p className="mb-2.5 text-xs font-extrabold tracking-tight sm:text-sm">
-            Categorias
-          </p>
-          <div className="flex gap-2 overflow-hidden">
-            {["Rações", "Insumos", "Ferramentas"].map((label) => (
-              <div
-                key={label}
-                className="w-[4.75rem] shrink-0 overflow-hidden rounded-xl border border-black/8 bg-white/70 sm:w-24"
-              >
-                <div className="aspect-square bg-zinc-200/65" />
-                <p className="truncate px-1.5 py-1.5 text-center text-[9px] font-semibold">
-                  {label}
+        <footer
+          className="catalog-footer"
+          style={{
+            background: "var(--header-fill)",
+            color: "var(--header-text)",
+          }}
+        >
+          <div className="catalog-footer__inner px-4 py-5">
+            <div
+              className={
+                isMobile
+                  ? "flex items-start gap-3"
+                  : "grid grid-cols-3 gap-6"
+              }
+            >
+              <div>
+                <BrandLogo
+                  size="header"
+                  className="!h-[4.75rem] !max-w-[15rem]"
+                />
+                <p
+                  className="mt-2 max-w-xs text-sm"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--header-text) 70%, transparent)",
+                  }}
+                >
+                  Agropecuária e insumos para o campo.
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-center pt-1">
-          <div
-            className="h-9 min-w-[10.5rem] rounded-full px-5 text-center text-[11px] font-bold leading-9"
-            style={{ background: btnFill, color: btnText }}
-          >
-            Ver todos os produtos
-          </div>
-        </div>
-      </div>
-
-      {/* Rodapé — logo real como no CatalogFooter */}
-      <div
-        className={`gap-3 px-3 py-3 text-[10px] leading-tight ${
-          isMobile ? "grid grid-cols-1" : "grid grid-cols-3"
-        }`}
-        style={{ background: headerFill, color: headerText }}
-      >
-        <div className={isMobile ? "flex items-start gap-3" : ""}>
-          <BrandLogo
-            size="header"
-            className={
-              isMobile
-                ? "!h-11 !max-w-[8.5rem]"
-                : "!h-12 !max-w-[9.5rem] sm:!h-[3.25rem]"
-            }
-          />
-          <p className={`mt-1.5 max-w-[12rem] opacity-70 ${isMobile ? "mt-0" : ""}`}>
-            Agropecuária e insumos para o campo.
-          </p>
-        </div>
-        {!isMobile ? (
-          <>
-            <div>
-              <p className="font-bold uppercase tracking-wide opacity-85">
-                Navegação
-              </p>
-              <p className="mt-1 opacity-80">Home</p>
-              <p className="opacity-80">Todos</p>
+              {!isMobile ? (
+                <>
+                  <div>
+                    <p className="catalog-footer__label">Navegação</p>
+                    <p className="mt-1 opacity-85">Home</p>
+                    <p className="opacity-85">Todos</p>
+                  </div>
+                  <div>
+                    <p className="catalog-footer__label">Contato</p>
+                    <p className="mt-1 font-semibold">WhatsApp</p>
+                  </div>
+                </>
+              ) : null}
             </div>
-            <div>
-              <p className="font-bold uppercase tracking-wide opacity-85">
-                Contato
-              </p>
-              <p className="mt-1 font-semibold">WhatsApp</p>
-            </div>
-          </>
-        ) : null}
+          </div>
+        </footer>
       </div>
     </div>
   );

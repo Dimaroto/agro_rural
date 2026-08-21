@@ -360,10 +360,18 @@ export function HomeLanding({
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
               Saboaria artesanal
             </p>
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-brand-dark sm:text-4xl">
+            <h1
+              className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
+              style={{ color: "var(--page-fg)" }}
+            >
               {storeName}
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brand-dark/75 sm:text-base">
+            <p
+              className="mx-auto mt-4 max-w-xl text-sm leading-relaxed sm:text-base"
+              style={{
+                color: "color-mix(in srgb, var(--page-fg) 75%, transparent)",
+              }}
+            >
               Sabonetes, sachês perfumados e sprays feitos à mão com ingredientes
               selecionados. Explore nossos produtos e leve o aroma da natureza para
               a sua casa.
@@ -382,7 +390,10 @@ export function HomeLanding({
         {latest.length > 0 && (
           <section className="mt-10 sm:mt-12">
             <div className="mb-4 flex items-end justify-between gap-3">
-              <h2 className="text-xl font-extrabold text-brand-dark sm:text-2xl">
+              <h2
+                className="text-xl font-extrabold sm:text-2xl"
+                style={{ color: "var(--page-fg)" }}
+              >
                 Últimos lançamentos
               </h2>
               <Link href="/produtos" className="home-cta">
@@ -399,7 +410,10 @@ export function HomeLanding({
 
         {visibleCategories.length > 0 && (
           <section className="mt-10 sm:mt-12">
-            <h2 className="mb-5 text-xl font-extrabold text-brand-dark sm:text-2xl">
+            <h2
+              className="mb-5 text-xl font-extrabold sm:text-2xl"
+              style={{ color: "var(--page-fg)" }}
+            >
               Categorias
             </h2>
             <CategoriesCarousel

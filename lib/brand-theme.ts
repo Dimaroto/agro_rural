@@ -144,19 +144,19 @@ export function brandFillCss(theme: BrandTheme): string {
   }
   if (t.shape === "conic") {
     // Conic com 2 cores puras vira “fatia” dura no header/botões.
-    // Suaviza o acento e usa paradas intermediárias para um varredura contínua.
-    const soft = mixTwo(t.from, t.to, 0.28);
-    const mid = mixTwo(t.from, t.to, 0.48);
-    const accent = mixTwo(t.from, t.to, 0.62);
+    // Acento bem suave + muitas paradas para varredura contínua (sem costura).
+    const soft = mixTwo(t.from, t.to, 0.16);
+    const mid = mixTwo(t.from, t.to, 0.28);
+    const accent = mixTwo(t.from, t.to, 0.38);
     return [
-      `conic-gradient(from ${t.angle}deg at 58% 42%`,
+      `conic-gradient(from ${t.angle}deg at 62% 36%`,
       `${t.from} 0deg`,
-      `${soft} 55deg`,
-      `${mid} 110deg`,
-      `${accent} 155deg`,
-      `${mid} 205deg`,
-      `${soft} 265deg`,
-      `${t.from} 320deg`,
+      `${soft} 70deg`,
+      `${mid} 125deg`,
+      `${accent} 170deg`,
+      `${mid} 220deg`,
+      `${soft} 280deg`,
+      `${t.from} 330deg`,
       `${t.from} 360deg)`,
     ].join(", ");
   }
