@@ -18,12 +18,40 @@ export type BrandTheme = {
 
 export type BrandSurface = BrandTheme & {
   text: string;
-  /** Cor da borda (#RRGGBB). */
-  borderColor: string;
-  /** Espessura da borda em px (0–12). */
-  borderWidth: number;
-  /** Arredondamento em px (0–999; 999 ≈ pílula). */
-  borderRadius: number;
+  borders: BrandBorders;
+};
+
+export type BorderSideId = "top" | "right" | "bottom" | "left";
+
+export type BrandBorderEdge = {
+  color: string;
+  width: number;
+};
+
+/** Quatro lados + quatro cantos (arredondamento). */
+export type BrandBorders = {
+  top: BrandBorderEdge;
+  right: BrandBorderEdge;
+  bottom: BrandBorderEdge;
+  left: BrandBorderEdge;
+  radiusTopLeft: number;
+  radiusTopRight: number;
+  radiusBottomRight: number;
+  radiusBottomLeft: number;
+};
+
+export const BORDER_SIDE_IDS: BorderSideId[] = [
+  "top",
+  "right",
+  "bottom",
+  "left",
+];
+
+export const BORDER_SIDE_LABELS: Record<BorderSideId, string> = {
+  top: "Topo",
+  right: "Direita",
+  bottom: "Baixo",
+  left: "Esquerda",
 };
 
 export type BrandPreset = {
@@ -83,11 +111,142 @@ const DEFAULT_SURFACE_BORDER = {
   borderRadius: 16,
 } as const;
 
+export function makeUniformBorders(
+  color: string,
+  width: number,
+  radius: number
+): BrandBorders {
+  const edge: BrandBorderEdge = {
+    color: isHexColor(color) ? color.trim().toUpperCase() : DEFAULT_SURFACE_BORDER.borderColor,
+    width: clampBorderWidth(width, DEFAULT_SURFACE_BORDER.borderWidth),
+  };
+  const r = clampBorderRadius(radius, DEFAULT_SURFACE_BORDER.borderRadius);
+  return {
+    top: { ...edge },
+    right: { ...edge },
+    bottom: { ...edge },
+    left: { ...edge },
+    radiusTopLeft: r,
+    radiusTopRight: r,
+    radiusBottomRight: r,
+    radiusBottomLeft: r,
+  };
+}
+
+function parseBorderEdge(
+  raw: unknown,
+  fallback: BrandBorderEdge
+): BrandBorderEdge {
+  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    color: isHexColor(obj.color)
+      ? obj.color.trim().toUpperCase()
+      : fallback.color,
+    width: clampBorderWidth(obj.width, fallback.width),
+  };
+}
+
+export function parseBrandBorders(
+  raw: unknown,
+  fallback: BrandBorders
+): BrandBorders {
+  const obj =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : null;
+  if (!obj) return cloneBrandBorders(fallback);
+
+  return {
+    top: parseBorderEdge(obj.top, fallback.top),
+    right: parseBorderEdge(obj.right, fallback.right),
+    bottom: parseBorderEdge(obj.bottom, fallback.bottom),
+    left: parseBorderEdge(obj.left, fallback.left),
+    radiusTopLeft: clampBorderRadius(obj.radiusTopLeft, fallback.radiusTopLeft),
+    radiusTopRight: clampBorderRadius(obj.radiusTopRight, fallback.radiusTopRight),
+    radiusBottomRight: clampBorderRadius(
+      obj.radiusBottomRight,
+      fallback.radiusBottomRight
+    ),
+    radiusBottomLeft: clampBorderRadius(
+      obj.radiusBottomLeft,
+      fallback.radiusBottomLeft
+    ),
+  };
+}
+
+function bordersFromLegacyOrObject(
+  obj: Record<string, unknown>,
+  fallback: BrandBorders
+): BrandBorders {
+  if (obj.borders && typeof obj.borders === "object") {
+    return parseBrandBorders(obj.borders, fallback);
+  }
+  if (
+    isHexColor(obj.borderColor) ||
+    obj.borderWidth != null ||
+    obj.borderRadius != null
+  ) {
+    return makeUniformBorders(
+      isHexColor(obj.borderColor) ? obj.borderColor : fallback.top.color,
+      obj.borderWidth != null ? Number(obj.borderWidth) : fallback.top.width,
+      obj.borderRadius != null
+        ? Number(obj.borderRadius)
+        : fallback.radiusTopLeft
+    );
+  }
+  return {
+    top: { ...fallback.top },
+    right: { ...fallback.right },
+    bottom: { ...fallback.bottom },
+    left: { ...fallback.left },
+    radiusTopLeft: fallback.radiusTopLeft,
+    radiusTopRight: fallback.radiusTopRight,
+    radiusBottomRight: fallback.radiusBottomRight,
+    radiusBottomLeft: fallback.radiusBottomLeft,
+  };
+}
+
+export function cloneBrandBorders(borders: BrandBorders): BrandBorders {
+  return {
+    top: { ...borders.top },
+    right: { ...borders.right },
+    bottom: { ...borders.bottom },
+    left: { ...borders.left },
+    radiusTopLeft: borders.radiusTopLeft,
+    radiusTopRight: borders.radiusTopRight,
+    radiusBottomRight: borders.radiusBottomRight,
+    radiusBottomLeft: borders.radiusBottomLeft,
+  };
+}
+
+/** Emite CSS vars por lado/canto. prefix ex.: "header" | "brand" | "catalog-card" */
+export function bordersToCssVars(
+  prefix: string,
+  borders: BrandBorders
+): Record<string, string> {
+  return {
+    [`--${prefix}-border-top-width`]: `${borders.top.width}px`,
+    [`--${prefix}-border-top-color`]: borders.top.color,
+    [`--${prefix}-border-right-width`]: `${borders.right.width}px`,
+    [`--${prefix}-border-right-color`]: borders.right.color,
+    [`--${prefix}-border-bottom-width`]: `${borders.bottom.width}px`,
+    [`--${prefix}-border-bottom-color`]: borders.bottom.color,
+    [`--${prefix}-border-left-width`]: `${borders.left.width}px`,
+    [`--${prefix}-border-left-color`]: borders.left.color,
+    [`--${prefix}-border-radius-tl`]: `${borders.radiusTopLeft}px`,
+    [`--${prefix}-border-radius-tr`]: `${borders.radiusTopRight}px`,
+    [`--${prefix}-border-radius-br`]: `${borders.radiusBottomRight}px`,
+    [`--${prefix}-border-radius-bl`]: `${borders.radiusBottomLeft}px`,
+  };
+}
+
 /** Fallback mínimo antes das constantes DEFAULT_*_SURFACE. */
 const DEFAULT_SURFACE_BORDER_FALLBACK: BrandSurface = {
   ...DEFAULT_BRAND_THEME,
   text: "#FFFFFF",
-  ...DEFAULT_SURFACE_BORDER,
+  borders: makeUniformBorders(
+    DEFAULT_SURFACE_BORDER.borderColor,
+    DEFAULT_SURFACE_BORDER.borderWidth,
+    DEFAULT_SURFACE_BORDER.borderRadius
+  ),
 };
 
 export function parseBrandTheme(raw: unknown): BrandTheme {
@@ -163,26 +322,19 @@ function coerceSurfaceFallback(
   fallback: BrandTheme | BrandSurface
 ): BrandSurface {
   const fill = parseBrandTheme(fallback);
-  const obj = fallback as Partial<BrandSurface>;
+  const obj = fallback as Partial<BrandSurface> & Record<string, unknown>;
   const text =
     typeof obj.text === "string" && isHexColor(obj.text)
       ? obj.text.trim().toUpperCase()
       : brandOnFillColor(fill);
+  const borders =
+    obj.borders && typeof obj.borders === "object"
+      ? parseBrandBorders(obj.borders, DEFAULT_SURFACE_BORDER_FALLBACK.borders)
+      : bordersFromLegacyOrObject(obj, DEFAULT_SURFACE_BORDER_FALLBACK.borders);
   return {
     ...fill,
     text,
-    borderColor:
-      typeof obj.borderColor === "string" && isHexColor(obj.borderColor)
-        ? obj.borderColor.trim().toUpperCase()
-        : DEFAULT_SURFACE_BORDER.borderColor,
-    borderWidth: clampBorderWidth(
-      obj.borderWidth,
-      DEFAULT_SURFACE_BORDER.borderWidth
-    ),
-    borderRadius: clampBorderRadius(
-      obj.borderRadius,
-      DEFAULT_SURFACE_BORDER.borderRadius
-    ),
+    borders,
   };
 }
 
@@ -255,11 +407,7 @@ export function parseBrandSurface(
   return {
     ...fill,
     text,
-    borderColor: isHexColor(obj.borderColor)
-      ? obj.borderColor.trim().toUpperCase()
-      : fb.borderColor,
-    borderWidth: clampBorderWidth(obj.borderWidth, fb.borderWidth),
-    borderRadius: clampBorderRadius(obj.borderRadius, fb.borderRadius),
+    borders: bordersFromLegacyOrObject(obj, fb.borders),
   };
 }
 
@@ -279,17 +427,13 @@ export function newBrandPresetId(): string {
 export const DEFAULT_HEADER_SURFACE: BrandSurface = {
   ...DEFAULT_BRAND_THEME,
   text: "#FFFFFF",
-  borderColor: "#8BA56A",
-  borderWidth: 0,
-  borderRadius: 0,
+  borders: makeUniformBorders("#8BA56A", 0, 0),
 };
 
 export const DEFAULT_BUTTONS_SURFACE: BrandSurface = {
   ...DEFAULT_BRAND_THEME,
   text: "#FFFFFF",
-  borderColor: "#2D4C1E",
-  borderWidth: 2,
-  borderRadius: 999,
+  borders: makeUniformBorders("#2D4C1E", 2, 999),
 };
 
 export const DEFAULT_BACKGROUND_SURFACE: BrandSurface = {
@@ -299,9 +443,7 @@ export const DEFAULT_BACKGROUND_SURFACE: BrandSurface = {
   shape: "linear",
   angle: 180,
   text: DEFAULT_PAGE_FG,
-  borderColor: "#000000",
-  borderWidth: 0,
-  borderRadius: 0,
+  borders: makeUniformBorders("#000000", 0, 0),
 };
 
 export const DEFAULT_CARDS_SURFACE: BrandSurface = {
@@ -311,9 +453,7 @@ export const DEFAULT_CARDS_SURFACE: BrandSurface = {
   shape: "linear",
   angle: 180,
   text: DEFAULT_PAGE_FG,
-  borderColor: "#C9D4B3",
-  borderWidth: 1,
-  borderRadius: 18,
+  borders: makeUniformBorders("#C9D4B3", 1, 18),
 };
 
 export const DEFAULT_CATEGORIES_SURFACE: BrandSurface = {
@@ -323,20 +463,33 @@ export const DEFAULT_CATEGORIES_SURFACE: BrandSurface = {
   shape: "linear",
   angle: 180,
   text: DEFAULT_PAGE_FG,
-  borderColor: "#C9D4B3",
-  borderWidth: 1,
-  borderRadius: 24,
+  borders: makeUniformBorders("#C9D4B3", 1, 24),
 };
 
 export function createDefaultPreset(name = "Padrão"): BrandPreset {
   return {
     id: newBrandPresetId(),
     name: clampPresetName(name),
-    header: { ...DEFAULT_HEADER_SURFACE },
-    buttons: { ...DEFAULT_BUTTONS_SURFACE },
-    background: { ...DEFAULT_BACKGROUND_SURFACE },
-    cards: { ...DEFAULT_CARDS_SURFACE },
-    categories: { ...DEFAULT_CATEGORIES_SURFACE },
+    header: {
+      ...DEFAULT_HEADER_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_HEADER_SURFACE.borders),
+    },
+    buttons: {
+      ...DEFAULT_BUTTONS_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_BUTTONS_SURFACE.borders),
+    },
+    background: {
+      ...DEFAULT_BACKGROUND_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_BACKGROUND_SURFACE.borders),
+    },
+    cards: {
+      ...DEFAULT_CARDS_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_CARDS_SURFACE.borders),
+    },
+    categories: {
+      ...DEFAULT_CATEGORIES_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_CATEGORIES_SURFACE.borders),
+    },
   };
 }
 
@@ -345,23 +498,28 @@ function presetFromLegacyFill(fill: BrandTheme, name = "Padrão"): BrandPreset {
   const surface: BrandSurface = {
     ...parseBrandTheme(fill),
     text,
-    borderColor: DEFAULT_HEADER_SURFACE.borderColor,
-    borderWidth: DEFAULT_HEADER_SURFACE.borderWidth,
-    borderRadius: DEFAULT_HEADER_SURFACE.borderRadius,
+    borders: cloneBrandBorders(DEFAULT_HEADER_SURFACE.borders),
   };
   return {
     id: "padrao",
     name: clampPresetName(name),
-    header: { ...surface },
+    header: { ...surface, borders: cloneBrandBorders(surface.borders) },
     buttons: {
       ...surface,
-      borderColor: DEFAULT_BUTTONS_SURFACE.borderColor,
-      borderWidth: DEFAULT_BUTTONS_SURFACE.borderWidth,
-      borderRadius: DEFAULT_BUTTONS_SURFACE.borderRadius,
+      borders: cloneBrandBorders(DEFAULT_BUTTONS_SURFACE.borders),
     },
-    background: { ...DEFAULT_BACKGROUND_SURFACE },
-    cards: { ...DEFAULT_CARDS_SURFACE },
-    categories: { ...DEFAULT_CATEGORIES_SURFACE },
+    background: {
+      ...DEFAULT_BACKGROUND_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_BACKGROUND_SURFACE.borders),
+    },
+    cards: {
+      ...DEFAULT_CARDS_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_CARDS_SURFACE.borders),
+    },
+    categories: {
+      ...DEFAULT_CATEGORIES_SURFACE,
+      borders: cloneBrandBorders(DEFAULT_CATEGORIES_SURFACE.borders),
+    },
   };
 }
 
@@ -462,11 +620,26 @@ export function cloneBrandPreset(
     ...parsed,
     id: newBrandPresetId(),
     name: clampPresetName(name),
-    header: { ...parsed.header },
-    buttons: { ...parsed.buttons },
-    background: { ...parsed.background },
-    cards: { ...parsed.cards },
-    categories: { ...parsed.categories },
+    header: {
+      ...parsed.header,
+      borders: cloneBrandBorders(parsed.header.borders),
+    },
+    buttons: {
+      ...parsed.buttons,
+      borders: cloneBrandBorders(parsed.buttons.borders),
+    },
+    background: {
+      ...parsed.background,
+      borders: cloneBrandBorders(parsed.background.borders),
+    },
+    cards: {
+      ...parsed.cards,
+      borders: cloneBrandBorders(parsed.cards.borders),
+    },
+    categories: {
+      ...parsed.categories,
+      borders: cloneBrandBorders(parsed.categories.borders),
+    },
   };
 }
 
@@ -514,26 +687,18 @@ export function presetToCssVars(preset: BrandPreset): Record<string, string> {
     "--brand-fill-hover": brandFillHoverCss(buttons),
     "--brand-on-fill": buttons.text,
     "--brand-shadow": hexToRgba(primary, 0.32),
-    "--brand-border-color": buttons.borderColor,
-    "--brand-border-width": `${buttons.borderWidth}px`,
-    "--brand-border-radius": `${buttons.borderRadius}px`,
+    ...bordersToCssVars("brand", buttons.borders),
     "--header-fill": brandFillCss(header),
     "--header-text": header.text,
-    "--header-border-color": header.borderColor,
-    "--header-border-width": `${header.borderWidth}px`,
-    "--header-border-radius": `${header.borderRadius}px`,
+    ...bordersToCssVars("header", header.borders),
     "--page-bg": brandFillCss(background),
     "--page-fg": background.text,
     "--catalog-card-bg": brandFillCss(cards),
     "--catalog-card-fg": cards.text,
-    "--catalog-card-border": cards.borderColor,
-    "--catalog-card-border-width": `${cards.borderWidth}px`,
-    "--catalog-card-radius": `${cards.borderRadius}px`,
+    ...bordersToCssVars("catalog-card", cards.borders),
     "--catalog-category-bg": brandFillCss(categories),
     "--catalog-category-fg": categories.text,
-    "--catalog-category-border": categories.borderColor,
-    "--catalog-category-border-width": `${categories.borderWidth}px`,
-    "--catalog-category-radius": `${categories.borderRadius}px`,
+    ...bordersToCssVars("catalog-category", categories.borders),
   };
 }
 

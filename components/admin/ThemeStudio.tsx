@@ -12,17 +12,22 @@ import {
   HOME_BANNER_MOBILE,
 } from "@/lib/home-banner";
 import {
+  BORDER_SIDE_IDS,
+  BORDER_SIDE_LABELS,
   LINEAR_DIRECTIONS,
   MAX_BRAND_PRESETS,
   activePreset,
   brandFillCss,
   clampPresetName,
+  cloneBrandBorders,
   cloneBrandPreset,
   parseBrandPreset,
   parseBrandSurface,
   parseBrandThemeDocument,
   presetToCssVars,
   replacePreset,
+  type BorderSideId,
+  type BrandBorders,
   type BrandPreset,
   type BrandSurface,
   type BrandThemeDocument,
@@ -487,8 +492,72 @@ function SurfaceEditor({
   onChange: (partial: Partial<BrandSurface>) => void;
   showBorder?: boolean;
 }) {
+  const [selectedSides, setSelectedSides] = useState<BorderSideId[]>([
+    ...BORDER_SIDE_IDS,
+  ]);
+
+  const borders = surface.borders;
+  const activeSides =
+    selectedSides.length > 0 ? selectedSides : [...BORDER_SIDE_IDS];
+
+  const sampleSide = borders[activeSides[0]];
+  const widthsEqual = activeSides.every(
+    (s) => borders[s].width === sampleSide.width
+  );
+  const colorsEqual = activeSides.every(
+    (s) => borders[s].color === sampleSide.color
+  );
+
+  const cornerKeysForSides = (sides: BorderSideId[]) => {
+    const keys = new Set<
+      | "radiusTopLeft"
+      | "radiusTopRight"
+      | "radiusBottomRight"
+      | "radiusBottomLeft"
+    >();
+    for (const side of sides) {
+      if (side === "top") {
+        keys.add("radiusTopLeft");
+        keys.add("radiusTopRight");
+      } else if (side === "right") {
+        keys.add("radiusTopRight");
+        keys.add("radiusBottomRight");
+      } else if (side === "bottom") {
+        keys.add("radiusBottomLeft");
+        keys.add("radiusBottomRight");
+      } else {
+        keys.add("radiusTopLeft");
+        keys.add("radiusBottomLeft");
+      }
+    }
+    return [...keys];
+  };
+
+  const radiusKeys = cornerKeysForSides(activeSides);
+  const sampleRadius = borders[radiusKeys[0] ?? "radiusTopLeft"];
+  const radiiEqual = radiusKeys.every((k) => borders[k] === sampleRadius);
   const radiusSlider =
-    surface.borderRadius >= 999 ? 48 : Math.min(48, surface.borderRadius);
+    sampleRadius >= 999 ? 48 : Math.min(48, sampleRadius);
+
+  function patchBorders(mutator: (next: BrandBorders) => void) {
+    const next = cloneBrandBorders(borders);
+    mutator(next);
+    onChange({ borders: next });
+  }
+
+  function toggleSide(side: BorderSideId) {
+    setSelectedSides((prev) => {
+      if (prev.includes(side)) {
+        const next = prev.filter((s) => s !== side);
+        return next.length === 0 ? [side] : next;
+      }
+      return [...prev, side];
+    });
+  }
+
+  function selectAllSides() {
+    setSelectedSides([...BORDER_SIDE_IDS]);
+  }
 
   return (
     <div>
@@ -528,63 +597,112 @@ function SurfaceEditor({
       {showBorder ? (
         <div className="mt-3 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Borda
+            Bordas
           </p>
+          <p className="text-[11px] text-zinc-500">
+            Selecione quais lados editar. Cada lado pode ter cor, espessura e
+            arredondamento próprios.
+          </p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {BORDER_SIDE_IDS.map((side) => (
+              <button
+                key={side}
+                type="button"
+                onClick={() => toggleSide(side)}
+                className={`rounded-lg border px-1 py-2 text-[11px] font-medium ${
+                  selectedSides.includes(side)
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300"
+                    : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                }`}
+              >
+                {BORDER_SIDE_LABELS[side]}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={selectAllSides}
+            className="w-full rounded-lg border border-zinc-200 px-2 py-1.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          >
+            Selecionar as 4 bordas
+          </button>
+
           <ColorRow
-            label="Cor da borda"
-            value={surface.borderColor}
-            onChange={(borderColor) => onChange({ borderColor })}
+            label={colorsEqual ? "Cor da borda" : "Cor (mista)"}
+            value={sampleSide.color}
+            onChange={(color) =>
+              patchBorders((next) => {
+                for (const side of activeSides) {
+                  next[side] = { ...next[side], color };
+                }
+              })
+            }
           />
           <label className="flex items-center gap-2 text-xs text-zinc-500">
-            <span className="w-24 shrink-0">Espessura</span>
+            <span className="w-24 shrink-0">
+              {widthsEqual ? "Espessura" : "Espessura*"}
+            </span>
             <input
               type="range"
               min={0}
               max={12}
-              value={surface.borderWidth}
-              onChange={(e) =>
-                onChange({ borderWidth: Number(e.target.value) })
-              }
+              value={sampleSide.width}
+              onChange={(e) => {
+                const width = Number(e.target.value);
+                patchBorders((next) => {
+                  for (const side of activeSides) {
+                    next[side] = { ...next[side], width };
+                  }
+                });
+              }}
               className="flex-1"
             />
             <span className="w-10 tabular-nums text-right text-xs">
-              {surface.borderWidth}px
+              {sampleSide.width}px
             </span>
           </label>
           <label className="flex items-center gap-2 text-xs text-zinc-500">
-            <span className="w-24 shrink-0">Arredondar</span>
+            <span className="w-24 shrink-0">
+              {radiiEqual ? "Arredondar" : "Arredondar*"}
+            </span>
             <input
               type="range"
               min={0}
               max={48}
               value={radiusSlider}
-              onChange={(e) =>
-                onChange({ borderRadius: Number(e.target.value) })
-              }
+              onChange={(e) => {
+                const radius = Number(e.target.value);
+                patchBorders((next) => {
+                  for (const key of radiusKeys) {
+                    next[key] = radius;
+                  }
+                });
+              }}
               className="flex-1"
             />
             <span className="w-14 tabular-nums text-right text-xs">
-              {surface.borderRadius >= 999
-                ? "Pílula"
-                : `${surface.borderRadius}px`}
+              {sampleRadius >= 999 ? "Pílula" : `${sampleRadius}px`}
             </span>
           </label>
           <button
             type="button"
-            onClick={() =>
-              onChange({
-                borderRadius: surface.borderRadius >= 999 ? 16 : 999,
-              })
-            }
+            onClick={() => {
+              const nextRadius = sampleRadius >= 999 ? 16 : 999;
+              patchBorders((next) => {
+                for (const key of radiusKeys) {
+                  next[key] = nextRadius;
+                }
+              });
+            }}
             className={`w-full rounded-lg border px-2 py-2 text-xs font-medium ${
-              surface.borderRadius >= 999
+              sampleRadius >= 999
                 ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300"
                 : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
             }`}
           >
-            {surface.borderRadius >= 999
+            {sampleRadius >= 999
               ? "Usar cantos arredondados (sair da pílula)"
-              : "Usar formato pílula"}
+              : "Usar formato pílula nos cantos selecionados"}
           </button>
         </div>
       ) : null}
@@ -760,6 +878,8 @@ function CatalogPagePreview({
           ...cssVars,
           width: stageWidth,
           transform: `scale(${scale})`,
+          background: "var(--page-bg)",
+          backgroundAttachment: "fixed",
         }}
       >
         {/* Header — mesmas alturas/estrutura do CatalogHeader */}

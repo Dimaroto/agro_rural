@@ -14,6 +14,22 @@ const hex = z
   .string()
   .regex(/^#([0-9a-fA-F]{6})$/, "Use uma cor hexadecimal (#RRGGBB).");
 
+const borderEdgeSchema = z.object({
+  color: hex,
+  width: z.number().int().min(0).max(12),
+});
+
+const bordersSchema = z.object({
+  top: borderEdgeSchema,
+  right: borderEdgeSchema,
+  bottom: borderEdgeSchema,
+  left: borderEdgeSchema,
+  radiusTopLeft: z.number().int().min(0).max(999),
+  radiusTopRight: z.number().int().min(0).max(999),
+  radiusBottomRight: z.number().int().min(0).max(999),
+  radiusBottomLeft: z.number().int().min(0).max(999),
+});
+
 const surfaceSchema = z.object({
   mode: z.enum(["solid", "gradient"]),
   from: hex,
@@ -21,6 +37,8 @@ const surfaceSchema = z.object({
   shape: z.enum(["linear", "radial", "conic"]),
   angle: z.number().int().min(0).max(360),
   text: hex,
+  borders: bordersSchema.optional(),
+  // legado
   borderColor: hex.optional(),
   borderWidth: z.number().int().min(0).max(12).optional(),
   borderRadius: z.number().int().min(0).max(999).optional(),
