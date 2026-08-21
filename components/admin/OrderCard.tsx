@@ -17,6 +17,7 @@ import {
   type PdvPaymentMethod,
 } from "@/lib/pdv-shared";
 import { OrderNfeEmitButton } from "@/components/admin/OrderNfeEmitButton";
+import { formatBrPhone } from "@/lib/br-contact";
 
 type OrderItem = {
   id: string;
@@ -522,13 +523,22 @@ function SaleEditForm({
       </p>
 
       <div>
-        <p className="text-xs font-medium">Cliente</p>
+        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+          Cliente
+        </p>
         {customer ? (
-          <div className="mt-1 flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm">
-            <span>{customer.name}</span>
+          <div className="mt-1 flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-100 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-50">
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{customer.name}</p>
+              {customer.phone ? (
+                <p className="truncate text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                  {formatBrPhone(customer.phone)}
+                </p>
+              ) : null}
+            </div>
             <button
               type="button"
-              className="text-xs hover:underline"
+              className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-900 underline-offset-2 hover:underline dark:text-emerald-100"
               onClick={() => setCustomer(null)}
             >
               Trocar
@@ -536,7 +546,7 @@ function SaleEditForm({
           </div>
         ) : (
           <>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Atual: {order.customerName ?? "sem cliente"}
               {clearCustomer ? " (será removido)" : ""}
             </p>
@@ -547,12 +557,19 @@ function SaleEditForm({
               className="admin-input mt-1 w-full px-3 py-2 text-sm"
             />
             {customerResults.length > 0 && (
-              <ul className="mt-1 max-h-28 overflow-y-auto rounded-lg border text-sm">
-                {customerResults.map((c) => (
-                  <li key={c.id}>
+              <ul className="mt-1 max-h-40 overflow-y-auto rounded-xl border border-zinc-300 bg-white text-sm shadow-md dark:border-zinc-600 dark:bg-zinc-900">
+                {customerResults.map((c, idx) => (
+                  <li
+                    key={c.id}
+                    className={
+                      idx > 0
+                        ? "border-t border-zinc-200 dark:border-zinc-700"
+                        : undefined
+                    }
+                  >
                     <button
                       type="button"
-                      className="w-full px-3 py-2 text-left hover:bg-zinc-50"
+                      className="flex w-full flex-col gap-0.5 px-3 py-2.5 text-left text-zinc-900 hover:bg-emerald-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
                       onClick={() => {
                         setCustomer(c);
                         setClearCustomer(false);
@@ -560,7 +577,16 @@ function SaleEditForm({
                         setCustomerResults([]);
                       }}
                     >
-                      {c.name}
+                      <span className="font-semibold">{c.name}</span>
+                      {c.phone ? (
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {formatBrPhone(c.phone)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                          Sem telefone
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}
@@ -569,7 +595,7 @@ function SaleEditForm({
             {order.customerId && (
               <button
                 type="button"
-                className="mt-1 text-xs text-red-600 hover:underline"
+                className="mt-1 text-xs text-red-600 hover:underline dark:text-red-400"
                 onClick={() => {
                   setClearCustomer(true);
                   setCustomer(null);

@@ -9,6 +9,7 @@ import { CurrencyInput } from "@/components/admin/CurrencyInput";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
 import type { ImageSlotChange } from "@/components/admin/ProductImageUpload";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
+import { FiscalCodeCombobox } from "@/components/admin/FiscalCodeCombobox";
 import type {
   ProductFieldInput,
   ProductFieldType,
@@ -521,21 +522,17 @@ export function ProductForm({
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Field label="NCM (8 dígitos)">
-              <input
+              <FiscalCodeCombobox
+                kind="ncm"
                 name="ncm"
-                inputMode="numeric"
                 defaultValue={product?.ncm ?? ""}
-                className={inputClass}
-                placeholder="01012100"
-                maxLength={8}
               />
             </Field>
             <Field label="CFOP">
-              <input
+              <FiscalCodeCombobox
+                kind="cfop"
                 name="cfopDefault"
-                inputMode="numeric"
                 defaultValue={product?.cfopDefault ?? "5102"}
-                className={inputClass}
               />
             </Field>
             <Field label="CSOSN">

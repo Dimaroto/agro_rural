@@ -28,6 +28,7 @@
     "emissor:upload-setup": "npx tsx scripts/upload-emissor-setup.ts",
     "deploy": "npx vercel --prod --yes",
     "deploy:preview": "npx vercel --yes",
+    "fiscal:refresh": "node scripts/refresh-fiscal-tables.mjs",
     "desktop:start": "npm --prefix desktop start",
     "desktop:dist": "npm --prefix desktop run dist",
     "mobile:sync": "npm --prefix mobile run sync",

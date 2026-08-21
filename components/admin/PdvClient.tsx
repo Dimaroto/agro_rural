@@ -640,13 +640,18 @@ export function PdvClient() {
               Cliente
             </p>
             {customer ? (
-              <div className="mt-1 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
-                <span className="min-w-0 truncate font-semibold">
-                  {customer.name}
-                </span>
+              <div className="mt-1 flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-100 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-50">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{customer.name}</p>
+                  {customer.phone ? (
+                    <p className="truncate text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                      {formatBrPhone(customer.phone)}
+                    </p>
+                  ) : null}
+                </div>
                 <button
                   type="button"
-                  className="shrink-0 text-xs text-zinc-600 hover:underline"
+                  className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-900 underline-offset-2 hover:underline dark:text-emerald-100"
                   onClick={() => setCustomer(null)}
                 >
                   Trocar
@@ -661,27 +666,42 @@ export function PdvClient() {
                   className="admin-input mt-1 w-full px-3 py-2 text-sm"
                 />
                 {customerResults.length > 0 && (
-                  <ul className="mt-1 max-h-36 overflow-y-auto rounded-xl border border-zinc-200 text-sm dark:border-zinc-700">
-                    {customerResults.map((c) => (
-                      <li key={c.id}>
+                  <ul className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-zinc-300 bg-white text-sm shadow-md dark:border-zinc-600 dark:bg-zinc-900">
+                    {customerResults.map((c, idx) => (
+                      <li
+                        key={c.id}
+                        className={
+                          idx > 0
+                            ? "border-t border-zinc-200 dark:border-zinc-700"
+                            : undefined
+                        }
+                      >
                         <button
                           type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                          className="flex w-full flex-col gap-0.5 px-3 py-2.5 text-left text-zinc-900 hover:bg-emerald-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
                           onClick={() => {
                             setCustomer(c);
                             setCustomerQuery("");
                             setCustomerResults([]);
                           }}
                         >
-                          <span className="font-medium">
+                          <span className="font-semibold">
                             {c.name}
-                            {c.isBirthday ? " · aniversário" : ""}
+                            {c.isBirthday ? (
+                              <span className="ml-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                                · aniversário
+                              </span>
+                            ) : null}
                           </span>
                           {c.phone ? (
-                            <span className="block text-xs text-zinc-500">
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
                               {formatBrPhone(c.phone)}
                             </span>
-                          ) : null}
+                          ) : (
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                              Sem telefone
+                            </span>
+                          )}
                         </button>
                       </li>
                     ))}
@@ -689,7 +709,7 @@ export function PdvClient() {
                 )}
                 <button
                   type="button"
-                  className="mt-2 text-sm font-semibold text-emerald-700 hover:underline"
+                  className="mt-2 text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
                   onClick={() => setShowNewCustomer((v) => !v)}
                 >
                   {showNewCustomer ? "Cancelar" : "Novo cliente"}

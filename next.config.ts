@@ -13,6 +13,9 @@ function resolvePublicAppUrl() {
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["web-push"],
+  outputFileTracingIncludes: {
+    "/api/admin/fiscal/**/*": ["./data/fiscal/**/*"],
+  },
   env: {
     NEXT_PUBLIC_APP_URL: resolvePublicAppUrl(),
   },
