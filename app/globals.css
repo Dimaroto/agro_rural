@@ -614,8 +614,44 @@ html {
     @apply overflow-x-auto rounded-2xl border border-[#C9D4B3]/90 bg-[#F7F4EC]/95 dark:border-zinc-800 dark:bg-zinc-900;
   }
 
+  .finance-table-wrap--col {
+    @apply max-h-[min(28rem,60vh)] overflow-y-auto;
+  }
+
+  .finance-dual-grid {
+    @apply grid grid-cols-1 gap-4 lg:grid-cols-2;
+  }
+
+  .finance-dual-col {
+    @apply min-w-0;
+  }
+
+  .finance-day-nav {
+    @apply flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .finance-day-nav__center {
+    @apply mx-auto flex w-full max-w-md items-center justify-center gap-2;
+  }
+
+  .finance-day-nav__arrow {
+    @apply min-w-10 px-3 text-lg font-semibold leading-none;
+  }
+
+  .finance-day-nav__date {
+    @apply min-w-0 flex-1 text-center;
+  }
+
+  .finance-day-nav__actions {
+    @apply flex flex-wrap items-center justify-center gap-2 sm:justify-end;
+  }
+
   .finance-table {
     @apply w-full min-w-[640px] text-left text-sm;
+  }
+
+  .finance-table--compact {
+    @apply min-w-0;
   }
 
   .finance-table th {

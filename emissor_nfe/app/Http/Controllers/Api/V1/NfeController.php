@@ -61,6 +61,7 @@ class NfeController extends Controller
                 'x_motivo',
                 'autorizada_em',
                 'cancelada_em',
+                'payload',
                 'created_at',
                 'updated_at',
             ])
@@ -283,6 +284,14 @@ class NfeController extends Controller
 
     private function serializeNota(Nota $nota): array
     {
+        $payload = is_array($nota->payload) ? $nota->payload : [];
+        $dest = is_array($payload['destinatario'] ?? null) ? $payload['destinatario'] : [];
+        $meta = is_array($payload['meta_agro'] ?? null) ? $payload['meta_agro'] : [];
+
+        $destinatarioNome = $dest['xNome'] ?? $dest['nome'] ?? null;
+        $pedidoNumero = $meta['pedidoNumero'] ?? null;
+        $pedidoId = $meta['pedidoId'] ?? null;
+
         return [
             'id' => $nota->id,
             'empresa_id' => $nota->empresa_id,
@@ -298,6 +307,13 @@ class NfeController extends Controller
             'x_motivo' => $nota->x_motivo,
             'autorizada_em' => $nota->autorizada_em,
             'cancelada_em' => $nota->cancelada_em,
+            'destinatarioNome' => $destinatarioNome ? (string) $destinatarioNome : null,
+            'pedidoNumero' => $pedidoNumero !== null && $pedidoNumero !== ''
+                ? (string) $pedidoNumero
+                : null,
+            'pedidoId' => $pedidoId !== null && $pedidoId !== ''
+                ? (string) $pedidoId
+                : null,
             'eventos' => $nota->relationLoaded('eventos') ? $nota->eventos : null,
             'created_at' => $nota->created_at,
             'updated_at' => $nota->updated_at,

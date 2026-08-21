@@ -48,9 +48,12 @@ class DanfeService
     private function logoPath(): string
     {
         $candidates = [
+            public_path('branding/agrorural_logo.png'),
+            storage_path('app/branding/agrorural_logo.png'),
+            base_path('../assets/branding/agrorural_logo.png'),
+            // Fallback legado (só se o logo Agro ainda não existir no pacote)
             public_path('branding/bedendo_logo.png'),
             storage_path('app/branding/bedendo_logo.png'),
-            base_path('../assets/branding/bedendo_logo.png'),
         ];
         foreach ($candidates as $path) {
             if (is_file($path)) {

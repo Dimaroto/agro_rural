@@ -209,41 +209,55 @@ export function FinanceiroBedendoClient() {
 
       {tab === "caixa" ? (
         <>
-          <div className="admin-actions flex-wrap items-center gap-2">
-            <button type="button" className="btn" onClick={() => setDay(shiftDay(day, -1))}>
-              ←
-            </button>
-            <input
-              type="date"
-              className="finance-input"
-              value={day}
-              onChange={(e) => setDay(e.target.value)}
-            />
-            <button type="button" className="btn" onClick={() => setDay(shiftDay(day, 1))}>
-              →
-            </button>
-            <button type="button" className="btn" onClick={() => setDay(todayLocal())}>
-              Hoje
-            </button>
-            {summary?.closed ? (
+          <div className="finance-day-nav">
+            <div className="finance-day-nav__center">
               <button
                 type="button"
-                className="btn"
-                disabled={busy}
-                onClick={() => void closeOrReopen("reopen")}
+                className="btn finance-day-nav__arrow"
+                aria-label="Dia anterior"
+                onClick={() => setDay(shiftDay(day, -1))}
               >
-                Reabrir caixa
+                ‹
               </button>
-            ) : (
+              <input
+                type="date"
+                className="finance-input finance-day-nav__date"
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+              />
               <button
                 type="button"
-                className="btn btn-primary"
-                disabled={busy}
-                onClick={() => void closeOrReopen("close")}
+                className="btn finance-day-nav__arrow"
+                aria-label="Próximo dia"
+                onClick={() => setDay(shiftDay(day, 1))}
               >
-                Fechar caixa
+                ›
               </button>
-            )}
+            </div>
+            <div className="finance-day-nav__actions">
+              <button type="button" className="btn" onClick={() => setDay(todayLocal())}>
+                Hoje
+              </button>
+              {summary?.closed ? (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => void closeOrReopen("reopen")}
+                >
+                  Reabrir caixa
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy}
+                  onClick={() => void closeOrReopen("close")}
+                >
+                  Fechar caixa
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="finance-summary-grid">
@@ -375,32 +389,69 @@ export function FinanceiroBedendoClient() {
             </form>
           ) : null}
 
-          <div className="finance-table-wrap">
-            <table className="finance-table">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Descrição</th>
-                  <th>Forma</th>
-                  <th>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(summary?.entries ?? []).map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.type === "INCOME" ? "Entrada" : "Saída"}</td>
-                    <td>{e.description}</td>
-                    <td>{e.paymentMethod}</td>
-                    <td>{formatPrice(e.amountCents)}</td>
-                  </tr>
-                ))}
-                {(summary?.entries?.length ?? 0) === 0 ? (
-                  <tr>
-                    <td colSpan={4}>Nenhum lançamento neste dia.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+          <div className="finance-dual-grid">
+            <section className="finance-dual-col">
+              <h2 className="text-sm font-semibold mb-2">Entradas</h2>
+              <div className="finance-table-wrap finance-table-wrap--col">
+                <table className="finance-table finance-table--compact">
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th>Forma</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(summary?.entries ?? [])
+                      .filter((e) => e.type === "INCOME")
+                      .map((e) => (
+                        <tr key={e.id}>
+                          <td>{e.description}</td>
+                          <td>{e.paymentMethod}</td>
+                          <td>{formatPrice(e.amountCents)}</td>
+                        </tr>
+                      ))}
+                    {(summary?.entries ?? []).filter((e) => e.type === "INCOME")
+                      .length === 0 ? (
+                      <tr>
+                        <td colSpan={3}>Nenhuma entrada neste dia.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section className="finance-dual-col">
+              <h2 className="text-sm font-semibold mb-2">Saídas</h2>
+              <div className="finance-table-wrap finance-table-wrap--col">
+                <table className="finance-table finance-table--compact">
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th>Forma</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(summary?.entries ?? [])
+                      .filter((e) => e.type === "EXPENSE")
+                      .map((e) => (
+                        <tr key={e.id}>
+                          <td>{e.description}</td>
+                          <td>{e.paymentMethod}</td>
+                          <td>{formatPrice(e.amountCents)}</td>
+                        </tr>
+                      ))}
+                    {(summary?.entries ?? []).filter((e) => e.type === "EXPENSE")
+                      .length === 0 ? (
+                      <tr>
+                        <td colSpan={3}>Nenhuma saída neste dia.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         </>
       ) : (
@@ -433,99 +484,101 @@ export function FinanceiroBedendoClient() {
             </div>
           ) : null}
 
-          <section>
-            <h2 className="text-sm font-semibold mb-2">A pagar</h2>
-            <div className="finance-table-wrap">
-              <table className="finance-table">
-                <thead>
-                  <tr>
-                    <th>Descrição</th>
-                    <th>Venc.</th>
-                    <th>Valor</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {payables.map((e) => (
-                    <tr key={e.id}>
-                      <td>
-                        {e.description}
-                        {e.supplierName ? (
-                          <span className="text-xs text-zinc-500 block">{e.supplierName}</span>
-                        ) : null}
-                      </td>
-                      <td>{e.entryDate ? String(e.entryDate).slice(0, 10) : "—"}</td>
-                      <td>{formatPrice(e.amountCents)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => {
-                            setConfirmId(e.id);
-                            setConfirmDay(todayLocal());
-                          }}
-                        >
-                          Pagar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {payables.length === 0 ? (
+          <div className="finance-dual-grid">
+            <section className="finance-dual-col">
+              <h2 className="text-sm font-semibold mb-2">A pagar</h2>
+              <div className="finance-table-wrap finance-table-wrap--col">
+                <table className="finance-table finance-table--compact">
+                  <thead>
                     <tr>
-                      <td colSpan={4}>Nenhuma conta a pagar.</td>
+                      <th>Descrição</th>
+                      <th>Venc.</th>
+                      <th>Valor</th>
+                      <th />
                     </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {payables.map((e) => (
+                      <tr key={e.id}>
+                        <td>
+                          {e.description}
+                          {e.supplierName ? (
+                            <span className="text-xs text-zinc-500 block">{e.supplierName}</span>
+                          ) : null}
+                        </td>
+                        <td>{e.entryDate ? String(e.entryDate).slice(0, 10) : "—"}</td>
+                        <td>{formatPrice(e.amountCents)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => {
+                              setConfirmId(e.id);
+                              setConfirmDay(todayLocal());
+                            }}
+                          >
+                            Pagar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {payables.length === 0 ? (
+                      <tr>
+                        <td colSpan={4}>Nenhuma conta a pagar.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-          <section>
-            <h2 className="text-sm font-semibold mb-2">A receber</h2>
-            <div className="finance-table-wrap">
-              <table className="finance-table">
-                <thead>
-                  <tr>
-                    <th>Descrição</th>
-                    <th>Venc.</th>
-                    <th>Valor</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {receivables.map((e) => (
-                    <tr key={e.id}>
-                      <td>
-                        {e.description}
-                        {e.customerName ? (
-                          <span className="text-xs text-zinc-500 block">{e.customerName}</span>
-                        ) : null}
-                      </td>
-                      <td>{e.entryDate ? String(e.entryDate).slice(0, 10) : "—"}</td>
-                      <td>{formatPrice(e.amountCents)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => {
-                            setConfirmId(e.id);
-                            setConfirmDay(todayLocal());
-                          }}
-                        >
-                          Receber
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {receivables.length === 0 ? (
+            <section className="finance-dual-col">
+              <h2 className="text-sm font-semibold mb-2">A receber</h2>
+              <div className="finance-table-wrap finance-table-wrap--col">
+                <table className="finance-table finance-table--compact">
+                  <thead>
                     <tr>
-                      <td colSpan={4}>Nenhuma conta a receber.</td>
+                      <th>Descrição</th>
+                      <th>Venc.</th>
+                      <th>Valor</th>
+                      <th />
                     </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {receivables.map((e) => (
+                      <tr key={e.id}>
+                        <td>
+                          {e.description}
+                          {e.customerName ? (
+                            <span className="text-xs text-zinc-500 block">{e.customerName}</span>
+                          ) : null}
+                        </td>
+                        <td>{e.entryDate ? String(e.entryDate).slice(0, 10) : "—"}</td>
+                        <td>{formatPrice(e.amountCents)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => {
+                              setConfirmId(e.id);
+                              setConfirmDay(todayLocal());
+                            }}
+                          >
+                            Receber
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {receivables.length === 0 ? (
+                      <tr>
+                        <td colSpan={4}>Nenhuma conta a receber.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         </div>
       )}
     </div>

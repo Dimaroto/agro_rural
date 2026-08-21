@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatApiError } from "@/lib/apiError";
 import { formatPrice } from "@/lib/format";
+import { formatOrderCode } from "@/lib/order-number";
 import {
   defaultEmissorBaseUrl,
   emissorFetch,
@@ -22,6 +23,12 @@ type NotaRow = {
   numero?: number | null;
   serie?: number | null;
   modelo?: number | null;
+  destinatarioNome?: string | null;
+  pedidoNumero?: string | null;
+  pedidoId?: string | null;
+  /** Preenchido via lookup Neon quando o payload do emissor não tem. */
+  customerName?: string | null;
+  orderNumber?: number | null;
 };
 
 type EmpresaRow = {
@@ -145,6 +152,7 @@ export function NotasFiscaisPageClient() {
   const [imports, setImports] = useState<PurchaseListItem[]>([]);
   const [msg, setMsg] = useState("");
   const [showProdutosLink, setShowProdutosLink] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setSession(loadEmissorSession());
@@ -210,11 +218,55 @@ export function NotasFiscaisPageClient() {
         return;
       }
       const body = nfe.data as { data?: NotaRow[] } | NotaRow[];
-      const rows = Array.isArray(body)
+      let rows = Array.isArray(body)
         ? body
         : Array.isArray(body?.data)
           ? body.data
           : [];
+
+      const chaves = rows
+        .map((n) => (n.chave ?? "").replace(/\D/g, ""))
+        .filter((c) => c.length === 44);
+      if (chaves.length > 0) {
+        try {
+          const metaRes = await fetch(
+            `/api/admin/orders/nfe-meta?chaves=${encodeURIComponent(chaves.join(","))}`
+          );
+          if (metaRes.ok) {
+            const meta = (await metaRes.json()) as {
+              byChave?: Record<
+                string,
+                {
+                  orderNumber: number | null;
+                  customerName: string | null;
+                }
+              >;
+            };
+            const map = meta.byChave ?? {};
+            rows = rows.map((n) => {
+              const key = (n.chave ?? "").replace(/\D/g, "");
+              const hit = map[key];
+              if (!hit) return n;
+              return {
+                ...n,
+                customerName: n.destinatarioNome || hit.customerName || n.customerName,
+                orderNumber:
+                  n.pedidoNumero != null && String(n.pedidoNumero).trim() !== ""
+                    ? Number(n.pedidoNumero) || n.orderNumber || hit.orderNumber
+                    : hit.orderNumber ?? n.orderNumber,
+                destinatarioNome:
+                  n.destinatarioNome || hit.customerName || n.destinatarioNome,
+                pedidoNumero:
+                  n.pedidoNumero ||
+                  (hit.orderNumber != null ? String(hit.orderNumber) : null),
+              };
+            });
+          }
+        } catch {
+          /* lista fiscal ainda funciona sem o lookup */
+        }
+      }
+
       setNotas(rows);
       if (rows.length === 0) {
         setInfo("Nenhuma nota de saída listada no emissor.");
@@ -474,6 +526,45 @@ export function NotasFiscaisPageClient() {
     }
   }
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredImports = useMemo(() => {
+    if (!q) return imports;
+    return imports.filter((inv) => {
+      const hay = [
+        String(inv.number ?? ""),
+        String(inv.series ?? ""),
+        inv.supplier?.name ?? "",
+        inv.emitenteName ?? "",
+        inv.accessKey ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [imports, q]);
+
+  const filteredNotas = useMemo(() => {
+    if (!q) return notas;
+    return notas.filter((n) => {
+      const cliente = n.destinatarioNome || n.customerName || "";
+      const codigo =
+        n.pedidoNumero ||
+        (n.orderNumber != null ? formatOrderCode(n.orderNumber) : "") ||
+        "";
+      const hay = [
+        cliente,
+        codigo,
+        String(n.numero ?? ""),
+        String(n.serie ?? ""),
+        n.chave ?? "",
+        n.status ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [notas, q]);
+
   if (!session) return <p className="text-sm text-zinc-500">Carregando…</p>;
 
   return (
@@ -504,6 +595,21 @@ export function NotasFiscaisPageClient() {
           Saída
         </button>
       </div>
+
+      <label className="block text-sm">
+        <span className="sr-only">Pesquisar notas</span>
+        <input
+          type="search"
+          className="finance-input w-full"
+          placeholder={
+            tab === "entrada"
+              ? "Pesquisar por fornecedor, número ou chave…"
+              : "Pesquisar por cliente, código da venda, número ou chave…"
+          }
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </label>
 
       {error ? <p className="admin-error">{error}</p> : null}
       {msg ? (
@@ -793,7 +899,7 @@ export function NotasFiscaisPageClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {imports.map((inv) => (
+                  {filteredImports.map((inv) => (
                     <tr key={inv.id}>
                       <td>
                         {inv.number}/{inv.series}
@@ -804,9 +910,13 @@ export function NotasFiscaisPageClient() {
                       <td>{inv._count.ledgerEntries}</td>
                     </tr>
                   ))}
-                  {imports.length === 0 ? (
+                  {filteredImports.length === 0 ? (
                     <tr>
-                      <td colSpan={5}>Nenhuma entrada importada.</td>
+                      <td colSpan={5}>
+                        {q
+                          ? "Nenhuma entrada corresponde à pesquisa."
+                          : "Nenhuma entrada importada."}
+                      </td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -926,7 +1036,7 @@ export function NotasFiscaisPageClient() {
                 </button>
               </div>
               <ul className="space-y-2">
-                {notas.map((n) => {
+                {filteredNotas.map((n) => {
                   const chave = (n.chave ?? "").replace(/\D/g, "");
                   const autorizada =
                     chave.length === 44 &&
@@ -934,6 +1044,16 @@ export function NotasFiscaisPageClient() {
                       .toLowerCase()
                       .includes("autoriz");
                   const rowKey = String(n.id ?? chave);
+                  const cliente =
+                    n.destinatarioNome || n.customerName || null;
+                  const vendaCode =
+                    n.orderNumber != null && n.orderNumber > 0
+                      ? formatOrderCode(n.orderNumber)
+                      : n.pedidoNumero
+                        ? /^\d+$/.test(String(n.pedidoNumero).trim())
+                          ? formatOrderCode(Number(n.pedidoNumero))
+                          : String(n.pedidoNumero)
+                        : null;
                   return (
                     <li
                       key={rowKey}
@@ -946,6 +1066,15 @@ export function NotasFiscaisPageClient() {
                           : "—"}{" "}
                         · {n.status ?? "—"}
                       </p>
+                      {(cliente || vendaCode) ? (
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          {cliente ? <span>{cliente}</span> : null}
+                          {cliente && vendaCode ? " · " : null}
+                          {vendaCode ? (
+                            <span className="font-mono">{vendaCode}</span>
+                          ) : null}
+                        </p>
+                      ) : null}
                       {chave ? (
                         <p className="break-all font-mono text-xs text-zinc-500">
                           {chave}
@@ -1024,9 +1153,11 @@ export function NotasFiscaisPageClient() {
                     </li>
                   );
                 })}
-                {notas.length === 0 ? (
+                {filteredNotas.length === 0 ? (
                   <p className="text-sm text-zinc-500">
-                    Nenhuma nota de saída listada.
+                    {q
+                      ? "Nenhuma saída corresponde à pesquisa."
+                      : "Nenhuma nota de saída listada."}
                   </p>
                 ) : null}
               </ul>

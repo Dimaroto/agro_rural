@@ -25,7 +25,6 @@ export type AdminOrderStatusFilter =
   | "all"
   | "pending"
   | "receivable"
-  | "paid"
   | "delivered"
   | "cancelled";
 
@@ -51,7 +50,6 @@ export const ORDER_STATUS_FILTERS: {
     label: "A receber",
     paymentMethods: ["receivable", "cash"],
   },
-  { id: "paid", label: "Pagas", statuses: [ORDER_STATUS.PAID] },
   { id: "delivered", label: "Entregues", statuses: [ORDER_STATUS.DELIVERED] },
   { id: "cancelled", label: "Canceladas", statuses: [ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED] },
 ];
@@ -62,7 +60,6 @@ export function resolveOrderStatusFilter(
   if (
     value === "pending" ||
     value === "receivable" ||
-    value === "paid" ||
     value === "delivered" ||
     value === "cancelled"
   ) {

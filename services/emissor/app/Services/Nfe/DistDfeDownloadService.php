@@ -67,7 +67,7 @@ class DistDfeDownloadService
 
         throw new RuntimeException(
             'A SEFAZ ainda não liberou o XML completo desta chave. '
-            .'Confirme que o CNPJ da Mecânica é o destinatário da NF-e e tente '
+            .'Confirme que o CNPJ da Agro Rural Zortea é o destinatário da NF-e e tente '
             .'novamente em alguns minutos, ou suba o XML manualmente.'
         );
     }
@@ -192,7 +192,7 @@ class DistDfeDownloadService
             : 'Nenhum documento encontrado na SEFAZ para esta chave.';
 
         throw new RuntimeException(
-            $detail.' A Mecânica precisa ser destinatária (ou autorizada) desta NF-e.'
+            $detail.' A Agro Rural Zortea precisa ser destinatária (ou autorizada) desta NF-e.'
         );
     }
 
