@@ -21,6 +21,9 @@ const surfaceSchema = z.object({
   shape: z.enum(["linear", "radial", "conic"]),
   angle: z.number().int().min(0).max(360),
   text: hex,
+  borderColor: hex.optional(),
+  borderWidth: z.number().int().min(0).max(12).optional(),
+  borderRadius: z.number().int().min(0).max(999).optional(),
 });
 
 const presetSchema = z.object({

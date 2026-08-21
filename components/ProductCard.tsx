@@ -85,7 +85,7 @@ export function ProductCard({
   }
 
   return (
-    <article className="catalog-product-card catalog-card-grow group relative flex flex-col overflow-hidden rounded-2xl border border-brand/20 shadow-[0_8px_24px_rgba(26, 46, 18,0.1)] hover:border-brand/35 hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.14)] sm:rounded-3xl sm:shadow-[0_8px_24px_rgba(26, 46, 18,0.12)] sm:hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.16)]">
+    <article className="catalog-product-card catalog-card-grow group relative flex flex-col overflow-hidden shadow-[0_8px_24px_rgba(26, 46, 18,0.1)] hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.14)] sm:shadow-[0_8px_24px_rgba(26, 46, 18,0.12)] sm:hover:shadow-[0_14px_32px_rgba(26, 46, 18,0.16)]">
       <div
         className="pointer-events-none absolute inset-0 z-10 hidden rounded-3xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:block bg-brand-light/30"
         aria-hidden
@@ -207,10 +207,10 @@ export function ProductCard({
           <button
             type="button"
             onClick={handleAdd}
-            className={`w-full min-h-[3rem] rounded-2xl py-3.5 text-base font-bold text-white shadow-[0_8px_22px_rgba(26, 46, 18,0.22)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-brand active:translate-y-0 active:scale-[0.98] touch-manipulation select-none ${
+            className={`catalog-btn-primary w-full min-h-[3rem] py-3.5 text-base font-bold shadow-[0_8px_22px_rgba(26, 46, 18,0.22)] transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation select-none ${
               outOfStock
-                ? "cursor-not-allowed bg-zinc-400 shadow-none hover:translate-y-0 hover:bg-zinc-400"
-                : "bg-brand-dark"
+                ? "cursor-not-allowed !bg-zinc-400 !border-zinc-400 shadow-none hover:translate-y-0"
+                : ""
             }`}
             disabled={outOfStock}
           >

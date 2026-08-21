@@ -184,7 +184,7 @@ function LatestProductCard({ product }: { product: CatalogProduct }) {
     <button
       type="button"
       onClick={() => openProduct(product)}
-      className="catalog-product-card catalog-card-grow group flex flex-col overflow-hidden rounded-2xl border border-brand/20 text-left shadow-[0_8px_24px_rgba(15,35,28,0.1)] hover:border-brand/35 hover:shadow-[0_14px_32px_rgba(15,35,28,0.14)]"
+      className="catalog-product-card catalog-card-grow group flex flex-col overflow-hidden text-left shadow-[0_8px_24px_rgba(15,35,28,0.1)] hover:shadow-[0_14px_32px_rgba(15,35,28,0.14)]"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-brand-light">
         {isPhoto && product.imageUrl ? (
@@ -226,7 +226,7 @@ function CategoryCard({
   return (
     <Link
       href={`/produtos/${category.slug}`}
-      className="catalog-category-card catalog-card-grow group flex h-full flex-col overflow-hidden rounded-3xl border border-brand/20 shadow-[0_10px_28px_rgba(15,35,28,0.12)] hover:border-brand/35 hover:shadow-[0_16px_36px_rgba(15,35,28,0.16)]"
+      className="catalog-category-card catalog-card-grow group flex h-full flex-col overflow-hidden shadow-[0_10px_28px_rgba(15,35,28,0.12)] hover:shadow-[0_16px_36px_rgba(15,35,28,0.16)]"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-brand-light">
         {hasImage && category.imageUrl ? (

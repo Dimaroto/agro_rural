@@ -19,10 +19,14 @@
   --color-charcoal: #1A2E12;
   --catalog-card-bg: #F3EFE4;
   --catalog-card-fg: #1A2E12;
-  --catalog-card-border: #C5A059;
+  --catalog-card-border: #C9D4B3;
+  --catalog-card-border-width: 1px;
+  --catalog-card-radius: 18px;
   --catalog-category-bg: #F3EFE4;
   --catalog-category-fg: #1A2E12;
-  --catalog-category-border: rgba(26, 46, 18, 0.22);
+  --catalog-category-border: #C9D4B3;
+  --catalog-category-border-width: 1px;
+  --catalog-category-radius: 24px;
   --catalog-surface: #E8E2D4;
   --background: var(--color-sage-light);
   --foreground: var(--color-primary-dark);
@@ -30,8 +34,14 @@
   --brand-fill-hover: var(--color-primary-dark);
   --brand-on-fill: #ffffff;
   --brand-shadow: rgba(74, 103, 65, 0.32);
+  --brand-border-color: #2d4c1e;
+  --brand-border-width: 2px;
+  --brand-border-radius: 999px;
   --header-fill: var(--color-primary);
   --header-text: #ffffff;
+  --header-border-color: #8ba56a;
+  --header-border-width: 0px;
+  --header-border-radius: 0px;
   --page-bg: #e8f6f0;
   --page-fg: #1a2e12;
   --catalog-paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
@@ -1746,7 +1756,11 @@ html {
 
   .catalog-btn-primary {
     background: var(--brand-fill, var(--color-primary));
-    color: #fff;
+    color: var(--brand-on-fill, #fff);
+    border-style: solid;
+    border-width: var(--brand-border-width, 2px);
+    border-color: var(--brand-border-color, transparent);
+    border-radius: var(--brand-border-radius, 9999px);
     box-shadow:
       0 12px 26px var(--brand-shadow, rgba(74, 103, 65, 0.3)),
       0 2px 0 rgba(255, 252, 247, 0.22) inset;
@@ -2566,7 +2580,11 @@ body:has(.catalog-page) {
 
 .catalog-btn-primary {
   background: var(--brand-fill, var(--color-primary)) !important;
-  color: #fff !important;
+  color: var(--brand-on-fill, #fff) !important;
+  border-style: solid !important;
+  border-width: var(--brand-border-width, 2px) !important;
+  border-color: var(--brand-border-color, transparent) !important;
+  border-radius: var(--brand-border-radius, 9999px) !important;
 }
 
 .catalog-filter-active {
@@ -3084,7 +3102,10 @@ a,
 .catalog-product-card {
   background: var(--catalog-card-bg, var(--color-brand-cream, #f3efe4)) !important;
   color: var(--catalog-card-fg, var(--color-primary-dark, #1a2e12));
+  border-style: solid !important;
+  border-width: var(--catalog-card-border-width, 1px) !important;
   border-color: var(--catalog-card-border, color-mix(in srgb, var(--color-primary) 20%, transparent)) !important;
+  border-radius: var(--catalog-card-radius, 1.125rem) !important;
 }
 
 .catalog-product-card h3,
@@ -3096,7 +3117,10 @@ a,
 .catalog-category-card {
   background: var(--catalog-category-bg, var(--color-brand-cream, #f3efe4)) !important;
   color: var(--catalog-category-fg, var(--color-primary-dark, #1a2e12));
+  border-style: solid !important;
+  border-width: var(--catalog-category-border-width, 1px) !important;
   border-color: var(--catalog-category-border, color-mix(in srgb, var(--color-primary) 20%, transparent)) !important;
+  border-radius: var(--catalog-category-radius, 1.5rem) !important;
 }
 
 .catalog-category-card h3,
@@ -3387,10 +3411,11 @@ html:has(body.catalog-product-modal-open) {
   margin: 0;
   background: var(--header-fill, var(--brand-fill, var(--color-primary)));
   color: var(--header-text, var(--brand-on-fill, var(--color-cream-soft)));
-  border-radius: 0;
+  border-radius: var(--header-border-radius, 0);
   box-shadow: 0 10px 36px rgba(10, 28, 22, 0.35);
-  border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-primary-light) 22%, transparent);
+  border-style: solid;
+  border-width: var(--header-border-width, 0px);
+  border-color: var(--header-border-color, transparent);
   overflow: visible;
 }
 
@@ -3615,13 +3640,15 @@ html:has(body.catalog-product-modal-open) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: var(--brand-border-radius, 9999px);
   padding: 0.65rem 1.35rem;
   font-size: 1rem;
   font-weight: 700;
   color: var(--brand-on-fill, #fff);
   background: var(--brand-fill, var(--color-primary-dark));
-  border: 2px solid color-mix(in srgb, var(--color-primary-dark) 85%, #000);
+  border-style: solid;
+  border-width: var(--brand-border-width, 2px);
+  border-color: var(--brand-border-color, color-mix(in srgb, var(--color-primary-dark) 85%, #000));
   box-shadow: 0 6px 18px var(--brand-shadow, rgba(26, 46, 18, 0.22));
   transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
@@ -4250,7 +4277,10 @@ html:has(body.catalog-product-modal-open) {
 .catalog-footer {
   background: var(--header-fill, var(--color-primary-dark));
   color: var(--header-text, var(--color-cream-soft));
-  border-top: none;
+  border-style: solid;
+  border-width: var(--header-border-width, 0px);
+  border-color: var(--header-border-color, transparent);
+  border-radius: var(--header-border-radius, 0);
 }
 
 .catalog-footer__inner {

@@ -346,6 +346,7 @@ export function ThemeStudio({
           <SurfaceEditor
             surface={current.header}
             onChange={(partial) => patchSurface("header", partial)}
+            showBorder
           />
         </CollapsibleSection>
 
@@ -358,6 +359,7 @@ export function ThemeStudio({
           <SurfaceEditor
             surface={current.buttons}
             onChange={(partial) => patchSurface("buttons", partial)}
+            showBorder
           />
         </CollapsibleSection>
 
@@ -382,6 +384,7 @@ export function ThemeStudio({
           <SurfaceEditor
             surface={current.cards}
             onChange={(partial) => patchSurface("cards", partial)}
+            showBorder
           />
         </CollapsibleSection>
 
@@ -394,6 +397,7 @@ export function ThemeStudio({
           <SurfaceEditor
             surface={current.categories}
             onChange={(partial) => patchSurface("categories", partial)}
+            showBorder
           />
         </CollapsibleSection>
 
@@ -477,10 +481,15 @@ function CollapsibleSection({
 function SurfaceEditor({
   surface,
   onChange,
+  showBorder = false,
 }: {
   surface: BrandSurface;
   onChange: (partial: Partial<BrandSurface>) => void;
+  showBorder?: boolean;
 }) {
+  const radiusSlider =
+    surface.borderRadius >= 999 ? 48 : Math.min(48, surface.borderRadius);
+
   return (
     <div>
       <div className="grid grid-cols-2 gap-2">
@@ -515,6 +524,70 @@ function SurfaceEditor({
           onChange={(text) => onChange({ text })}
         />
       </div>
+
+      {showBorder ? (
+        <div className="mt-3 space-y-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Borda
+          </p>
+          <ColorRow
+            label="Cor da borda"
+            value={surface.borderColor}
+            onChange={(borderColor) => onChange({ borderColor })}
+          />
+          <label className="flex items-center gap-2 text-xs text-zinc-500">
+            <span className="w-24 shrink-0">Espessura</span>
+            <input
+              type="range"
+              min={0}
+              max={12}
+              value={surface.borderWidth}
+              onChange={(e) =>
+                onChange({ borderWidth: Number(e.target.value) })
+              }
+              className="flex-1"
+            />
+            <span className="w-10 tabular-nums text-right text-xs">
+              {surface.borderWidth}px
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-xs text-zinc-500">
+            <span className="w-24 shrink-0">Arredondar</span>
+            <input
+              type="range"
+              min={0}
+              max={48}
+              value={radiusSlider}
+              onChange={(e) =>
+                onChange({ borderRadius: Number(e.target.value) })
+              }
+              className="flex-1"
+            />
+            <span className="w-14 tabular-nums text-right text-xs">
+              {surface.borderRadius >= 999
+                ? "Pílula"
+                : `${surface.borderRadius}px`}
+            </span>
+          </label>
+          <button
+            type="button"
+            onClick={() =>
+              onChange({
+                borderRadius: surface.borderRadius >= 999 ? 16 : 999,
+              })
+            }
+            className={`w-full rounded-lg border px-2 py-2 text-xs font-medium ${
+              surface.borderRadius >= 999
+                ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300"
+                : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            }`}
+          >
+            {surface.borderRadius >= 999
+              ? "Usar cantos arredondados (sair da pílula)"
+              : "Usar formato pílula"}
+          </button>
+        </div>
+      ) : null}
 
       {surface.mode === "gradient" && (
         <>
@@ -855,7 +928,7 @@ function CatalogPagePreview({
                 {(isMobile ? [0, 1] : [0, 1, 2, 3]).map((i) => (
                   <div
                     key={i}
-                    className="catalog-product-card overflow-hidden rounded-2xl border border-brand/20 shadow-sm"
+                    className="catalog-product-card overflow-hidden shadow-sm"
                   >
                     <div
                       className={
@@ -905,7 +978,7 @@ function CatalogPagePreview({
                 {["Rações", "Insumos", "Ferramentas"].map((label) => (
                   <div
                     key={label}
-                    className="catalog-category-card w-28 shrink-0 overflow-hidden rounded-2xl border border-brand/20 sm:w-32"
+                    className="catalog-category-card w-28 shrink-0 overflow-hidden sm:w-32"
                   >
                     <div className="aspect-square bg-[color-mix(in_srgb,var(--catalog-category-fg)_10%,transparent)]" />
                     <p className="truncate px-2 py-2 text-center text-sm font-bold">

@@ -18,6 +18,12 @@ export type BrandTheme = {
 
 export type BrandSurface = BrandTheme & {
   text: string;
+  /** Cor da borda (#RRGGBB). */
+  borderColor: string;
+  /** Espessura da borda em px (0–12). */
+  borderWidth: number;
+  /** Arredondamento em px (0–999; 999 ≈ pílula). */
+  borderRadius: number;
 };
 
 export type BrandPreset = {
@@ -58,6 +64,31 @@ function clampAngle(value: unknown): number {
   const wrapped = ((Math.round(n) % 360) + 360) % 360;
   return wrapped;
 }
+
+export function clampBorderWidth(value: unknown, fallback = 1): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(12, Math.round(n)));
+}
+
+export function clampBorderRadius(value: unknown, fallback = 16): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(999, Math.round(n)));
+}
+
+const DEFAULT_SURFACE_BORDER = {
+  borderColor: "#C5A059",
+  borderWidth: 1,
+  borderRadius: 16,
+} as const;
+
+/** Fallback mínimo antes das constantes DEFAULT_*_SURFACE. */
+const DEFAULT_SURFACE_BORDER_FALLBACK: BrandSurface = {
+  ...DEFAULT_BRAND_THEME,
+  text: "#FFFFFF",
+  ...DEFAULT_SURFACE_BORDER,
+};
 
 export function parseBrandTheme(raw: unknown): BrandTheme {
   let data: unknown = raw;
@@ -128,6 +159,33 @@ export function brandOnFillColor(theme: BrandTheme): string {
   return relativeLuminance(sample) > 0.55 ? "#1A2E12" : "#FFFFFF";
 }
 
+function coerceSurfaceFallback(
+  fallback: BrandTheme | BrandSurface
+): BrandSurface {
+  const fill = parseBrandTheme(fallback);
+  const obj = fallback as Partial<BrandSurface>;
+  const text =
+    typeof obj.text === "string" && isHexColor(obj.text)
+      ? obj.text.trim().toUpperCase()
+      : brandOnFillColor(fill);
+  return {
+    ...fill,
+    text,
+    borderColor:
+      typeof obj.borderColor === "string" && isHexColor(obj.borderColor)
+        ? obj.borderColor.trim().toUpperCase()
+        : DEFAULT_SURFACE_BORDER.borderColor,
+    borderWidth: clampBorderWidth(
+      obj.borderWidth,
+      DEFAULT_SURFACE_BORDER.borderWidth
+    ),
+    borderRadius: clampBorderRadius(
+      obj.borderRadius,
+      DEFAULT_SURFACE_BORDER.borderRadius
+    ),
+  };
+}
+
 export function mixHex(hex: string, amount: number, towards: "black" | "white"): string {
   const { r, g, b } = hexToRgb(hex);
   const t = towards === "white" ? 255 : 0;
@@ -177,7 +235,7 @@ export function brandFillHoverCss(theme: BrandTheme): string {
 
 export function parseBrandSurface(
   raw: unknown,
-  fallback: BrandTheme = DEFAULT_BRAND_THEME
+  fallback?: BrandTheme | BrandSurface
 ): BrandSurface {
   let data: unknown = raw;
   if (typeof raw === "string" && raw.trim()) {
@@ -187,13 +245,22 @@ export function parseBrandSurface(
       data = null;
     }
   }
-  const fill = parseBrandTheme(data && typeof data === "object" ? data : fallback);
+  const fb = coerceSurfaceFallback(fallback ?? DEFAULT_SURFACE_BORDER_FALLBACK);
+  const fill = parseBrandTheme(data && typeof data === "object" ? data : fb);
   const obj =
     data && typeof data === "object" ? (data as Record<string, unknown>) : {};
   const text = isHexColor(obj.text)
     ? obj.text.trim().toUpperCase()
-    : brandOnFillColor(fill);
-  return { ...fill, text };
+    : fb.text || brandOnFillColor(fill);
+  return {
+    ...fill,
+    text,
+    borderColor: isHexColor(obj.borderColor)
+      ? obj.borderColor.trim().toUpperCase()
+      : fb.borderColor,
+    borderWidth: clampBorderWidth(obj.borderWidth, fb.borderWidth),
+    borderRadius: clampBorderRadius(obj.borderRadius, fb.borderRadius),
+  };
 }
 
 export function clampPresetName(value: unknown): string {
@@ -212,11 +279,17 @@ export function newBrandPresetId(): string {
 export const DEFAULT_HEADER_SURFACE: BrandSurface = {
   ...DEFAULT_BRAND_THEME,
   text: "#FFFFFF",
+  borderColor: "#8BA56A",
+  borderWidth: 0,
+  borderRadius: 0,
 };
 
 export const DEFAULT_BUTTONS_SURFACE: BrandSurface = {
   ...DEFAULT_BRAND_THEME,
   text: "#FFFFFF",
+  borderColor: "#2D4C1E",
+  borderWidth: 2,
+  borderRadius: 999,
 };
 
 export const DEFAULT_BACKGROUND_SURFACE: BrandSurface = {
@@ -226,6 +299,9 @@ export const DEFAULT_BACKGROUND_SURFACE: BrandSurface = {
   shape: "linear",
   angle: 180,
   text: DEFAULT_PAGE_FG,
+  borderColor: "#000000",
+  borderWidth: 0,
+  borderRadius: 0,
 };
 
 export const DEFAULT_CARDS_SURFACE: BrandSurface = {
@@ -235,6 +311,9 @@ export const DEFAULT_CARDS_SURFACE: BrandSurface = {
   shape: "linear",
   angle: 180,
   text: DEFAULT_PAGE_FG,
+  borderColor: "#C9D4B3",
+  borderWidth: 1,
+  borderRadius: 18,
 };
 
 export const DEFAULT_CATEGORIES_SURFACE: BrandSurface = {
@@ -244,6 +323,9 @@ export const DEFAULT_CATEGORIES_SURFACE: BrandSurface = {
   shape: "linear",
   angle: 180,
   text: DEFAULT_PAGE_FG,
+  borderColor: "#C9D4B3",
+  borderWidth: 1,
+  borderRadius: 24,
 };
 
 export function createDefaultPreset(name = "Padrão"): BrandPreset {
@@ -260,12 +342,23 @@ export function createDefaultPreset(name = "Padrão"): BrandPreset {
 
 function presetFromLegacyFill(fill: BrandTheme, name = "Padrão"): BrandPreset {
   const text = brandOnFillColor(fill);
-  const surface: BrandSurface = { ...parseBrandTheme(fill), text };
+  const surface: BrandSurface = {
+    ...parseBrandTheme(fill),
+    text,
+    borderColor: DEFAULT_HEADER_SURFACE.borderColor,
+    borderWidth: DEFAULT_HEADER_SURFACE.borderWidth,
+    borderRadius: DEFAULT_HEADER_SURFACE.borderRadius,
+  };
   return {
     id: "padrao",
     name: clampPresetName(name),
     header: { ...surface },
-    buttons: { ...surface },
+    buttons: {
+      ...surface,
+      borderColor: DEFAULT_BUTTONS_SURFACE.borderColor,
+      borderWidth: DEFAULT_BUTTONS_SURFACE.borderWidth,
+      borderRadius: DEFAULT_BUTTONS_SURFACE.borderRadius,
+    },
     background: { ...DEFAULT_BACKGROUND_SURFACE },
     cards: { ...DEFAULT_CARDS_SURFACE },
     categories: { ...DEFAULT_CATEGORIES_SURFACE },
@@ -282,8 +375,8 @@ export function parseBrandPreset(raw: unknown): BrandPreset {
   return {
     id,
     name: clampPresetName(obj.name),
-    header: parseBrandSurface(obj.header),
-    buttons: parseBrandSurface(obj.buttons),
+    header: parseBrandSurface(obj.header, DEFAULT_HEADER_SURFACE),
+    buttons: parseBrandSurface(obj.buttons, DEFAULT_BUTTONS_SURFACE),
     background: parseBrandSurface(obj.background, DEFAULT_BACKGROUND_SURFACE),
     cards: parseBrandSurface(obj.cards, DEFAULT_CARDS_SURFACE),
     categories: parseBrandSurface(obj.categories, DEFAULT_CATEGORIES_SURFACE),
@@ -421,16 +514,26 @@ export function presetToCssVars(preset: BrandPreset): Record<string, string> {
     "--brand-fill-hover": brandFillHoverCss(buttons),
     "--brand-on-fill": buttons.text,
     "--brand-shadow": hexToRgba(primary, 0.32),
+    "--brand-border-color": buttons.borderColor,
+    "--brand-border-width": `${buttons.borderWidth}px`,
+    "--brand-border-radius": `${buttons.borderRadius}px`,
     "--header-fill": brandFillCss(header),
     "--header-text": header.text,
+    "--header-border-color": header.borderColor,
+    "--header-border-width": `${header.borderWidth}px`,
+    "--header-border-radius": `${header.borderRadius}px`,
     "--page-bg": brandFillCss(background),
     "--page-fg": background.text,
     "--catalog-card-bg": brandFillCss(cards),
     "--catalog-card-fg": cards.text,
-    "--catalog-card-border": hexToRgba(cards.text, 0.22),
+    "--catalog-card-border": cards.borderColor,
+    "--catalog-card-border-width": `${cards.borderWidth}px`,
+    "--catalog-card-radius": `${cards.borderRadius}px`,
     "--catalog-category-bg": brandFillCss(categories),
     "--catalog-category-fg": categories.text,
-    "--catalog-category-border": hexToRgba(categories.text, 0.22),
+    "--catalog-category-border": categories.borderColor,
+    "--catalog-category-border-width": `${categories.borderWidth}px`,
+    "--catalog-category-radius": `${categories.borderRadius}px`,
   };
 }
 
