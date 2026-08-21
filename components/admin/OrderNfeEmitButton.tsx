@@ -220,6 +220,8 @@ export function OrderNfeEmitButton({
     chaveLocal.replace(/\D/g, "").length === 44;
   const btnClass =
     "admin-btn-secondary min-h-[2.75rem] px-3 py-2 text-xs md:min-h-0";
+  const printClass =
+    "admin-btn-primary min-h-[2.75rem] px-3 py-2 text-xs md:min-h-0";
   const emitClass =
     "inline-flex min-h-[2.75rem] cursor-pointer items-center justify-center rounded-xl border border-emerald-700/40 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-100 disabled:opacity-50 md:min-h-0 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70";
 
@@ -229,7 +231,7 @@ export function OrderNfeEmitButton({
         type="button"
         disabled={disabled || docBusy !== null}
         onClick={() => void runDoc("print")}
-        className={btnClass}
+        className={printClass}
       >
         {docBusy === "print" ? "Abrindo…" : "Imprimir DANFE"}
       </button>

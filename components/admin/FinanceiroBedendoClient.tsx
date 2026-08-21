@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatApiError } from "@/lib/apiError";
 import { formatPrice } from "@/lib/format";
 
@@ -56,6 +56,7 @@ export function FinanceiroBedendoClient() {
   const [boletoCode, setBoletoCode] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmDay, setConfirmDay] = useState(todayLocal());
+  const [pendingQuery, setPendingQuery] = useState("");
 
   const loadDay = useCallback(async () => {
     const res = await fetch(`/api/admin/finance/ledger?view=day&day=${day}`);
@@ -178,6 +179,25 @@ export function FinanceiroBedendoClient() {
       setBusy(false);
     }
   }
+
+  const pq = pendingQuery.trim().toLowerCase();
+  const filteredPayables = useMemo(() => {
+    if (!pq) return payables;
+    return payables.filter(
+      (e) =>
+        e.description.toLowerCase().includes(pq) ||
+        (e.supplierName ?? "").toLowerCase().includes(pq)
+    );
+  }, [payables, pq]);
+
+  const filteredReceivables = useMemo(() => {
+    if (!pq) return receivables;
+    return receivables.filter(
+      (e) =>
+        e.description.toLowerCase().includes(pq) ||
+        (e.customerName ?? "").toLowerCase().includes(pq)
+    );
+  }, [receivables, pq]);
 
   return (
     <div className="admin-stack space-y-6">
@@ -484,6 +504,17 @@ export function FinanceiroBedendoClient() {
             </div>
           ) : null}
 
+          <label className="block text-sm">
+            <span className="sr-only">Pesquisar contas futuras</span>
+            <input
+              type="search"
+              className="finance-input w-full"
+              placeholder="Buscar por cliente, fornecedor ou descrição…"
+              value={pendingQuery}
+              onChange={(e) => setPendingQuery(e.target.value)}
+            />
+          </label>
+
           <div className="finance-dual-grid">
             <section className="finance-dual-col">
               <h2 className="text-sm font-semibold mb-2">A pagar</h2>
@@ -498,7 +529,7 @@ export function FinanceiroBedendoClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {payables.map((e) => (
+                    {filteredPayables.map((e) => (
                       <tr key={e.id}>
                         <td>
                           {e.description}
@@ -522,9 +553,13 @@ export function FinanceiroBedendoClient() {
                         </td>
                       </tr>
                     ))}
-                    {payables.length === 0 ? (
+                    {filteredPayables.length === 0 ? (
                       <tr>
-                        <td colSpan={4}>Nenhuma conta a pagar.</td>
+                        <td colSpan={4}>
+                          {pq
+                            ? "Nenhuma conta a pagar corresponde à pesquisa."
+                            : "Nenhuma conta a pagar."}
+                        </td>
                       </tr>
                     ) : null}
                   </tbody>
@@ -545,7 +580,7 @@ export function FinanceiroBedendoClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {receivables.map((e) => (
+                    {filteredReceivables.map((e) => (
                       <tr key={e.id}>
                         <td>
                           {e.description}
@@ -569,9 +604,13 @@ export function FinanceiroBedendoClient() {
                         </td>
                       </tr>
                     ))}
-                    {receivables.length === 0 ? (
+                    {filteredReceivables.length === 0 ? (
                       <tr>
-                        <td colSpan={4}>Nenhuma conta a receber.</td>
+                        <td colSpan={4}>
+                          {pq
+                            ? "Nenhuma conta a receber corresponde à pesquisa."
+                            : "Nenhuma conta a receber."}
+                        </td>
                       </tr>
                     ) : null}
                   </tbody>

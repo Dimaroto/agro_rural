@@ -1084,7 +1084,7 @@ export function NotasFiscaisPageClient() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            className="btn"
+                            className="btn btn-primary"
                             disabled={docBusyKey !== null}
                             onClick={() => {
                               setDocBusyKey(`${rowKey}-print`);

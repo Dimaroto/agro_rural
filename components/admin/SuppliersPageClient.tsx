@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatApiError } from "@/lib/apiError";
+import { formatDocumentInput, lookupCnpj } from "@/lib/cnpj";
 
 type Supplier = {
   id: string;
@@ -45,7 +46,10 @@ export function SuppliersPageClient() {
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const lastLookedUp = useRef("");
 
   async function load(q?: string) {
     const qs = q ? `?q=${encodeURIComponent(q)}` : "";
@@ -73,6 +77,8 @@ export function SuppliersPageClient() {
     setEditingId(null);
     setForm(empty);
     setError("");
+    setInfo("");
+    lastLookedUp.current = "";
   }
 
   function edit(s: Supplier) {
@@ -80,7 +86,7 @@ export function SuppliersPageClient() {
     setForm({
       name: s.name,
       tradeName: s.tradeName ?? "",
-      document: s.document,
+      document: formatDocumentInput(s.document),
       ie: s.ie ?? "",
       phone: s.phone ?? "",
       email: s.email ?? "",
@@ -91,6 +97,70 @@ export function SuppliersPageClient() {
       state: s.state ?? "",
       zipCode: s.zipCode ?? "",
     });
+    setError("");
+    setInfo("");
+    lastLookedUp.current = moneyDoc(s.document);
+  }
+
+  async function onDocumentChange(raw: string) {
+    const masked = formatDocumentInput(raw);
+    setForm((prev) => ({ ...prev, document: masked }));
+    setError("");
+
+    const digits = moneyDoc(masked);
+    if (digits.length !== 11 && digits.length !== 14) {
+      return;
+    }
+    if (digits === lastLookedUp.current || lookingUp) {
+      return;
+    }
+
+    const local = suppliers.find((s) => moneyDoc(s.document) === digits);
+    if (local && local.id !== editingId) {
+      lastLookedUp.current = digits;
+      edit(local);
+      setInfo("Fornecedor já cadastrado — dados carregados.");
+      return;
+    }
+
+    if (digits.length === 11) {
+      setInfo("CPF: preencha os demais dados manualmente.");
+      lastLookedUp.current = digits;
+      return;
+    }
+
+    setLookingUp(true);
+    setInfo("Consultando CNPJ…");
+    try {
+      const empresa = await lookupCnpj(digits);
+      lastLookedUp.current = digits;
+      setForm((prev) => ({
+        ...prev,
+        document: formatDocumentInput(digits),
+        name: empresa.razaoSocial
+          ? empresa.razaoSocial
+          : empresa.nome || prev.name,
+        tradeName: empresa.nomeFantasia || prev.tradeName,
+        phone: empresa.telefone || prev.phone,
+        email: empresa.email || prev.email,
+        zipCode: empresa.cep || prev.zipCode,
+        street: empresa.logradouro || prev.street,
+        number: empresa.numero || prev.number,
+        district: empresa.bairro || prev.district,
+        city: empresa.cidade || prev.city,
+        state: empresa.uf || prev.state,
+      }));
+      setInfo("Dados preenchidos a partir do CNPJ.");
+    } catch (err) {
+      setInfo("");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível consultar o CNPJ."
+      );
+    } finally {
+      setLookingUp(false);
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -105,6 +175,12 @@ export function SuppliersPageClient() {
         ie: form.ie || null,
         phone: form.phone || null,
         email: form.email || null,
+        street: form.street || null,
+        number: form.number || null,
+        district: form.district || null,
+        city: form.city || null,
+        state: form.state || null,
+        zipCode: form.zipCode ? moneyDoc(form.zipCode) : null,
       };
       const res = await fetch(
         editingId ? `/api/admin/suppliers/${editingId}` : "/api/admin/suppliers",
@@ -137,6 +213,7 @@ export function SuppliersPageClient() {
         <h1 className="finance-page-header__title">Fornecedores</h1>
         <p className="finance-page-header__desc">
           Cadastro usado na importação de NF-e de entrada e contas a pagar.
+          Informe o CNPJ primeiro para preencher os dados automaticamente.
         </p>
       </header>
 
@@ -152,7 +229,21 @@ export function SuppliersPageClient() {
       <form className="finance-form-card" onSubmit={save}>
         <h2>{editingId ? "Editar fornecedor" : "Novo fornecedor"}</h2>
         {error ? <p className="admin-error">{error}</p> : null}
+        {info ? <p className="admin-info">{info}</p> : null}
         <div className="admin-form-grid">
+          <label className="sm:col-span-2">
+            CNPJ/CPF
+            <input
+              className="finance-input"
+              required
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="00.000.000/0000-00"
+              value={form.document}
+              disabled={lookingUp}
+              onChange={(e) => void onDocumentChange(e.target.value)}
+            />
+          </label>
           <label>
             Razão social
             <input
@@ -168,15 +259,6 @@ export function SuppliersPageClient() {
               className="finance-input"
               value={form.tradeName}
               onChange={(e) => setForm({ ...form, tradeName: e.target.value })}
-            />
-          </label>
-          <label>
-            CNPJ/CPF
-            <input
-              className="finance-input"
-              required
-              value={form.document}
-              onChange={(e) => setForm({ ...form, document: e.target.value })}
             />
           </label>
           <label>
@@ -199,8 +281,41 @@ export function SuppliersPageClient() {
             E-mail
             <input
               className="finance-input"
+              type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </label>
+          <label>
+            CEP
+            <input
+              className="finance-input"
+              value={form.zipCode}
+              onChange={(e) => setForm({ ...form, zipCode: e.target.value })}
+            />
+          </label>
+          <label className="sm:col-span-2">
+            Logradouro
+            <input
+              className="finance-input"
+              value={form.street}
+              onChange={(e) => setForm({ ...form, street: e.target.value })}
+            />
+          </label>
+          <label>
+            Número
+            <input
+              className="finance-input"
+              value={form.number}
+              onChange={(e) => setForm({ ...form, number: e.target.value })}
+            />
+          </label>
+          <label>
+            Bairro
+            <input
+              className="finance-input"
+              value={form.district}
+              onChange={(e) => setForm({ ...form, district: e.target.value })}
             />
           </label>
           <label>
@@ -217,12 +332,18 @@ export function SuppliersPageClient() {
               className="finance-input"
               maxLength={2}
               value={form.state}
-              onChange={(e) => setForm({ ...form, state: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, state: e.target.value.toUpperCase() })
+              }
             />
           </label>
         </div>
         <div className="admin-actions">
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={saving || lookingUp}
+          >
             {saving ? "Salvando…" : editingId ? "Atualizar" : "Cadastrar"}
           </button>
           {editingId ? (
@@ -248,10 +369,8 @@ export function SuppliersPageClient() {
             {filtered.map((s) => (
               <tr key={s.id}>
                 <td>{s.name}</td>
-                <td>{s.document}</td>
-                <td>
-                  {[s.city, s.state].filter(Boolean).join("/")}
-                </td>
+                <td>{formatDocumentInput(s.document)}</td>
+                <td>{[s.city, s.state].filter(Boolean).join("/")}</td>
                 <td>
                   <span
                     className={
@@ -264,7 +383,11 @@ export function SuppliersPageClient() {
                   </span>
                 </td>
                 <td className="admin-actions">
-                  <button type="button" className="btn btn-sm" onClick={() => edit(s)}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => edit(s)}
+                  >
                     Editar
                   </button>
                   {s.active ? (

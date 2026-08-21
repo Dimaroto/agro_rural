@@ -707,7 +707,22 @@ html {
   }
 
   .finance-input {
-    @apply mt-1 w-full rounded-xl border border-[#C9D4B3] bg-white px-3 py-2 text-sm text-[#2D4C1E] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100;
+    @apply mt-1 w-full cursor-pointer rounded-xl border border-[#C9D4B3] bg-white px-3 py-2 text-sm text-[#2D4C1E] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100;
+  }
+
+  input[type="date"].finance-input {
+    color-scheme: light;
+    cursor: pointer;
+  }
+
+  input[type="date"].finance-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 1;
+  }
+
+  html.dark input[type="date"].finance-input::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.35);
+    opacity: 1;
   }
 
   .logo-container {
