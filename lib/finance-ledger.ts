@@ -6,9 +6,24 @@ import {
   type FinancialLedgerEntry,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { ensureFinanceLedgerSchema } from "@/lib/ensure-finance-schema";
 import { PublicApiError } from "@/lib/public-api-error";
 
 export type Tx = Prisma.TransactionClient;
+
+let financeSchemaEnsurePromise: Promise<void> | null = null;
+
+async function ensureFinanceSchemaOnce() {
+  if (!financeSchemaEnsurePromise) {
+    financeSchemaEnsurePromise = ensureFinanceLedgerSchema(prisma).catch(
+      (err) => {
+        financeSchemaEnsurePromise = null;
+        throw err;
+      }
+    );
+  }
+  await financeSchemaEnsurePromise;
+}
 
 /** Meio-dia UTC do dia YYYY-MM-DD (evita shift de fuso no filtro). */
 export function dayNoonUtc(isoDay: string): Date {
@@ -65,7 +80,8 @@ export async function listDayLedger(storeId: string, day: string) {
   const start = dayNoonUtc(day);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 1);
-  try {
+
+  const run = async () => {
     const entries = await prisma.financialLedgerEntry.findMany({
       where: {
         storeId,
@@ -92,9 +108,26 @@ export async function listDayLedger(storeId: string, day: string) {
       cashClose,
       entries,
     };
+  };
+
+  try {
+    return await run();
   } catch (e) {
-    throw mapLedgerTableMissing(e);
+    if (!isMissingFinanceTable(e)) throw mapLedgerTableMissing(e);
+    try {
+      await ensureFinanceSchemaOnce();
+      return await run();
+    } catch (e2) {
+      throw mapLedgerTableMissing(e2);
+    }
   }
+}
+
+function isMissingFinanceTable(e: unknown): boolean {
+  if (!(e instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (e.code !== "P2021") return false;
+  const table = String((e.meta as { table?: string } | undefined)?.table ?? "");
+  return /financial_ledger|cash_close|finance_categor/i.test(table) || !table;
 }
 
 function mapLedgerTableMissing(e: unknown): never {
@@ -124,14 +157,23 @@ function mapLedgerTableMissing(e: unknown): never {
 }
 
 export async function listPendingLedger(storeId: string) {
-  const entries = await prisma.financialLedgerEntry.findMany({
-    where: { storeId, status: "PENDING" },
-    orderBy: [{ entryDate: "asc" }, { createdAt: "asc" }],
-  });
-  return {
-    payables: entries.filter((e) => e.type === "EXPENSE"),
-    receivables: entries.filter((e) => e.type === "INCOME"),
+  const run = async () => {
+    const entries = await prisma.financialLedgerEntry.findMany({
+      where: { storeId, status: "PENDING" },
+      orderBy: [{ entryDate: "asc" }, { createdAt: "asc" }],
+    });
+    return {
+      payables: entries.filter((e) => e.type === "EXPENSE"),
+      receivables: entries.filter((e) => e.type === "INCOME"),
+    };
   };
+  try {
+    return await run();
+  } catch (e) {
+    if (!isMissingFinanceTable(e)) throw mapLedgerTableMissing(e);
+    await ensureFinanceSchemaOnce();
+    return await run();
+  }
 }
 
 export async function createLedgerEntry(
@@ -247,13 +289,27 @@ export async function closeCashDay(
     ) {
       throw new PublicApiError("Caixa já fechado");
     }
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2021"
-    ) {
-      throw new PublicApiError(
-        "Tabela de fechamento de caixa ausente. Rode o setup do banco (db:setup:prod)."
-      );
+    if (isMissingFinanceTable(e)) {
+      try {
+        await ensureFinanceSchemaOnce();
+        return await prisma.cashClose.create({
+          data: {
+            storeId,
+            date: dayNoonUtc(day),
+            incomeCents: summary.incomeCents,
+            expenseCents: summary.expenseCents,
+            balanceCents: summary.balanceCents,
+            incomeCount: summary.entries.filter((e) => e.type === "INCOME")
+              .length,
+            expenseCount: summary.entries.filter((e) => e.type === "EXPENSE")
+              .length,
+            notes: notes ?? null,
+            closedByUserId: userId ?? null,
+          },
+        });
+      } catch (e2) {
+        throw mapLedgerTableMissing(e2);
+      }
     }
     throw e;
   }
