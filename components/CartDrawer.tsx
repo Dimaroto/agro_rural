@@ -5,6 +5,11 @@ import { formatPrice } from "@/lib/format";
 import type { CatalogProduct } from "./ProductCard";
 import type { CartCustomization } from "@/lib/customization";
 import { MinusIcon, PackageIcon, PlusIcon } from "@/components/icons/UiIcons";
+import {
+  formatStockQty,
+  lineTotalCents,
+  parseStockUnit,
+} from "@/lib/stock-unit";
 
 export type CartItem = {
   lineKey: string;
@@ -31,7 +36,9 @@ export function CartDrawer({
   paymentsEnabled: boolean;
 }) {
   const total = items.reduce(
-    (s, i) => s + i.product.priceCents * i.quantity,
+    (s, i) =>
+      s +
+      lineTotalCents(i.product.priceCents, i.quantity, i.product.stockUnit),
     0
   );
 
@@ -99,34 +106,45 @@ export function CartDrawer({
                     <p className="truncate font-medium">{item.product.name}</p>
                     <p className="text-sm text-zinc-500">
                       {formatPrice(item.product.priceCents)}
+                      {parseStockUnit(item.product.stockUnit) === "KG"
+                        ? " / kg"
+                        : ""}
                     </p>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border bg-zinc-50 text-lg touch-manipulation"
-                    onClick={() =>
-                      onUpdateQty(item.lineKey, item.quantity - 1)
-                    }
-                    aria-label="Remover um"
-                  >
-                    <MinusIcon className="h-4 w-4" />
-                  </button>
-                  <span className="w-8 text-center font-semibold">
-                    {item.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border bg-zinc-50 text-lg touch-manipulation disabled:opacity-40"
-                    onClick={() =>
-                      onUpdateQty(item.lineKey, item.quantity + 1)
-                    }
-                    disabled={item.quantity >= item.product.available}
-                    aria-label="Adicionar um"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </button>
+                  {parseStockUnit(item.product.stockUnit) === "KG" ? (
+                    <span className="min-w-[4.5rem] text-center text-sm font-semibold">
+                      {formatStockQty(item.quantity, "KG")}
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border bg-zinc-50 text-lg touch-manipulation"
+                        onClick={() =>
+                          onUpdateQty(item.lineKey, item.quantity - 1)
+                        }
+                        aria-label="Remover um"
+                      >
+                        <MinusIcon className="h-4 w-4" />
+                      </button>
+                      <span className="w-8 text-center font-semibold">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border bg-zinc-50 text-lg touch-manipulation disabled:opacity-40"
+                        onClick={() =>
+                          onUpdateQty(item.lineKey, item.quantity + 1)
+                        }
+                        disabled={item.quantity >= item.product.available}
+                        aria-label="Adicionar um"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}

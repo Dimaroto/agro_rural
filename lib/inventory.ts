@@ -1,6 +1,7 @@
 import { MovementType, Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import {
+  formatStockQty,
   stockSuffix as formatStockSuffix,
   type StockUnitCode,
 } from "./stock-unit";
@@ -175,7 +176,7 @@ export async function reserveStock(
         throw new InventoryError(
           available <= 0
             ? `"${product.name}" está esgotado.`
-            : `Estoque insuficiente de "${product.name}" (disponível: ${available}).`
+            : `Estoque insuficiente de "${product.name}" (disponível: ${formatStockQty(available, product.stockUnit)}).`
         );
       }
 

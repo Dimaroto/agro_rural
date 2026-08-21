@@ -16,6 +16,11 @@ import {
 import { formatPrice } from "@/lib/format";
 import { formatApiError } from "@/lib/apiError";
 import {
+  formatStockQty,
+  lineTotalCents,
+  parseStockUnit,
+} from "@/lib/stock-unit";
+import {
   clearCheckoutSuccess,
   loadCart,
   loadCheckoutSuccess,
@@ -113,7 +118,16 @@ export function CartPageClient({
   function formatCartLine(item: CartItem) {
     const custom = formatCartCustomizationSummary(item);
     const notes = item.notes ? ` — Obs: ${item.notes}` : "";
-    return `• ${item.quantity}x ${item.product.name}${custom ? ` (${custom})` : ""}${notes} — ${formatPrice(item.product.priceCents * item.quantity)}`;
+    const isKg = parseStockUnit(item.product.stockUnit) === "KG";
+    const qtyLabel = isKg
+      ? formatStockQty(item.quantity, "KG")
+      : `${item.quantity}x`;
+    const total = lineTotalCents(
+      item.product.priceCents,
+      item.quantity,
+      item.product.stockUnit
+    );
+    return `• ${qtyLabel} ${item.product.name}${custom ? ` (${custom})` : ""}${notes} — ${formatPrice(total)}`;
   }
 
   useEffect(() => {
@@ -243,7 +257,16 @@ export function CartPageClient({
       const orderTotal =
         typeof data.totalCents === "number"
           ? data.totalCents
-          : cart.reduce((s, i) => s + i.product.priceCents * i.quantity, 0);
+          : cart.reduce(
+              (s, i) =>
+                s +
+                lineTotalCents(
+                  i.product.priceCents,
+                  i.quantity,
+                  i.product.stockUnit
+                ),
+              0
+            );
       const lines = cart.map((item) => formatCartLine(item));
       const message = buildCartWhatsAppMessage({
         lines,
@@ -470,7 +493,9 @@ export function CartPageClient({
   }
 
   const productsSubtotal = cart.reduce(
-    (s, i) => s + i.product.priceCents * i.quantity,
+    (s, i) =>
+      s +
+      lineTotalCents(i.product.priceCents, i.quantity, i.product.stockUnit),
     0
   );
   const subtotal =

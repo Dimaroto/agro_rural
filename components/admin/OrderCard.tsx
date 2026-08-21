@@ -18,6 +18,11 @@ import {
 } from "@/lib/pdv-shared";
 import { OrderNfeEmitButton } from "@/components/admin/OrderNfeEmitButton";
 import { formatBrPhone } from "@/lib/br-contact";
+import {
+  formatStockQty,
+  lineTotalCents,
+  parseStockUnit,
+} from "@/lib/stock-unit";
 
 type OrderItem = {
   id: string;
@@ -149,10 +154,17 @@ export function OrderCard({ order, storeWhatsapp }: OrderCardProps) {
 
   const showStatusBadge = !(showReceberPrazo && statusLabel === "A receber");
 
-  const subtotalCents = order.items.reduce(
-    (sum, i) => sum + i.unitPriceCents * i.quantity,
-    0
-  );
+  const subtotalCents = order.items.reduce((sum, i) => {
+    let unit: string | undefined;
+    if (i.optionsJson) {
+      try {
+        unit = (JSON.parse(i.optionsJson) as { stockUnit?: string }).stockUnit;
+      } catch {
+        unit = undefined;
+      }
+    }
+    return sum + lineTotalCents(i.unitPriceCents, i.quantity, unit);
+  }, 0);
   const discountCents = order.discountCents ?? 0;
 
   async function runAction(action: "deliver" | "cancel" | "confirm_payment") {
@@ -267,13 +279,28 @@ export function OrderCard({ order, storeWhatsapp }: OrderCardProps) {
       )}
 
       <ul className="mt-2 space-y-1.5 text-sm text-[#6b7280] dark:text-zinc-400">
-        {order.items.map((item) => (
-          <li key={item.id}>
-            <span>
-              {item.quantity}x {item.productName}
-            </span>
-          </li>
-        ))}
+        {order.items.map((item) => {
+          let unit: string | undefined;
+          if (item.optionsJson) {
+            try {
+              unit = (JSON.parse(item.optionsJson) as { stockUnit?: string })
+                .stockUnit;
+            } catch {
+              unit = undefined;
+            }
+          }
+          const isKg = parseStockUnit(unit) === "KG";
+          return (
+            <li key={item.id}>
+              <span>
+                {isKg
+                  ? `${formatStockQty(item.quantity, "KG")} `
+                  : `${item.quantity}x `}
+                {item.productName}
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
       {order.payment && (

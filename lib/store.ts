@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "./db";
 import { ensureStoreBannerMobileColumn } from "./ensure-store-banner-mobile";
+import { ensureProductStockUnitColumn } from "./ensure-product-stock-unit";
 import { getStockStatus } from "./format";
 import { availableStock } from "./inventory";
 import type { ProductFieldView } from "./party-favor-fields";
@@ -14,6 +15,7 @@ import {
 } from "./product-fields-persist";
 import { formatMeasureLabel } from "./product-measures";
 import type { ProductMeasureUnit } from "@prisma/client";
+import { parseStockUnit, type StockUnitCode } from "./stock-unit";
 
 const DEFAULT_STORE_SLUG =
   process.env.DEFAULT_STORE_SLUG?.trim() ||
@@ -42,6 +44,7 @@ export type CatalogProductData = {
   available: number;
   quantity: number;
   reservedQuantity: number;
+  stockUnit: StockUnitCode;
   createdAt: string;
   customizationFields: ProductFieldView[];
   measures: string[];
@@ -57,6 +60,7 @@ function mapCatalogProduct(p: {
   categoryId: string;
   quantity?: number;
   reservedQuantity?: number;
+  stockUnit?: StockUnitCode | string | null;
   createdAt: Date;
   category: { name: string; slug: string };
   categoryLinks?: Array<{
@@ -87,8 +91,10 @@ function mapCatalogProduct(p: {
 }): CatalogProductData {
   const quantity = p.quantity ?? 0;
   const reservedQuantity = p.reservedQuantity ?? 0;
+  const stockUnit = parseStockUnit(p.stockUnit);
   const available = availableStock({ quantity, reservedQuantity });
-  const stockStatus = getStockStatus(available, 0, 5);
+  const lowThreshold = stockUnit === "KG" ? 5000 : 5;
+  const stockStatus = getStockStatus(available, 0, lowThreshold);
   const categories = mapProductCategories(p.categoryLinks);
   const primary =
     categories.find((category) => category.id === p.categoryId) ??
@@ -124,6 +130,7 @@ function mapCatalogProduct(p: {
     available,
     quantity,
     reservedQuantity,
+    stockUnit,
     createdAt: p.createdAt.toISOString(),
     customizationFields: projectProductFields(p.customizationFields),
     measures: measureLabels,
@@ -181,6 +188,7 @@ export async function getCategoryBySlug(storeId: string, categorySlug: string) {
 }
 
 export async function getProductById(storeId: string, productId: string) {
+  await ensureProductStockUnitColumn();
   const p = await prisma.product.findFirst({
     where: { id: productId, storeId, active: true },
     include: catalogProductInclude,
@@ -192,6 +200,7 @@ export async function getProductById(storeId: string, productId: string) {
 
 /** Catálogo para vitrine: dedupe por request (layout + page). */
 export const getStoreCatalog = cache(async (storeId: string) => {
+  await ensureProductStockUnitColumn();
   const [categories, products] = await Promise.all([
     prisma.category.findMany({
       where: { storeId, active: true },

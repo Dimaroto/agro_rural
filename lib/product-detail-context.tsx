@@ -21,6 +21,7 @@ import {
   type CartCustomization,
 } from "@/lib/customization";
 import { maxOrderQuantity } from "@/lib/inventory";
+import { parseStockUnit } from "@/lib/stock-unit";
 
 type ProductDetailContextValue = {
   openProduct: (product: CatalogProduct) => void;
@@ -154,6 +155,7 @@ export function ProductDetailProvider({
       const lineKey = buildCartLineKey(product.id, customization);
       const existing = cart.find((i) => i.lineKey === lineKey);
       const maxQty = maxOrderQuantity(product.available);
+      const isKg = parseStockUnit(product.stockUnit) === "KG";
       const addQty = Math.max(1, Math.floor(quantity));
 
       if (maxQty <= 0) {
@@ -180,6 +182,9 @@ export function ProductDetailProvider({
 
       saveCart(storeSlug, next);
       refreshQty();
+      if (isKg) {
+        setDetailProduct(null);
+      }
     },
     [storeSlug, refreshQty]
   );

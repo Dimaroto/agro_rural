@@ -23,6 +23,14 @@ import { publicConfig } from "@/lib/public-config";
 import type { CartItem } from "./CartDrawer";
 import { isPhotoImageUrl } from "@/lib/image-url";
 import { maxOrderQuantity } from "@/lib/inventory";
+import {
+  formatStockQty,
+  formatWeightDigitsMask,
+  gramsToWeightDigits,
+  lineTotalCents,
+  parseStockUnit,
+  parseWeightDigitsToGrams,
+} from "@/lib/stock-unit";
 
 function CartProductThumb({
   imageUrl,
@@ -160,13 +168,36 @@ function CartLineItem({
   onSplitLine?: (lineKey: string) => void;
 }) {
   const { sizeLabel } = splitProductDescription(item.product.description);
-  const lineTotal = item.product.priceCents * item.quantity;
+  const isKg = parseStockUnit(item.product.stockUnit) === "KG";
+  const lineTotal = lineTotalCents(
+    item.product.priceCents,
+    item.quantity,
+    item.product.stockUnit
+  );
   const customFields = item.product.customizationFields ?? [];
-  const canSplitLine = Boolean(onSplitLine) && item.quantity >= 2;
+  const canSplitLine =
+    Boolean(onSplitLine) && !isKg && item.quantity >= 2;
   const lineMaxAvailable = maxOrderQuantity(item.product.available);
   const canCustomize = customFields.length > 0;
   const customizationSummary = formatCartCustomizationSummary(item);
   const customizationError = validateCartItemCustomization(item);
+  const [weightDigits, setWeightDigits] = useState(() =>
+    gramsToWeightDigits(item.quantity)
+  );
+
+  useEffect(() => {
+    if (!isKg) return;
+    setWeightDigits(gramsToWeightDigits(item.quantity));
+  }, [isKg, item.quantity]);
+
+  function commitWeightDigits(raw: string) {
+    const grams = parseWeightDigitsToGrams(raw.replace(/\D/g, ""));
+    if (grams <= 0) {
+      onRemove(item.lineKey);
+      return;
+    }
+    onUpdateQty(item.lineKey, Math.min(grams, lineMaxAvailable));
+  }
 
   function updatePartyAnswer(
     fieldId: string,
@@ -228,24 +259,52 @@ function CartLineItem({
 
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm text-[#6B7280]">
-              <span>{formatPrice(item.product.priceCents)}</span>
-              {item.quantity > 1 && (
+              <span>
+                {formatPrice(item.product.priceCents)}
+                {isKg ? " / kg" : ""}
+              </span>
+              {!isKg && item.quantity > 1 && (
                 <span className="text-[#6B7280]/70"> × {item.quantity}</span>
               )}
-              {item.quantity > 1 && (
-                <span className="ml-2 font-semibold text-brand">
-                  {formatPrice(lineTotal)}
+              {isKg ? (
+                <span className="text-[#6B7280]/70">
+                  {" "}
+                  × {formatStockQty(item.quantity, "KG")}
                 </span>
-              )}
+              ) : null}
+              <span className="ml-2 font-semibold text-brand">
+                {formatPrice(lineTotal)}
+              </span>
             </div>
-            <QuantityStepper
-              value={item.quantity}
-              min={1}
-              max={Math.max(1, lineMaxAvailable)}
-              onChange={(qty) => onUpdateQty(item.lineKey, qty)}
-              disabled={lineMaxAvailable <= 0}
-              compact
-            />
+            {isKg ? (
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={formatWeightDigitsMask(weightDigits)}
+                onChange={(e) =>
+                  setWeightDigits(e.target.value.replace(/\D/g, ""))
+                }
+                onBlur={() => commitWeightDigits(weightDigits)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                className="w-28 rounded-lg border border-brand/20 bg-white px-2 py-1.5 text-center text-sm font-semibold tabular-nums text-brand-dark"
+                aria-label="Quantidade em kg"
+              />
+            ) : (
+              <QuantityStepper
+                value={item.quantity}
+                min={1}
+                max={Math.max(1, lineMaxAvailable)}
+                onChange={(qty) => onUpdateQty(item.lineKey, qty)}
+                disabled={lineMaxAvailable <= 0}
+                compact
+              />
+            )}
           </div>
 
           {canSplitLine && (
@@ -433,11 +492,16 @@ export function CartPanel({
   }, [paymentsEnabled, cardPaymentsEnabled]);
 
   const productsSubtotal = items.reduce(
-    (s, i) => s + i.product.priceCents * i.quantity,
+    (s, i) =>
+      s +
+      lineTotalCents(i.product.priceCents, i.quantity, i.product.stockUnit),
     0
   );
   const subtotal = productsSubtotal;
-  const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+  const itemCount = items.reduce((s, i) => {
+    if (parseStockUnit(i.product.stockUnit) === "KG") return s + 1;
+    return s + i.quantity;
+  }, 0);
   const displayError = cartError || localError;
   const customizationError = validateCartItemsCustomization(items);
 

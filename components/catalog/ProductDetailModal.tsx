@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { formatPrice } from "@/lib/format";
 import { parseProductDetails } from "@/lib/productDisplay";
@@ -20,6 +20,13 @@ import {
 } from "@/lib/customization";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 import { QuantityStepper } from "@/components/catalog/QuantityStepper";
+import {
+  formatStockQty,
+  formatWeightDigitsMask,
+  gramsToKgLabel,
+  lineTotalCentsFromGrams,
+  parseWeightDigitsToGrams,
+} from "@/lib/stock-unit";
 
 const EXIT_MS = 280;
 
@@ -134,6 +141,7 @@ function ProductDetailImage({
         <StockBadge
           status={product.stockStatus}
           available={product.available}
+          stockUnit={product.stockUnit}
           compact
           overlay
         />
@@ -171,6 +179,8 @@ export function ProductDetailModal({
   );
   const [formError, setFormError] = useState("");
   const [qty, setQty] = useState(1);
+  const [weightDigits, setWeightDigits] = useState("");
+  const weightInputRef = useRef<HTMLInputElement>(null);
 
   const fields = useMemo(
     () => displayProduct?.customizationFields ?? [],
@@ -185,6 +195,7 @@ export function ProductDetailModal({
       setAnswers({});
       setFormError("");
       setQty(1);
+      setWeightDigits("");
       return;
     }
 
@@ -212,9 +223,19 @@ export function ProductDetailModal({
     };
   }, [displayProduct, onClose]);
 
+  useEffect(() => {
+    if (!displayProduct || displayProduct.stockUnit !== "KG") return;
+    const id = window.requestAnimationFrame(() => {
+      weightInputRef.current?.focus();
+      weightInputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [displayProduct]);
+
   if (!displayProduct) return null;
 
   const currentProduct = displayProduct;
+  const isKg = currentProduct.stockUnit === "KG";
   const galleryUrls = productGalleryUrls(currentProduct);
   const inCartQty = qtyByProduct[currentProduct.id] ?? 0;
   const { sizeLabel, detailsText } = parseProductDetails(
@@ -232,6 +253,11 @@ export function ProductDetailModal({
   const showPersonalization = hasCustomFields;
   const remaining = Math.max(0, currentProduct.available - inCartQty);
   const outOfStock = remaining <= 0;
+  const weightGrams = parseWeightDigitsToGrams(weightDigits);
+  const addQty = isKg ? weightGrams : qty;
+  const linePreviewCents = isKg
+    ? lineTotalCentsFromGrams(currentProduct.priceCents, weightGrams)
+    : currentProduct.priceCents * qty;
 
   const cardAnimation = isExiting
     ? "animate-product-modal-out motion-reduce:animate-none"
@@ -294,15 +320,29 @@ export function ProductDetailModal({
 
     if (outOfStock || remaining <= 0) return;
 
+    if (isKg) {
+      if (weightGrams <= 0) {
+        setFormError("Informe a quantidade em kg.");
+        weightInputRef.current?.focus();
+        return;
+      }
+      if (weightGrams > remaining) {
+        setFormError(`Máximo disponível: ${gramsToKgLabel(remaining)}`);
+        weightInputRef.current?.focus();
+        return;
+      }
+    }
+
     setFormError("");
     onAdd(
       currentProduct,
       {
         fieldAnswers: fieldAnswers.filter((answer) => answer.value.trim()),
       },
-      Math.min(qty, remaining)
+      Math.min(addQty, remaining)
     );
     setQty(1);
+    setWeightDigits("");
   }
 
   return (
@@ -436,36 +476,89 @@ export function ProductDetailModal({
               <div className="mt-4 flex items-end justify-between gap-2 border-t border-brand-light/80 pt-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand/80">
-                    Valor
+                    {isKg ? "Valor / kg" : "Valor"}
                   </p>
                   <p className="text-lg font-bold tabular-nums text-brand-dark sm:text-xl">
-                    {formatPrice(displayProduct.priceCents * qty)}
+                    {formatPrice(
+                      isKg ? currentProduct.priceCents : linePreviewCents
+                    )}
+                    {isKg ? (
+                      <span className="text-sm font-semibold opacity-70">
+                        {" "}
+                        / kg
+                      </span>
+                    ) : null}
                   </p>
+                  {isKg && weightGrams > 0 ? (
+                    <p className="mt-1 text-sm font-semibold text-brand">
+                      Total {formatPrice(linePreviewCents)}
+                    </p>
+                  ) : null}
                 </div>
                 {inCartQty > 0 && (
                   <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand-dark">
-                    {inCartQty} no carrinho
+                    {isKg
+                      ? `${formatStockQty(inCartQty, "KG")} no carrinho`
+                      : `${inCartQty} no carrinho`}
                   </span>
                 )}
               </div>
               <div className="mt-3">
                 <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand/80">
-                  Quantidade
+                  {isKg ? "Quantidade (kg)" : "Quantidade"}
                 </p>
-                <QuantityStepper
-                  value={qty}
-                  min={1}
-                  max={remaining}
-                  onChange={setQty}
-                  disabled={outOfStock}
-                />
+                {isKg ? (
+                  <div className="relative">
+                    <input
+                      ref={weightInputRef}
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formatWeightDigitsMask(weightDigits)}
+                      onChange={(e) => {
+                        setWeightDigits(e.target.value.replace(/\D/g, ""));
+                        setFormError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAdd();
+                        }
+                      }}
+                      disabled={outOfStock}
+                      className="w-full rounded-xl border border-brand/20 bg-white px-3 py-3 pr-12 text-center text-xl font-bold tabular-nums text-brand-dark outline-none focus:border-brand disabled:opacity-50"
+                      aria-label="Quantidade em quilos"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-brand/70">
+                      kg
+                    </span>
+                  </div>
+                ) : (
+                  <QuantityStepper
+                    value={qty}
+                    min={1}
+                    max={remaining}
+                    onChange={setQty}
+                    disabled={outOfStock}
+                  />
+                )}
                 {outOfStock ? (
                   <p className="mt-2 text-xs text-zinc-500">Produto esgotado.</p>
                 ) : (
                   <p className="mt-2 text-xs text-zinc-500">
-                    {remaining} disponível{remaining === 1 ? "" : "eis"}
+                    {isKg
+                      ? `${gramsToKgLabel(remaining)} disponível`
+                      : `${remaining} disponível${remaining === 1 ? "" : "eis"}`}
+                    {isKg
+                      ? " — digite só números; a vírgula entra sozinha"
+                      : ""}
                   </p>
                 )}
+                {formError ? (
+                  <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                    {formError}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -486,7 +579,9 @@ export function ProductDetailModal({
                 {outOfStock
                   ? "Esgotado"
                   : inCartQty > 0
-                    ? `Adicionar mais (${inCartQty})`
+                    ? isKg
+                      ? "Adicionar mais"
+                      : `Adicionar mais (${inCartQty})`
                     : "Adicionar ao carrinho"}
               </button>
               {inCartQty > 0 && (

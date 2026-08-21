@@ -29,7 +29,7 @@ function hydrateCartItem(
   };
 
   const lineKey = buildCartLineKey(resolved.id, customization);
-  const rawQty = Math.max(1, item.quantity ?? 1);
+  const rawQty = Math.max(1, Math.floor(item.quantity ?? 1));
   const maxQty =
     available != null ? maxOrderQuantity(available) : rawQty;
   if (maxQty <= 0) return null;
@@ -94,7 +94,10 @@ export function getCartItemCount(storeSlug: string): number {
     if (!raw) return 0;
     const parsed = JSON.parse(raw) as CartItem[];
     if (!Array.isArray(parsed)) return 0;
-    return parsed.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+    return parsed.reduce((sum, item) => {
+      if (item.product?.stockUnit === "KG") return sum + 1;
+      return sum + (item.quantity ?? 0);
+    }, 0);
   } catch {
     return 0;
   }

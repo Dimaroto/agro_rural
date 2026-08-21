@@ -204,14 +204,6 @@ export async function loadOrderProducts(storeId: string, items: OrderItemInput[]
     throw new PublicApiError("Um ou mais produtos inválidos");
   }
 
-  for (const product of products) {
-    if (parseStockUnit(product.stockUnit) === "KG") {
-      throw new PublicApiError(
-        `${product.name}: venda por kg disponível apenas no PDV.`
-      );
-    }
-  }
-
   for (const item of items) {
     const product = products.find((p) => p.id === item.productId)!;
     const error = validateCartItemCustomization({
@@ -262,7 +254,7 @@ export async function createOrderWithCashWhatsApp(params: {
   const orderItems = buildOrderItems(params.items, products);
 
   const totalCents = orderItems.reduce(
-    (sum, i) => sum + i.unitPriceCents * i.quantity,
+    (sum, i) => sum + orderItemLineTotalCents(i),
     0
   );
 
@@ -336,7 +328,7 @@ export async function createOrderWithPix(params: {
   const orderItems = buildOrderItems(params.items, products);
 
   const totalCents = orderItems.reduce(
-    (sum, i) => sum + i.unitPriceCents * i.quantity,
+    (sum, i) => sum + orderItemLineTotalCents(i),
     0
   );
 
@@ -420,7 +412,7 @@ export async function createOrderWithCard(params: {
   const orderItems = buildOrderItems(params.items, products);
 
   const totalCents = orderItems.reduce(
-    (sum, i) => sum + i.unitPriceCents * i.quantity,
+    (sum, i) => sum + orderItemLineTotalCents(i),
     0
   );
 

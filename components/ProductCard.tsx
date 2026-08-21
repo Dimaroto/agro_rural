@@ -8,6 +8,7 @@ import { isPhotoImageUrl } from "@/lib/image-url";
 import { StockBadge } from "./StockBadge";
 import { ProductPlaceholder } from "@/components/icons/UiIcons";
 import type { ProductFieldView } from "@/lib/party-favor-fields";
+import { formatStockQty } from "@/lib/stock-unit";
 
 export type CatalogProduct = {
   id: string;
@@ -23,6 +24,7 @@ export type CatalogProduct = {
   categories?: Array<{ id: string; name: string; slug: string }>;
   stockStatus: StockStatus;
   available: number;
+  stockUnit?: "UN" | "KG" | string | null;
   createdAt?: string;
   customizationFields?: ProductFieldView[];
   measures?: string[];
@@ -139,6 +141,7 @@ export function ProductCard({
               <StockBadge
                 status={product.stockStatus}
                 available={product.available}
+                stockUnit={product.stockUnit}
                 compact
                 overlay
               />
@@ -146,7 +149,9 @@ export function ProductCard({
 
             {inCartQty > 0 && (
               <span className="absolute right-2 top-2 z-20 hidden rounded-full bg-brand px-2.5 py-0.5 text-[10px] font-bold text-white shadow-[0_4px_12px_rgba(14,159,110,0.35)] sm:inline-block">
-                {inCartQty} no carrinho
+                {product.stockUnit === "KG"
+                  ? `${formatStockQty(inCartQty, "KG")} no carrinho`
+                  : `${inCartQty} no carrinho`}
               </span>
             )}
           </div>
@@ -159,6 +164,9 @@ export function ProductCard({
           </h3>
           <p className="mt-auto text-base font-extrabold tabular-nums">
             {formatPrice(product.priceCents)}
+            {product.stockUnit === "KG" ? (
+              <span className="text-xs font-semibold opacity-70"> / kg</span>
+            ) : null}
           </p>
         </div>
 
@@ -186,6 +194,9 @@ export function ProductCard({
             </span>
             <p className="text-lg font-extrabold tabular-nums tracking-tight sm:text-xl">
               {formatPrice(product.priceCents)}
+              {product.stockUnit === "KG" ? (
+                <span className="text-sm font-semibold opacity-70"> / kg</span>
+              ) : null}
             </p>
           </div>
         </div>
