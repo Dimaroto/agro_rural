@@ -65,32 +65,62 @@ export async function listDayLedger(storeId: string, day: string) {
   const start = dayNoonUtc(day);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 1);
-  const entries = await prisma.financialLedgerEntry.findMany({
-    where: {
-      storeId,
-      status: "CONFIRMED",
-      entryDate: { gte: start, lt: end },
-    },
-    orderBy: [{ createdAt: "desc" }],
-  });
-  const incomeCents = entries
-    .filter((e) => e.type === "INCOME")
-    .reduce((s, e) => s + e.amountCents, 0);
-  const expenseCents = entries
-    .filter((e) => e.type === "EXPENSE")
-    .reduce((s, e) => s + e.amountCents, 0);
-  const cashClose = await prisma.cashClose.findUnique({
-    where: { storeId_date: { storeId, date: start } },
-  });
-  return {
-    day,
-    incomeCents,
-    expenseCents,
-    balanceCents: incomeCents - expenseCents,
-    closed: !!cashClose,
-    cashClose,
-    entries,
-  };
+  try {
+    const entries = await prisma.financialLedgerEntry.findMany({
+      where: {
+        storeId,
+        status: "CONFIRMED",
+        entryDate: { gte: start, lt: end },
+      },
+      orderBy: [{ createdAt: "desc" }],
+    });
+    const incomeCents = entries
+      .filter((e) => e.type === "INCOME")
+      .reduce((s, e) => s + e.amountCents, 0);
+    const expenseCents = entries
+      .filter((e) => e.type === "EXPENSE")
+      .reduce((s, e) => s + e.amountCents, 0);
+    const cashClose = await prisma.cashClose.findUnique({
+      where: { storeId_date: { storeId, date: start } },
+    });
+    return {
+      day,
+      incomeCents,
+      expenseCents,
+      balanceCents: incomeCents - expenseCents,
+      closed: !!cashClose,
+      cashClose,
+      entries,
+    };
+  } catch (e) {
+    throw mapLedgerTableMissing(e);
+  }
+}
+
+function mapLedgerTableMissing(e: unknown): never {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
+    const meta = e.meta as { table?: string } | undefined;
+    const table = meta?.table ?? "";
+    if (/financial_ledger/i.test(table)) {
+      throw new PublicApiError(
+        "Tabela financial_ledger_entries ausente. Rode: npm run db:setup:prod"
+      );
+    }
+    if (/cash_close/i.test(table)) {
+      throw new PublicApiError(
+        "Tabela cash_closes ausente. Rode: npm run db:setup:prod"
+      );
+    }
+    if (/finance_categor/i.test(table)) {
+      throw new PublicApiError(
+        "Tabela finance_categories ausente. Rode: npm run db:setup:prod"
+      );
+    }
+    throw new PublicApiError(
+      `Tabela do banco ausente${table ? ` (${table})` : ""}. Atualize o schema (db:setup:prod).`
+    );
+  }
+  throw e;
 }
 
 export async function listPendingLedger(storeId: string) {

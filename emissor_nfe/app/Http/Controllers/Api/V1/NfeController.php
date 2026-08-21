@@ -314,6 +314,13 @@ class NfeController extends Controller
             'pedidoId' => $pedidoId !== null && $pedidoId !== ''
                 ? (string) $pedidoId
                 : null,
+            'tipo' => isset($meta['tipo']) ? (string) $meta['tipo'] : null,
+            'finNFe' => isset($payload['ide']['finNFe'])
+                ? (int) $payload['ide']['finNFe']
+                : null,
+            'purchaseInvoiceId' => isset($meta['purchaseInvoiceId'])
+                ? (string) $meta['purchaseInvoiceId']
+                : null,
             'eventos' => $nota->relationLoaded('eventos') ? $nota->eventos : null,
             'created_at' => $nota->created_at,
             'updated_at' => $nota->updated_at,

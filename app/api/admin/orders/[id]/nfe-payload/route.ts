@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildAgroNfePayload } from "@/lib/nfe/build-payload";
+import { isOrderNfeAuthorized } from "@/lib/nfe/order-nfe-authorized";
 import { publicErrorJson } from "@/lib/public-api-error";
 
 export async function GET(
@@ -41,6 +42,24 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json({ error: "Venda não encontrada" }, { status: 404 });
+    }
+
+    if (
+      isOrderNfeAuthorized({
+        nfeStatus: order.nfeStatus,
+        nfeChave: order.nfeChave,
+      })
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Esta venda já possui NF-e autorizada. Não é permitido emitir novamente.",
+          nfeChave: order.nfeChave,
+          nfeNumero: order.nfeNumero,
+          nfeStatus: order.nfeStatus,
+        },
+        { status: 409 }
+      );
     }
 
     const payload = await buildAgroNfePayload(order, modelo);

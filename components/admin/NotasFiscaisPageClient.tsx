@@ -13,10 +13,12 @@ import {
 } from "@/lib/emissor-client";
 import { downloadDanfe, downloadXml, openDanfe } from "@/lib/nfe/documents";
 import { NfeEntradaImportSheet } from "@/components/admin/NfeEntradaImportSheet";
+import { NfeDevolucaoSheet } from "@/components/admin/NfeDevolucaoSheet";
 import {
   NfeSaidaOrderPickerSheet,
   type NfeSaidaOrder,
 } from "@/components/admin/NfeSaidaOrderPickerSheet";
+import { isOrderNfeAuthorized } from "@/lib/nfe/order-nfe-authorized";
 
 type Tab = "saida" | "entrada";
 
@@ -30,6 +32,8 @@ type NotaRow = {
   destinatarioNome?: string | null;
   pedidoNumero?: string | null;
   pedidoId?: string | null;
+  tipo?: string | null;
+  finNFe?: number | null;
   /** Preenchido via lookup Neon quando o payload do emissor não tem. */
   customerName?: string | null;
   orderNumber?: number | null;
@@ -49,6 +53,9 @@ type PurchaseListItem = {
   emitenteName: string;
   totalCents: number;
   importedAt: string;
+  returnNfeChave?: string | null;
+  returnNfeStatus?: string | null;
+  returnNfeNumero?: number | null;
   supplier: { name: string } | null;
   _count: { items: number; ledgerEntries: number };
 };
@@ -74,6 +81,7 @@ export function NotasFiscaisPageClient() {
   const [showProdutosLink, setShowProdutosLink] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [devolucaoId, setDevolucaoId] = useState<string | null>(null);
   const [orderPickerOpen, setOrderPickerOpen] = useState(false);
 
   const loadImports = useCallback(async () => {
@@ -436,23 +444,57 @@ export function NotasFiscaisPageClient() {
                     <th>Total</th>
                     <th>Itens</th>
                     <th>Parcelas</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredImports.map((inv) => (
-                    <tr key={inv.id}>
-                      <td>
-                        {inv.number}/{inv.series}
-                      </td>
-                      <td>{inv.supplier?.name ?? inv.emitenteName}</td>
-                      <td>{formatCents(inv.totalCents)}</td>
-                      <td>{inv._count.items}</td>
-                      <td>{inv._count.ledgerEntries}</td>
-                    </tr>
-                  ))}
+                  {filteredImports.map((inv) => {
+                    const jaDevolvida = isOrderNfeAuthorized({
+                      nfeStatus: inv.returnNfeStatus,
+                      nfeChave: inv.returnNfeChave,
+                    });
+                    return (
+                      <tr key={inv.id}>
+                        <td>
+                          {inv.number}/{inv.series}
+                          {jaDevolvida ? (
+                            <span className="ml-2 text-xs text-emerald-700 dark:text-emerald-400">
+                              · devolvida
+                              {inv.returnNfeNumero != null
+                                ? ` nº ${inv.returnNfeNumero}`
+                                : ""}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>{inv.supplier?.name ?? inv.emitenteName}</td>
+                        <td>{formatCents(inv.totalCents)}</td>
+                        <td>{inv._count.items}</td>
+                        <td>{inv._count.ledgerEntries}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            disabled={jaDevolvida}
+                            title={
+                              jaDevolvida
+                                ? "Já existe devolução autorizada"
+                                : "Gerar NF-e de devolução"
+                            }
+                            onClick={() => {
+                              setError("");
+                              setMsg("");
+                              setDevolucaoId(inv.id);
+                            }}
+                          >
+                            {jaDevolvida ? "Devolvida" : "Gerar devolução"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filteredImports.length === 0 ? (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={6}>
                         {q
                           ? "Nenhuma entrada corresponde à pesquisa."
                           : "Nenhuma entrada importada."}
@@ -608,6 +650,9 @@ export function NotasFiscaisPageClient() {
                           ? formatOrderCode(Number(n.pedidoNumero))
                           : String(n.pedidoNumero)
                         : null;
+                  const isDevolucao =
+                    String(n.tipo ?? "").toLowerCase() === "devolucao" ||
+                    Number(n.finNFe) === 4;
                   return (
                     <li
                       key={rowKey}
@@ -619,6 +664,11 @@ export function NotasFiscaisPageClient() {
                           ? `${n.numero}/${n.serie ?? 1}`
                           : "—"}{" "}
                         · {n.status ?? "—"}
+                        {isDevolucao ? (
+                          <span className="ml-2 rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                            Devolução
+                          </span>
+                        ) : null}
                       </p>
                       {(cliente || vendaCode) ? (
                         <p className="text-xs text-zinc-600 dark:text-zinc-400">
@@ -748,6 +798,24 @@ export function NotasFiscaisPageClient() {
           setError(text);
           setMsg("");
           setShowProdutosLink(false);
+        }}
+      />
+
+      <NfeDevolucaoSheet
+        open={Boolean(devolucaoId)}
+        purchaseId={devolucaoId}
+        onClose={() => setDevolucaoId(null)}
+        onDone={() => {
+          void loadImports();
+          if (session?.token) void refreshLists(session);
+        }}
+        onMessage={(text) => {
+          setMsg(text);
+          setError("");
+        }}
+        onError={(text) => {
+          setError(text);
+          setMsg("");
         }}
       />
 

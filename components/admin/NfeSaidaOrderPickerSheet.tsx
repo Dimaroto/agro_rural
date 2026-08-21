@@ -9,6 +9,7 @@ import {
   emitNfeFromBrowser,
   readNfeEmissorToken,
 } from "@/lib/nfe/client";
+import { isOrderNfeAuthorized } from "@/lib/nfe/order-nfe-authorized";
 import { fetchLocalToken } from "@/lib/nfe/fiscal-api";
 
 export type NfeSaidaOrder = {
@@ -104,12 +105,12 @@ export function NfeSaidaOrderPickerSheet({
   }
 
   async function selectOrder(order: NfeSaidaOrder) {
-    const chave = (order.nfeChave ?? "").replace(/\D/g, "");
-    const autorizada =
-      String(order.nfeStatus ?? "").toLowerCase() === "autorizada" &&
-      chave.length === 44;
-
-    if (autorizada) {
+    if (
+      isOrderNfeAuthorized({
+        nfeStatus: order.nfeStatus,
+        nfeChave: order.nfeChave,
+      })
+    ) {
       onAlreadyEmitted(order);
       onClose();
       return;
@@ -237,8 +238,8 @@ export function NfeSaidaOrderPickerSheet({
         </div>
 
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-          Selecione a venda. Se já houver NF-e autorizada, abrimos os documentos;
-          caso contrário, emitimos agora.
+          Selecione uma venda sem NF-e para emitir. Vendas com NF-e autorizada só
+          abrem os documentos — não é possível emitir de novo.
         </p>
 
         <label className="block text-sm mb-3">
@@ -260,9 +261,10 @@ export function NfeSaidaOrderPickerSheet({
           <ul className="space-y-2">
             {filtered.map((order) => {
               const code = formatOrderCode(order.orderNumber, order.id);
-              const already =
-                String(order.nfeStatus ?? "").toLowerCase() === "autorizada" &&
-                (order.nfeChave ?? "").replace(/\D/g, "").length === 44;
+              const already = isOrderNfeAuthorized({
+                nfeStatus: order.nfeStatus,
+                nfeChave: order.nfeChave,
+              });
               const busy = emittingId === order.id;
               return (
                 <li key={order.id}>
@@ -282,9 +284,13 @@ export function NfeSaidaOrderPickerSheet({
                       {order.customerName?.trim() || "Sem cliente"}
                       {already ? (
                         <span className="ml-2 text-emerald-700 dark:text-emerald-400">
-                          · NF-e autorizada
+                          · NF-e autorizada — ver documentos
                         </span>
-                      ) : null}
+                      ) : (
+                        <span className="ml-2 text-xs text-zinc-500">
+                          · Emitir NF-e
+                        </span>
+                      )}
                     </p>
                     {busy ? (
                       <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">

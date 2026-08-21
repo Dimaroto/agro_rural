@@ -14,6 +14,7 @@ import {
   downloadXml,
   openDanfe,
 } from "@/lib/nfe/documents";
+import { isOrderNfeAuthorized } from "@/lib/nfe/order-nfe-authorized";
 import { fetchLocalToken } from "@/lib/nfe/fiscal-api";
 import Link from "next/link";
 
@@ -82,6 +83,17 @@ export function OrderNfeEmitButton({
   }
 
   async function emit() {
+    if (
+      isOrderNfeAuthorized({
+        nfeStatus: statusLocal,
+        nfeChave: chaveLocal,
+      })
+    ) {
+      setError(
+        "Esta venda já possui NF-e autorizada. Use Imprimir/Salvar DANFE."
+      );
+      return;
+    }
     setLoading(true);
     setError("");
     setMessage("");
@@ -215,9 +227,10 @@ export function OrderNfeEmitButton({
     setMessage("Token salvo neste aparelho. Tente emitir de novo.");
   }
 
-  const alreadyOk =
-    String(statusLocal).toLowerCase() === "autorizada" &&
-    chaveLocal.replace(/\D/g, "").length === 44;
+  const alreadyOk = isOrderNfeAuthorized({
+    nfeStatus: statusLocal,
+    nfeChave: chaveLocal,
+  });
   const btnClass =
     "admin-btn-secondary min-h-[2.75rem] px-3 py-2 text-xs md:min-h-0";
   const printClass =

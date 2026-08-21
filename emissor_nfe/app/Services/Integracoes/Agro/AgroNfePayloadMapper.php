@@ -18,6 +18,7 @@ class AgroNfePayloadMapper
         $endereco = $destIn['endereco'] ?? [];
         $itensIn = $input['itens'] ?? [];
         $ideIn = is_array($input['ide'] ?? null) ? $input['ide'] : [];
+        $metaIn = is_array($input['meta_agro'] ?? null) ? $input['meta_agro'] : [];
 
         if ($itensIn === []) {
             throw new InvalidArgumentException('A nota precisa de ao menos um item.');
@@ -251,13 +252,37 @@ class AgroNfePayloadMapper
             $ide['tpImp'] = (int) ($ideIn['tpImp'] ?? 4);
         }
 
-        return [
+        $nfre = [];
+        $nfreIn = $input['NFref'] ?? $input['nfre'] ?? [];
+        if (is_array($nfreIn)) {
+            foreach ($nfreIn as $ref) {
+                $chaveRef = preg_replace(
+                    '/\D/',
+                    '',
+                    (string) (is_array($ref) ? ($ref['refNFe'] ?? $ref['chave'] ?? '') : $ref)
+                );
+                if (strlen($chaveRef) === 44) {
+                    $nfre[] = ['refNFe' => $chaveRef];
+                }
+            }
+        }
+
+        $indIEDest = (int) ($destIn['indIEDest'] ?? 9);
+        $ieDest = isset($destIn['ie'])
+            ? preg_replace('/\D/', '', (string) $destIn['ie'])
+            : null;
+        if ($ieDest && $indIEDest === 9) {
+            $indIEDest = 1;
+        }
+
+        $mapped = [
             'serie' => (int) ($input['serie'] ?? 1),
             'ide' => $ide,
             'destinatario' => [
                 'documento' => $documento,
                 'xNome' => (string) ($destIn['nome'] ?? 'DESTINATARIO'),
-                'indIEDest' => 9,
+                'indIEDest' => $indIEDest,
+                'IE' => $ieDest ?: null,
                 'email' => $destIn['email'] ?? null,
                 'logradouro' => (string) ($endereco['logradouro'] ?? 'NAO INFORMADO'),
                 'numero' => (string) (($endereco['numero'] ?? '') !== '' ? $endereco['numero'] : 'S/N'),
@@ -284,8 +309,17 @@ class AgroNfePayloadMapper
                 'referenciaId' => $input['referenciaId'] ?? null,
                 'pedidoId' => $pedidoId,
                 'pedidoNumero' => $pedidoNumero,
+                'tipo' => $input['tipo'] ?? ($metaIn['tipo'] ?? null),
+                'purchaseInvoiceId' => $input['purchaseInvoiceId']
+                    ?? ($metaIn['purchaseInvoiceId'] ?? null),
             ],
         ];
+
+        if ($nfre !== []) {
+            $mapped['NFref'] = $nfre;
+        }
+
+        return $mapped;
     }
 
     private function resolverCodigoMunicipioPorCep(string $cep): ?string

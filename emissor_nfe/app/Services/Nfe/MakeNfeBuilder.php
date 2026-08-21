@@ -50,6 +50,24 @@ class MakeNfeBuilder
         $stdIde->verProc = $ide['verProc'] ?? 'emissor_nfe 1.0';
         $make->tagide($stdIde);
 
+        // NF-e referenciada (ex.: devolução de compra)
+        $refs = $payload['NFref'] ?? [];
+        if (! is_array($refs)) {
+            $refs = [];
+        }
+        foreach ($refs as $ref) {
+            $chaveRef = preg_replace(
+                '/\D/',
+                '',
+                (string) (is_array($ref) ? ($ref['refNFe'] ?? '') : $ref)
+            );
+            if (strlen($chaveRef) === 44) {
+                $stdRef = new stdClass;
+                $stdRef->refNFe = $chaveRef;
+                $make->tagrefNFe($stdRef);
+            }
+        }
+
         $stdEmit = new stdClass;
         $stdEmit->xNome = $empresa->razao_social;
         $stdEmit->xFant = $empresa->nome_fantasia ?: $empresa->razao_social;
