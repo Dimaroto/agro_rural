@@ -4,11 +4,12 @@ const {
   BrowserView,
   ipcMain,
   shell,
+  session,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 
 const ADMIN_URL =
   process.env.AGRO_ADMIN_URL ||
@@ -16,6 +17,7 @@ const ADMIN_URL =
 const EMISSOR_URL = 'http://127.0.0.1:8001';
 const EMISSOR_HOME = `${EMISSOR_URL}/`;
 const TOOLBAR_H = 44;
+const AGRO_CLIENT_HEADER = 'x-agro-client';
 
 let mainWindow = null;
 let toolbarView = null;
@@ -64,6 +66,69 @@ function startEmissorHidden() {
     return;
   }
   throw new Error('start-local-hidden.vbs nao encontrado.');
+}
+
+/** Encerra o PHP do emissor (porta 8001 / runtime portatil) para liberar arquivos. */
+function stopEmissorHidden() {
+  const root = resolveEmissorRoot();
+  if (root) {
+    const stopBat = path.join(root, 'scripts', 'stop-local.bat');
+    if (fs.existsSync(stopBat)) {
+      try {
+        spawn('cmd.exe', ['/c', stopBat], {
+          cwd: root,
+          windowsHide: true,
+          stdio: 'ignore',
+        });
+      } catch (err) {
+        console.error('[emissor] falha ao rodar stop-local.bat:', err);
+      }
+    }
+  }
+  // Fallback: mata quem escuta 8001 e php.exe deste runtime
+  try {
+    execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        [
+          "$ErrorActionPreference='SilentlyContinue'",
+          "Get-NetTCPConnection -LocalPort 8001 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }",
+          root
+            ? `$php = Join-Path '${root.replace(/'/g, "''")}' 'runtime\\php\\php.exe'; if (Test-Path -LiteralPath $php) { $full = (Resolve-Path $php).Path; Get-CimInstance Win32_Process -Filter \"Name='php.exe'\" | Where-Object { $_.ExecutablePath -and ($_.ExecutablePath -ieq $full) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force } }`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('; '),
+      ],
+      { windowsHide: true, timeout: 15000 }
+    );
+  } catch (err) {
+    console.error('[emissor] fallback stop:', err);
+  }
+}
+
+function installDesktopClientHeader() {
+  const ses = session.defaultSession;
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    const headers = { ...details.requestHeaders };
+    try {
+      const host = new URL(details.url).hostname;
+      if (
+        host.includes('agroruralzortea.com.br') ||
+        host === 'localhost' ||
+        host === '127.0.0.1'
+      ) {
+        headers[AGRO_CLIENT_HEADER] = 'desktop';
+      }
+    } catch {
+      /* ignore */
+    }
+    callback({ requestHeaders: headers });
+  });
 }
 
 function checkEmissorUp() {
@@ -325,6 +390,7 @@ function maybeStartEmissorWithApp() {
 }
 
 app.whenReady().then(() => {
+  installDesktopClientHeader();
   createMainWindow();
   maybeStartEmissorWithApp();
   void pollOnce();
@@ -480,7 +546,16 @@ app.whenReady().then(() => {
   ipcMain.handle('window:fullscreen', () => toggleFullscreen());
 });
 
+app.on('before-quit', () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  stopEmissorHidden();
+});
+
 app.on('window-all-closed', () => {
   if (pollTimer) clearInterval(pollTimer);
+  stopEmissorHidden();
   app.quit();
 });

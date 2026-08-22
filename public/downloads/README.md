@@ -4,18 +4,18 @@
 
 Instalador completo (app + emissor NF-e) no GitHub Releases:
 
-https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
+https://github.com/Dimaroto/agro_rural/releases/download/v1.1.7/AgroRural-Setup-1.1.7.exe
 
-Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.6.exe`
+Arquivo gerado localmente: `installer/output/AgroRural-Setup-1.1.7.exe`
 
 O portal `/admin` usa `getEmissorSetupDownloadUrl()` (env ou esse fallback).
 
 Opcional na Vercel (Production):
 
 ```
-EMISSOR_SETUP_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
-NEXT_PUBLIC_EMISSOR_SETUP_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
-NEXT_PUBLIC_ADMIN_EXE_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe
+EMISSOR_SETUP_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.7/AgroRural-Setup-1.1.7.exe
+NEXT_PUBLIC_EMISSOR_SETUP_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.7/AgroRural-Setup-1.1.7.exe
+NEXT_PUBLIC_ADMIN_EXE_URL=https://github.com/Dimaroto/agro_rural/releases/download/v1.1.7/AgroRural-Setup-1.1.7.exe
 ```
 
 ## Android (pronto)

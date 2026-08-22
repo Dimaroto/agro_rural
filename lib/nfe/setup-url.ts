@@ -1,6 +1,6 @@
 /** URL pública do Setup Windows. Preferir env; fallback = release GitHub. */
 const FALLBACK_SETUP_BLOB =
-  "https://github.com/Dimaroto/agro_rural/releases/download/v1.1.6/AgroRural-Setup-1.1.6.exe";
+  "https://github.com/Dimaroto/agro_rural/releases/download/v1.1.7/AgroRural-Setup-1.1.7.exe";
 
 export function getEmissorSetupDownloadUrl(): string {
   return (

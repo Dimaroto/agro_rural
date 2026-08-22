@@ -47,17 +47,25 @@ function isAllowedAdminSession(jwt: JWT | null): boolean {
 }
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
   const isAdminRoute = pathname.startsWith("/admin");
   const isLogin = pathname === "/admin/login";
+  const isAppBoot =
+    pathname === "/admin/app-boot" || pathname.startsWith("/admin/app-boot/");
 
   if (isAdminRoute) {
     const jwt = await getAdminJwt(req);
     const authenticated = isAllowedAdminSession(jwt);
 
+    // App boot grava cookie client=desktop|mobile antes do login.
+    if (isAppBoot) {
+      return NextResponse.next();
+    }
+
     if (!isLogin && !authenticated) {
       const login = new URL("/admin/login", req.nextUrl.origin);
-      login.searchParams.set("callbackUrl", pathname);
+      const callback = `${pathname}${search || ""}`;
+      login.searchParams.set("callbackUrl", callback);
       return NextResponse.redirect(login);
     }
 
@@ -75,20 +83,21 @@ export async function middleware(req: NextRequest) {
       const appClient =
         parseAgroAppClient(req.headers.get(AGRO_APP_CLIENT_HEADER)) ??
         parseAgroAppClient(req.cookies.get(AGRO_APP_CLIENT_COOKIE)?.value) ??
-        parseAgroAppClient(req.nextUrl.searchParams.get("app"));
+        parseAgroAppClient(req.nextUrl.searchParams.get("app")) ??
+        parseAgroAppClient(req.nextUrl.searchParams.get("client"));
 
-      if (
-        !appClient &&
-        !isAdminWebAllowedPath(pathname) &&
-        !pathname.startsWith("/admin/app-boot")
-      ) {
+      if (!appClient && !isAdminWebAllowedPath(pathname)) {
         return NextResponse.redirect(new URL("/admin", req.nextUrl.origin));
       }
 
-      if (appClient && req.nextUrl.searchParams.get("app")) {
+      if (
+        appClient &&
+        (req.nextUrl.searchParams.get("app") ||
+          req.nextUrl.searchParams.get("client"))
+      ) {
         const clean = new URL(pathname, req.nextUrl.origin);
         req.nextUrl.searchParams.forEach((v, k) => {
-          if (k !== "app") clean.searchParams.set(k, v);
+          if (k !== "app" && k !== "client") clean.searchParams.set(k, v);
         });
         const res = NextResponse.redirect(clean);
         res.cookies.set(AGRO_APP_CLIENT_COOKIE, appClient, {

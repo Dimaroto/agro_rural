@@ -6,7 +6,7 @@
 #define MyAppName "Agro Rural"
 #define MyAppNameUI "Agro Rural"
 #define MyAppPublisher "Edem Software"
-#define MyAppVersion "1.1.6"
+#define MyAppVersion "1.1.7"
 #define MyAppExeName "AgroRural.exe"
 #define MyAppURL "https://agroruralzortea.com.br"
 
@@ -86,6 +86,12 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Fil
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\emissor_nfe\scripts\post-install-bootstrap.ps1"" -EmissorRoot ""{app}\emissor_nfe"" -PassphraseFile ""{src}\DESBLOQUEIO.txt"""; StatusMsg: "Configurando .env/Neon do emissor (nao feche)..."; Tasks: bootstrapdb; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "Abrir {#MyAppNameUI}"; Flags: nowait postinstall skipifsilent skipifdoesntexist; WorkingDir: "{app}"
 
+[UninstallRun]
+; Libera arquivos travados pelo Electron e pelo PHP do emissor (porta 8001)
+Filename: "{cmd}"; Parameters: "/C taskkill /F /IM AgroRural.exe /T >nul 2>&1 & taskkill /F /IM AgroRural.exe >nul 2>&1"; RunOnceId: "KillAgroRural"; Flags: runhidden
+Filename: "{cmd}"; Parameters: "/C if exist ""{app}\emissor_nfe\scripts\stop-local.bat"" (call ""{app}\emissor_nfe\scripts\stop-local.bat"")"; RunOnceId: "StopEmissorBat"; Flags: runhidden waituntilterminated
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\emissor_nfe\scripts\stop-local.ps1"" -AppRoot ""{app}"""; RunOnceId: "StopEmissorPs1"; Flags: runhidden waituntilterminated skipifdoesntexist
+
 [Code]
 function InitializeSetup(): Boolean;
 begin
@@ -106,6 +112,8 @@ begin
         mbError, MB_OK);
   end;
 end;
+
+
 
 
 

@@ -6,7 +6,7 @@
 #   2) powershell -ExecutionPolicy Bypass -File installer\build-windows.ps1 -IncludeSecrets
 
 param(
-    [string]$Version = '1.1.6',
+    [string]$Version = '1.1.7',
     [switch]$SkipComposer,
     [switch]$IncludeSecrets,
     [switch]$SkipCompile,
